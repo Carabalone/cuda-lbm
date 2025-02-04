@@ -1,0 +1,48 @@
+# Ignore compiled binaries and executables
+bin/
+
+# Ignore output files
+output/
+
+# Ignore object files and dependency files
+*.o
+*.d
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore build system files
+Makefile.deps
+*.make
+
+# Ignore macOS specific files
+.DS_Store
+
+# Ignore CUDA-specific temporary files
+*.cubin
+*.ptx
+*.fatbin
+
+# Ignore log files
+*.log
+
+# Ignore backup files
+*~
+*.bak
+
+# Ignore local environment files
+.env
+.env.local
+
+# Ignore CMake build files (if you ever use CMake)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Ignore Python virtual environments (if applicable)
+venv/
+env/
