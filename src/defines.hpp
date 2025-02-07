@@ -8,4 +8,7 @@
 // #define D3Q27
 #define D2Q9
 
+// CUDA specific stuff
+#define BLOCK_SIZE 16
+
 #endif // !DEFINES_H

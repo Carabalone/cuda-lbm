@@ -8,16 +8,16 @@
 
 // for D2Q9
 #ifdef D2Q9
-    const uint8_t dimensions = 2;
-    const uint8_t quadratures = 9;
+    constexpr uint8_t dimensions = 2;
+    constexpr uint8_t quadratures = 9;
 
-    __constant__ static const float[quadratures] WEIGHTS = {
+    const float h_weights[]= {
           4.0f/9.0f,
           1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f, 
           1.0f/36.0f, 1.0f/36.0f, 1.0f/36.0f, 1.0f/36.0f 
     };
 
-    __constant__ static const int[quadratures * dimensions] C = {
+    const int h_C[] = {
         0,  0,
         1,  0,
         0,  1,
@@ -27,7 +27,7 @@
        -1,  1,
        -1, -1,
         1, -1
-    }
+    };
 #endif
 
 constexpr inline float viscosity_to_tau(float v) {
@@ -38,24 +38,23 @@ class LBM {
 private:
     float *d_f, *d_f_back;   // f, f_back: [NX][NY][Q]
     float *d_rho, *d_u;      // rho: [NX][NY], u: [NX][NY][D]
-    float *d_feq
+    float *d_f_eq;
 
-    __host__ __device__ __forceinline__ inline int get_node_index(int node, int quadrature) {
+    __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
     }
 
-    __host__ __device__ __forceinline__ inline int get_velocity_index(int node) {
-
+   __forceinline__ int get_velocity_index(int node) {
+        //TODO
+        return node;
     }
 
-    __host__ __device__ void equilibrium(float* f_eq, int node, float ux, float uy, float rho);
-
-    __host__ __device__ void init(float* f, float* f_back, float* f_eq, float* rho, float* u);
+    __device__ static void equilibrium(float* f_eq, float ux, float uy, float rho, int node);
 
 public:
 
-    void allocate_arrays() {
-        std::cout << "allocating arrays\n";
+    void allocate() {
+        std::cout << "[LBM]: allocating\n";
 
         cudaMalloc((void**) &d_f,      NX * NY * quadratures * sizeof(float));
         cudaMalloc((void**) &d_f_back, NX * NY * quadratures * sizeof(float));
@@ -63,16 +62,25 @@ public:
 
         cudaMalloc((void**) &d_rho,    NX * NY * sizeof(float));
         cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
+
+        // checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
+        // checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
     }
 
-    void free_arrays() {
-        std::cout << "freeing arrays\n";
+    void free() {
+        std::cout << "[LBM]: Freeing\n";
 
         checkCudaErrors(cudaFree(d_f));  
         checkCudaErrors(cudaFree(d_f_back));  
+        checkCudaErrors(cudaFree(d_f_eq));  
         checkCudaErrors(cudaFree(d_rho));
         checkCudaErrors(cudaFree(d_u));
     }
+
+    __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
+
+    __host__ void init();
+
 };
 
 #endif // ! LBM_H

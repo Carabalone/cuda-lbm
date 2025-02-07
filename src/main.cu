@@ -35,7 +35,7 @@ int main(void) {
     std::cout << viscosity_to_tau(0.8) << std::endl;
 
     LBM lbm; // idea is control from host and give args to the kernels for the device.
-    lbm.allocate_arrays();
+    lbm.allocate();
     
     // while (timestaps) {
     //     lbm.stream();
@@ -45,7 +45,9 @@ int main(void) {
     //     lbm.process_boundary();
     // }
 
-    lbm.free_arrays();
+    lbm.init();
+
+    lbm.free();
 
     return 0;
 }
