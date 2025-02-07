@@ -5,11 +5,13 @@
 #include <stdint.h>
 #include "defines.hpp"
 #include "utility.cuh"
+#include <cmath>
 
 // for D2Q9
 #ifdef D2Q9
     constexpr uint8_t dimensions = 2;
     constexpr uint8_t quadratures = 9;
+    const float       cs = 1.0f / sqrt(3.0f);
 
     const float h_weights[]= {
           4.0f/9.0f,
