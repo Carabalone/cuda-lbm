@@ -81,7 +81,10 @@ public:
 
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
 
+    __device__ static void macroscopics_node(float* f, float* rho, float* u, int node);
+
     __host__ void init();
+    __host__ void macroscopics();
 
 };
 

@@ -100,3 +100,43 @@ void LBM::init() {
 
     printf("[init_kernel]: Threads executed: %d\n", h_debug_counter);
 }
+
+__global__ void macroscopics_kernel(float* f, float* rho, float* u) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int idx = y * NX + x;
+    LBM::macroscopics_node(f, rho, u, idx);
+}
+
+void LBM::macroscopics() {
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE, (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+
+    macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u);
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+// assumes no forcing scheme, else will have to correct velocity with forcing term
+__device__
+void LBM::macroscopics_node(float* f, float* rho, float* u, int node) {
+    rho[node]       = 0.0f;
+    u[2 * node]     = 0.0f;
+    u[2 * node + 1] = 0.0f;
+    for (int i=0; i < quadratures; i++) { 
+         // f[get_node_index(node, i)] = 
+         rho[node]       += f[get_node_index(node, i)];
+         u[2 * node]     += f[get_node_index(node, i)] * C[2 * i];
+         u[2 * node + 1] += f[get_node_index(node, i)] * C[2 * i + 1];
+    }
+
+    u[2 * node]     *= 1.0f / rho[node];
+    u[2 * node + 1] *= 1.0f / rho[node];
+
+    if (node == 0) {
+        printf("Node 0: rho=%.4f, ux=%.4f, uy=%.4f\n", 
+              rho[node], u[2*node], u[2*node+1]);
+    }
+}

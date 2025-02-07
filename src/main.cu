@@ -38,14 +38,15 @@ int main(void) {
     lbm.allocate();
     
     // while (timestaps) {
-    //     lbm.stream();
+    //     lbm.stream(); 
     //     lbm.update_macroscopic();
-    //     lbm.calc_equilibrium
+    //     lbm.calc_equilibrium <
     //     lbm.collide();
     //     lbm.process_boundary();
     // }
 
     lbm.init();
+    lbm.macroscopics();
 
     lbm.free();
 
