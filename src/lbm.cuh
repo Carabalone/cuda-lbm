@@ -46,6 +46,58 @@ private:
         return node * quadratures + quadrature;
     }
 
+    __device__ static __forceinline__ int get_node_index_right(int node, int quadrature) {
+        int x = node % NX;
+        if (x == NX - 1) return -1;  // No right neighbor
+        return node * quadratures + quadrature + 1;
+    }
+
+    __device__ static __forceinline__ int get_node_index_left(int node, int quadrature) {
+        int x = node % NX;
+        if (x == 0) return -1;  // No left neighbor
+        return node * quadratures + quadrature - 1;
+    }
+
+    __device__ static __forceinline__ int get_node_index_up(int node, int quadrature) {
+        int y = node / NX;
+        if (y == 0) return -1;  // No up neighbor
+        return node * quadratures + quadrature - quadratures;
+    }
+
+    __device__ static __forceinline__ int get_node_index_down(int node, int quadrature) {
+        int y = node / NX;
+        if (y == NY - 1) return -1; // No down neighbor
+        return node * quadratures + quadrature  + quadratures;
+    }
+
+    __device__ static __forceinline__ int get_node_index_up_right(int node, int quadrature) {
+        int x = node % NX;
+        int y = node / NX;
+        if (x == NX - 1 || y == 0) return -1; // No up-right neighbor
+        return node * quadratures + quadrature - quadratures + 1;
+    }
+
+    __device__ static __forceinline__ int get_node_index_up_left(int node, int quadrature) {
+        int x = node % NX;
+        int y = node / NX;
+        if (x == 0 || y == 0) return -1; // No up-left neighbor
+        return node * quadratures + quadrature - quadratures - 1;
+    }
+
+    __device__ static __forceinline__ int get_node_index_down_right(int node, int quadrature) {
+        int x = node % NX;
+        int y = node / NX;
+        if (x == NX - 1 || y == NY - 1) return -1; // No down-right neighbor
+        return node * quadratures + quadrature + quadratures + 1;
+    }
+
+    __device__ static __forceinline__ int get_node_index_down_left(int node, int quadrature) {
+        int x = node % NX;
+        int y = node / NX;
+        if (x == 0 || y == NY - 1) return -1; // No down-left neighbor
+        return node * quadratures + quadrature + quadratures - 1;
+    }
+
    __forceinline__ int get_velocity_index(int node) {
         //TODO
         return node;
@@ -80,11 +132,12 @@ public:
     }
 
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
-
     __device__ static void macroscopics_node(float* f, float* rho, float* u, int node);
+    __device__ static void stream_node(float* f, float* f_back, int node);
 
     __host__ void init();
     __host__ void macroscopics();
+    __host__ void stream();
 
 };
 

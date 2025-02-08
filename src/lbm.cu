@@ -140,3 +140,46 @@ void LBM::macroscopics_node(float* f, float* rho, float* u, int node) {
               rho[node], u[2*node], u[2*node+1]);
     }
 }
+
+__device__
+void LBM::stream_node(float* f, float* f_back, int node) {
+    const int x = node % NX;
+    const int y = node / NX;
+    const int baseIdx = get_node_index(node, 0);
+
+    for (int i=1; i < quadratures; i++) {
+        const int x_neigh = x + C[2*i];
+        const int y_neigh = y + C[2*i+1];
+
+        if (x_neigh < 0 || x_neigh >= NX || y_neigh < 0 || y_neigh >= NY)
+            continue;
+
+        const int idx_neigh = get_node_index(NX * y_neigh + x_neigh, i);
+
+        f_back[idx_neigh] = f[baseIdx + i];
+    }
+}
+
+__global__ void stream_kernel(float* f, float* f_back) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int idx = y * NX + x;
+    LBM::stream_node(f, f_back, idx);
+
+}
+
+void LBM::stream() {
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE, (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+
+    stream_kernel<<<blocks, threads>>>(d_f, d_f_back);
+    checkCudaErrors(cudaDeviceSynchronize());
+
+    float* temp;
+    temp = d_f;
+    d_f = d_f_back;
+    d_f_back = temp;
+}
