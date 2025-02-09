@@ -32,6 +32,10 @@
     };
 #endif
 
+// TODO: change later, ik this is bad
+constexpr float h_tau   = 0.55f;
+constexpr float h_omega = 1 / 0.55f;
+
 constexpr inline float viscosity_to_tau(float v) {
     return 3 * v + 0.5f;
 }
@@ -46,64 +50,10 @@ private:
         return node * quadratures + quadrature;
     }
 
-    __device__ static __forceinline__ int get_node_index_right(int node, int quadrature) {
-        int x = node % NX;
-        if (x == NX - 1) return -1;  // No right neighbor
-        return node * quadratures + quadrature + 1;
-    }
-
-    __device__ static __forceinline__ int get_node_index_left(int node, int quadrature) {
-        int x = node % NX;
-        if (x == 0) return -1;  // No left neighbor
-        return node * quadratures + quadrature - 1;
-    }
-
-    __device__ static __forceinline__ int get_node_index_up(int node, int quadrature) {
-        int y = node / NX;
-        if (y == 0) return -1;  // No up neighbor
-        return node * quadratures + quadrature - quadratures;
-    }
-
-    __device__ static __forceinline__ int get_node_index_down(int node, int quadrature) {
-        int y = node / NX;
-        if (y == NY - 1) return -1; // No down neighbor
-        return node * quadratures + quadrature  + quadratures;
-    }
-
-    __device__ static __forceinline__ int get_node_index_up_right(int node, int quadrature) {
-        int x = node % NX;
-        int y = node / NX;
-        if (x == NX - 1 || y == 0) return -1; // No up-right neighbor
-        return node * quadratures + quadrature - quadratures + 1;
-    }
-
-    __device__ static __forceinline__ int get_node_index_up_left(int node, int quadrature) {
-        int x = node % NX;
-        int y = node / NX;
-        if (x == 0 || y == 0) return -1; // No up-left neighbor
-        return node * quadratures + quadrature - quadratures - 1;
-    }
-
-    __device__ static __forceinline__ int get_node_index_down_right(int node, int quadrature) {
-        int x = node % NX;
-        int y = node / NX;
-        if (x == NX - 1 || y == NY - 1) return -1; // No down-right neighbor
-        return node * quadratures + quadrature + quadratures + 1;
-    }
-
-    __device__ static __forceinline__ int get_node_index_down_left(int node, int quadrature) {
-        int x = node % NX;
-        int y = node / NX;
-        if (x == 0 || y == NY - 1) return -1; // No down-left neighbor
-        return node * quadratures + quadrature + quadratures - 1;
-    }
-
    __forceinline__ int get_velocity_index(int node) {
         //TODO
         return node;
     }
-
-    __device__ static void equilibrium(float* f_eq, float ux, float uy, float rho, int node);
 
 public:
 
@@ -116,9 +66,6 @@ public:
 
         cudaMalloc((void**) &d_rho,    NX * NY * sizeof(float));
         cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
-
-        // checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
-        // checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
     }
 
     void free() {
@@ -131,13 +78,17 @@ public:
         checkCudaErrors(cudaFree(d_u));
     }
 
+    __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
     __device__ static void macroscopics_node(float* f, float* rho, float* u, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
+    __device__ static void collide_node(float* f, float* f_eq, int node);
 
     __host__ void init();
     __host__ void macroscopics();
     __host__ void stream();
+    __host__ void collide();
+    __host__ void compute_equilibrium();
 
 };
 

@@ -6,11 +6,14 @@
 
     __constant__ float WEIGHTS[quadratures];
     __constant__ int C[quadratures * dimensions];
+    __constant__ float tau;
+    __constant__ float omega;
 
 #endif
 
 // u -> velocity, rho -> density
-void LBM::equilibrium(float* f_eq, float ux, float uy, float rho, int node) {
+__device__
+void LBM::equilibrium_node(float* f_eq, float ux, float uy, float rho, int node) {
     float u_dot_u = ux * ux + uy * uy;
     float cs  = 1.0f / sqrt(3.0f);
     float cs2 = cs * cs;
@@ -45,13 +48,39 @@ void LBM::equilibrium(float* f_eq, float ux, float uy, float rho, int node) {
 
 }
 
+__global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int node = y * NX + x;
+
+    float node_rho = rho[node];
+    float node_ux = u[2 * node];
+    float node_uy = u[2 * node + 1];
+
+    LBM::equilibrium_node(f_eq, node_ux, node_uy, node_rho, node);
+}
+
+void LBM::compute_equilibrium() {
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+    equilibrium_kernel<<<blocks, threads>>>(d_f_eq, d_rho, d_u);
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+
+__device__
 void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
     rho[node] = 1.0f;
 
     u[2 * node]     = 0.0f;
     u[2 * node + 1] = 0.0f;
 
-    equilibrium(f_eq, u[2*node], u[2*node+1], rho[node], node);
+    equilibrium_node(f_eq, u[2*node], u[2*node+1], rho[node], node);
 
     for (int q = 0; q < quadratures; q++) {
         int i = get_node_index(node, q);
@@ -81,11 +110,14 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
 }
 
 void LBM::init() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE, (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
     checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
     checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
+    checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
 
     int* d_debug_counter;
     int h_debug_counter = 0;
@@ -112,7 +144,8 @@ __global__ void macroscopics_kernel(float* f, float* rho, float* u) {
 }
 
 void LBM::macroscopics() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE, (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
     macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u);
@@ -172,7 +205,8 @@ __global__ void stream_kernel(float* f, float* f_back) {
 }
 
 void LBM::stream() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE, (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
     stream_kernel<<<blocks, threads>>>(d_f, d_f_back);
@@ -182,4 +216,39 @@ void LBM::stream() {
     temp = d_f;
     d_f = d_f_back;
     d_f_back = temp;
+}
+
+// BGK Collision
+__device__
+void LBM::collide_node(float* f, float* f_eq, int node) {
+     for (int i = 0; i < quadratures; i++) {
+        int idx = get_node_index(node, i);
+        float f_old = f[idx];
+
+        f[idx] = f[idx] * (1-omega) - omega * f_eq[idx];
+
+        if (node == 0) {
+            printf("Node %d, Dir %d: f_old = %.4f, f_eq = %.4f, f_new = %.4f\n",
+                   node, i, f_old, f_eq[idx], f[idx]);
+        }
+    }
+}
+
+__global__ void collide_kernel(float* f, float* f_eq) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int idx = y * NX + x;
+    LBM::collide_node(f, f_eq, idx);
+}
+
+void LBM::collide() {
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+
+    collide_kernel<<<blocks, threads>>>(d_f, d_f_eq);
+    checkCudaErrors(cudaDeviceSynchronize());
 }
