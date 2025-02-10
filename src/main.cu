@@ -51,6 +51,7 @@ int main(void) {
     lbm.compute_equilibrium();
     lbm.collide();
     lbm.stream();
+    lbm.apply_boundaries();
 
     lbm.free();
 

@@ -6,35 +6,9 @@
 #include "defines.hpp"
 #include "utility.cuh"
 #include <cmath>
-
-// for D2Q9
-#ifdef D2Q9
-    constexpr uint8_t dimensions = 2;
-    constexpr uint8_t quadratures = 9;
-    const float       cs = 1.0f / sqrt(3.0f);
-
-    const float h_weights[]= {
-          4.0f/9.0f,
-          1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f, 
-          1.0f/36.0f, 1.0f/36.0f, 1.0f/36.0f, 1.0f/36.0f 
-    };
-
-    const int h_C[] = {
-        0,  0,
-        1,  0,
-        0,  1,
-       -1,  0,
-        0, -1,
-        1,  1,
-       -1,  1,
-       -1, -1,
-        1, -1
-    };
-#endif
-
-// TODO: change later, ik this is bad
-constexpr float h_tau   = 0.55f;
-constexpr float h_omega = 1 / 0.55f;
+#include "lbm_constants.cuh"
+#include "functors/defaultInit.cuh"
+#include "functors/defaultBoundary.cuh"
 
 constexpr inline float viscosity_to_tau(float v) {
     return 3 * v + 0.5f;
@@ -83,12 +57,14 @@ public:
     __device__ static void macroscopics_node(float* f, float* rho, float* u, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
     __device__ static void collide_node(float* f, float* f_eq, int node);
+    __device__ static void boundaries_node(float* f, float* f_back, int node);
 
     __host__ void init();
     __host__ void macroscopics();
     __host__ void stream();
     __host__ void collide();
     __host__ void compute_equilibrium();
+    __host__ void apply_boundaries();
 
 };
 

@@ -8,6 +8,7 @@
     __constant__ int C[quadratures * dimensions];
     __constant__ float tau;
     __constant__ float omega;
+    __constant__ int OPP[quadratures];
 
 #endif
 
@@ -75,10 +76,6 @@ void LBM::compute_equilibrium() {
 
 __device__
 void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
-    rho[node] = 1.0f;
-
-    u[2 * node]     = 0.0f;
-    u[2 * node + 1] = 0.0f;
 
     equilibrium_node(f_eq, u[2*node], u[2*node+1], rho[node], node);
 
@@ -97,6 +94,7 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
 
 }
 
+template<typename InitCond>
 __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, float* u, int* debug_counter) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -105,6 +103,7 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
 
     int idx = y * NX + x;
 
+    InitCond::apply(rho, u, idx);
     atomicAdd(debug_counter, 1);
     LBM::init_node(f, f_back, f_eq, rho, u, idx);
 }
@@ -118,13 +117,14 @@ void LBM::init() {
     checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
     checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
 
     int* d_debug_counter;
     int h_debug_counter = 0;
     cudaMalloc(&d_debug_counter, 1 * sizeof(int));
     cudaMemcpy(d_debug_counter, &h_debug_counter, 1 * sizeof(int), cudaMemcpyHostToDevice);
 
-    init_kernel<<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, d_debug_counter);
+    init_kernel<DefaultInit><<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, d_debug_counter);
     checkCudaErrors(cudaDeviceSynchronize());
 
     cudaMemcpy(&h_debug_counter, d_debug_counter, 1 * sizeof(int), cudaMemcpyDeviceToHost);
@@ -158,6 +158,7 @@ void LBM::macroscopics_node(float* f, float* rho, float* u, int node) {
     rho[node]       = 0.0f;
     u[2 * node]     = 0.0f;
     u[2 * node + 1] = 0.0f;
+
     for (int i=0; i < quadratures; i++) { 
          // f[get_node_index(node, i)] = 
          rho[node]       += f[get_node_index(node, i)];
@@ -250,5 +251,26 @@ void LBM::collide() {
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
     collide_kernel<<<blocks, threads>>>(d_f, d_f_eq);
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+
+template<typename BoundaryCond>
+__global__ void boundaries_kernel(float* f, float* f_back) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int idx = y * NX + x;
+    BoundaryCond::apply(f, f_back, C, OPP, idx);
+}
+
+void LBM::apply_boundaries() {
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+
+    boundaries_kernel<DefaultBoundary><<<blocks, threads>>>(d_f, d_f_back);
     checkCudaErrors(cudaDeviceSynchronize());
 }
