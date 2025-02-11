@@ -28,9 +28,6 @@ void setup_cuda() {
 int main(void) {
     setup_cuda();
 
-    cudaEvent_t start, stop;
-    checkCudaErrors(cudaEventCreate(&start));
-    checkCudaErrors(cudaEventCreate(&stop));
 
     std::cout << viscosity_to_tau(0.8) << std::endl;
 
@@ -50,12 +47,24 @@ int main(void) {
 
     lbm.init();
 
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
     while (t < totalTimesteps) {
+        cudaEventRecord(start);
+
         lbm.macroscopics();
         lbm.compute_equilibrium();
         lbm.collide();
         lbm.stream();
         lbm.apply_boundaries();
+
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
 
         if (t % (totalTimesteps / 10) == 0) {
             float progress = (t * 100.0f) / totalTimesteps;
@@ -63,6 +72,8 @@ int main(void) {
         }
         if (t % 100 == 0)
             lbm.save_macroscopics(t);
+
+        t++;
     }
 
     lbm.free();

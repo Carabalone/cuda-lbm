@@ -1,4 +1,5 @@
 #include "lbm.cuh"
+#include "functors/cylinderBoundary.cuh"
 
 #ifdef D2Q9
     // look, I know this is bad. I have to define __constant__ variables in .cu files as far as I know
@@ -130,6 +131,8 @@ void LBM::init() {
     cudaMemcpy(&h_debug_counter, d_debug_counter, 1 * sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_debug_counter);
 
+    setup_boundary_flags();
+
     printf("[init_kernel]: Threads executed: %d\n", h_debug_counter);
 }
 
@@ -255,15 +258,40 @@ void LBM::collide() {
 }
 
 
-template<typename BoundaryCond>
-__global__ void boundaries_kernel(float* f, float* f_back) {
+__global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= NX || y >= NY) return;
 
     int idx = y * NX + x;
-    BoundaryCond::apply(f, f_back, C, OPP, idx);
+
+    DefaultBoundary::apply(f, f_back, C, OPP, idx);
+
+    // int flag = boundary_flags[idx];
+    // switch (flag) {
+    //     case 0:
+    //         // Interior node;.
+    //         break;
+    //     case 1:
+    //         // Top/bottom bounce-back
+    //         DefaultBoundary::apply(f, f_back, C, OPP, idx);
+    //         break;
+    //     case 2:
+    //         CylinderBoundary::apply(f, f_back, C, OPP, idx);
+    //         break;
+    //     case 3:
+    //         InflowBoundary::apply(f, f_back, C, OPP, idx);
+    //         break;
+    //     case 4:
+    //         OutflowBoundary::apply(f, f_back, C, OPP, idx);
+    //         break;
+    //     default:
+    //         // Unknown flag; do nothing.
+    //         printf("Unknown Flag\n");
+    //         break;
+    // }
+
 }
 
 void LBM::apply_boundaries() {
@@ -271,6 +299,41 @@ void LBM::apply_boundaries() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    boundaries_kernel<DefaultBoundary><<<blocks, threads>>>(d_f, d_f_back);
+    boundaries_kernel<<<blocks, threads>>>(d_f, d_f_back, d_boundary_flags);
     checkCudaErrors(cudaDeviceSynchronize());
+}
+
+void LBM::setup_boundary_flags() {
+    int num_nodes = NX * NY;
+    std::vector<int> h_boundary_flags(num_nodes, 0);
+
+    // This is bad and not modular, but it is just for testing. Actual geometry will use IBM and not standard bounce back boundaries.
+    CylinderBoundary cb = CylinderBoundary(
+        NX / 4.0f, // cx
+        NY / 2.0f, // cy
+        NX / 8.0f  // r
+    );
+
+    for (int node = 0; node < num_nodes; node++) {
+        int x = node % NX;
+        int y = node / NX;
+        
+        // top or bottom boundaries
+        if (y == 0 || y == NY - 1) {
+            h_boundary_flags[node] = 1;
+        }
+        // inflow on left
+        else if (x == 0) {
+            h_boundary_flags[node] = 3;
+        }
+        // outflow on right
+        else if (x == NX - 1) {
+            h_boundary_flags[node] = 4;
+        }
+        // cylinder boundary: 
+        else if (cb.is_boundary(node)) {
+            h_boundary_flags[node] = 2;
+        }
+    }
+    checkCudaErrors(cudaMemcpy(d_boundary_flags, h_boundary_flags.data(), num_nodes * sizeof(int), cudaMemcpyHostToDevice));
 }

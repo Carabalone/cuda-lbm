@@ -30,8 +30,8 @@
 #endif
 
 // TODO: change later, ik this is bad
-constexpr float h_tau   = 0.55f;
-constexpr float h_omega = 1 / 0.55f;
+constexpr float h_tau   = 0.65f;
+constexpr float h_omega = 1 / 0.65f;
 
 __device__ __host__ __forceinline__
 int get_node_index(int node, int quadrature) {

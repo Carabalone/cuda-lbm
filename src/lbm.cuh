@@ -10,8 +10,11 @@
 #include <sstream>
 #include <vector>
 #include "lbm_constants.cuh"
-#include "functors/defaultInit.cuh"
-#include "functors/defaultBoundary.cuh"
+#include "./functors/defaultInit.cuh"
+#include "./functors/defaultBoundary.cuh"
+#include "./functors/cylinderBoundary.cuh"
+#include "./functors/zouHeInflow.cuh"
+#include "./functors/zeroGradientOutflow.cuh"
 
 constexpr inline float viscosity_to_tau(float v) {
     return 3 * v + 0.5f;
@@ -19,9 +22,10 @@ constexpr inline float viscosity_to_tau(float v) {
 
 class LBM {
 private:
-    float *d_f, *d_f_back;   // f, f_back: [NX][NY][Q]
+    float *d_f, *d_f_back;   // f, f_back, f_eq: [NX][NY][Q]
     float *d_rho, *d_u;      // rho: [NX][NY], u: [NX][NY][D]
     float *d_f_eq;
+    int   *d_boundary_flags; // [NX][NY]
 
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
@@ -31,6 +35,8 @@ private:
         //TODO
         return node;
     }
+
+    void setup_boundary_flags();
 
 public:
 
@@ -43,6 +49,8 @@ public:
 
         cudaMalloc((void**) &d_rho,    NX * NY * sizeof(float));
         cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
+
+        cudaMalloc((void**) &d_boundary_flags, NX * NY * sizeof(int));
     }
 
     void free() {
@@ -53,6 +61,7 @@ public:
         checkCudaErrors(cudaFree(d_f_eq));  
         checkCudaErrors(cudaFree(d_rho));
         checkCudaErrors(cudaFree(d_u));
+        checkCudaErrors(cudaFree(d_boundary_flags));
     }
 
     void save_macroscopics(int timestep) {
