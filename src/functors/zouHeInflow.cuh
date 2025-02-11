@@ -1,5 +1,12 @@
+#ifndef ZOU_HE_H
+#define ZOU_HE_H
+
+#include "lbm_constants.cuh"
+
 struct InflowBoundary {
     __device__ static void apply(float* f, float* f_back, const int* C, const int* OPP, int node) {
+
+        node = get_node_index(node);
         // Inflow velocity (u, v)
         const float ux = 0.1f;  // Example velocity in the x-direction
         const float uy = 0.0f;
@@ -13,3 +20,5 @@ struct InflowBoundary {
         f[7 + node] = f[5 + node] + 0.5f * ((f[3 + node] - f[4 + node]) - rho * uy) - (1.0f / 6.0f) * rho * ux;
     }
 };
+
+#endif // ! ZOU_HE_H

@@ -1,6 +1,15 @@
 #include "lbm.cuh"
 #include "functors/cylinderBoundary.cuh"
 
+#define DEBUG_KERNEL 1
+#define DEBUG_NODE 2
+
+#if DEBUG_KERNEL
+  #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+  #define DPRINTF(fmt, ...)
+#endif
+
 #ifdef D2Q9
     // look, I know this is bad. I have to define __constant__ variables in .cu files as far as I know
     // and this is the best way I can do it now.
@@ -62,7 +71,16 @@ __global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u
     float node_ux = u[2 * node];
     float node_uy = u[2 * node + 1];
 
+    if (node == DEBUG_NODE) {
+        DPRINTF("[equilibrium_kernel] Node %d (x=%d,y=%d): rho=%f, u=(%f,%f)\n",
+                node, x, y, node_rho, node_ux, node_uy);
+    }
+
     LBM::equilibrium_node(f_eq, node_ux, node_uy, node_rho, node);
+
+    if (node == DEBUG_NODE) {
+        DPRINTF("[equilibrium_kernel] f_eq[%d] = %f\n", get_node_index(node, 0), f_eq[get_node_index(node, 0)]);
+    }
 }
 
 void LBM::compute_equilibrium() {
@@ -74,6 +92,11 @@ void LBM::compute_equilibrium() {
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// ---------------------------------------INIT----------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
 
 __device__
 void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
@@ -89,7 +112,7 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
     // Debug
     if (node == 0) {
         for (int i = 0; i < quadratures; i++) {
-            printf("f[%d] = %f\n", i, WEIGHTS[i]);
+            printf("init f[%d] = %f\n", i, WEIGHTS[i]);
         }
     }
 
@@ -136,14 +159,24 @@ void LBM::init() {
     printf("[init_kernel]: Threads executed: %d\n", h_debug_counter);
 }
 
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// ------------------------------------MACROSCOPICS-----------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+
 __global__ void macroscopics_kernel(float* f, float* rho, float* u) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= NX || y >= NY) return;
 
-    int idx = y * NX + x;
-    LBM::macroscopics_node(f, rho, u, idx);
+    int node = y * NX + x;
+    LBM::macroscopics_node(f, rho, u, node);
+    if (node == DEBUG_NODE) {
+        DPRINTF("[macroscopics_kernel] Node %d: rho=%f, u=(%f, %f)\n",
+                node, rho[node], u[2*node], u[2*node+1]);
+    }
 }
 
 void LBM::macroscopics() {
@@ -172,11 +205,17 @@ void LBM::macroscopics_node(float* f, float* rho, float* u, int node) {
     u[2 * node]     *= 1.0f / rho[node];
     u[2 * node + 1] *= 1.0f / rho[node];
 
-    if (node == 0) {
-        printf("Node 0: rho=%.4f, ux=%.4f, uy=%.4f\n", 
-              rho[node], u[2*node], u[2*node+1]);
-    }
+    // if (node == 0) {
+    //     printf("Node 0: rho=%.4f, ux=%.4f, uy=%.4f\n", 
+    //           rho[node], u[2*node], u[2*node+1]);
+    // }
 }
+
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// --------------------------------------STREAMING------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
 
 __device__
 void LBM::stream_node(float* f, float* f_back, int node) {
@@ -203,9 +242,23 @@ __global__ void stream_kernel(float* f, float* f_back) {
 
     if (x >= NX || y >= NY) return;
 
-    int idx = y * NX + x;
-    LBM::stream_node(f, f_back, idx);
+    int node = y * NX + x;
 
+    if (node == DEBUG_NODE) {
+        DPRINTF("[stream_kernel] Before streaming (node %d):\n", node);
+        for (int i = 0; i < quadratures; i++) {
+            DPRINTF("    f[%d] = %f\n", get_node_index(node, i), f[get_node_index(node, i)]);
+        }
+    }
+
+    LBM::stream_node(f, f_back, node);
+
+    if (node == DEBUG_NODE) {
+        DPRINTF("[stream_kernel] After streaming (node %d):\n", node);
+        for (int i = 0; i < quadratures; i++) {
+            DPRINTF("    f_back[%d] = %f\n", get_node_index(node, i), f_back[get_node_index(node, i)]);
+        }
+    }
 }
 
 void LBM::stream() {
@@ -222,19 +275,24 @@ void LBM::stream() {
     d_f_back = temp;
 }
 
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// ----------------------------------------COLLISION----------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+
 // BGK Collision
 __device__
 void LBM::collide_node(float* f, float* f_eq, int node) {
      for (int i = 0; i < quadratures; i++) {
         int idx = get_node_index(node, i);
-        float f_old = f[idx];
 
-        f[idx] = f[idx] * (1-omega) - omega * f_eq[idx];
+        f[idx] = f[idx] * (1-omega) + omega * f_eq[idx];
 
-        if (node == 0) {
-            printf("Node %d, Dir %d: f_old = %.4f, f_eq = %.4f, f_new = %.4f\n",
-                   node, i, f_old, f_eq[idx], f[idx]);
-        }
+        // if (node == 0) {
+        //     printf("Node %d, Dir %d: f_old = %.4f, f_eq = %.4f, f_new = %.4f\n",
+        //            node, i, f_old, f_eq[idx], f[idx]);
+            // }
     }
 }
 
@@ -244,8 +302,25 @@ __global__ void collide_kernel(float* f, float* f_eq) {
 
     if (x >= NX || y >= NY) return;
 
-    int idx = y * NX + x;
-    LBM::collide_node(f, f_eq, idx);
+    int node = y * NX + x;
+
+    if (node == DEBUG_NODE) {
+        DPRINTF("[collide_kernel] Before collision (node %d):\n", node);
+        for (int i = 0; i < quadratures; i++) {
+            int idx = get_node_index(node, i);
+            DPRINTF("    Dir %d: f[%d] = %f, f_eq = %f\n", i, idx, f[idx], f_eq[idx]);
+        }
+    }
+
+    LBM::collide_node(f, f_eq, node);
+
+    if (node == DEBUG_NODE) {
+        DPRINTF("[collide_kernel] After collision (node %d):\n", node);
+        for (int i = 0; i < quadratures; i++) {
+            int idx = get_node_index(node, i);
+            DPRINTF("    Dir %d: f[%d] = %f\n", i, idx, f[idx]);
+        }
+    }
 }
 
 void LBM::collide() {
@@ -257,6 +332,11 @@ void LBM::collide() {
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// --------------------------------------BOUNDARIES-----------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
 
 __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -268,29 +348,29 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
 
     DefaultBoundary::apply(f, f_back, C, OPP, idx);
 
-    // int flag = boundary_flags[idx];
-    // switch (flag) {
-    //     case 0:
-    //         // Interior node;.
-    //         break;
-    //     case 1:
-    //         // Top/bottom bounce-back
-    //         DefaultBoundary::apply(f, f_back, C, OPP, idx);
-    //         break;
-    //     case 2:
-    //         CylinderBoundary::apply(f, f_back, C, OPP, idx);
-    //         break;
-    //     case 3:
-    //         InflowBoundary::apply(f, f_back, C, OPP, idx);
-    //         break;
-    //     case 4:
-    //         OutflowBoundary::apply(f, f_back, C, OPP, idx);
-    //         break;
-    //     default:
-    //         // Unknown flag; do nothing.
-    //         printf("Unknown Flag\n");
-    //         break;
-    // }
+    int flag = boundary_flags[idx];
+    switch (flag) {
+        case 0:
+            // Interior node;.
+            break;
+        case 1:
+            // Top/bottom bounce-back
+            DefaultBoundary::apply(f, f_back, C, OPP, idx);
+            break;
+        case 2:
+            CylinderBoundary::apply(f, f_back, C, OPP, idx);
+            break;
+        case 3:
+            InflowBoundary::apply(f, f_back, C, OPP, idx);
+            break;
+        case 4:
+            // OutflowBoundary::apply(f, f_back, C, OPP, idx);
+            break;
+        default:
+            // Unknown flag; do nothing.
+            printf("Unknown Flag\n");
+            break;
+    }
 
 }
 

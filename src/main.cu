@@ -42,7 +42,7 @@ int main(void) {
     //     lbm.process_boundary();
     // }
 
-    const int totalTimesteps = 10000;
+    const int totalTimesteps = 100;
     int t = 0;
 
     lbm.init();
@@ -66,7 +66,7 @@ int main(void) {
         float milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, start, stop);
 
-        if (t % (totalTimesteps / 10) == 0) {
+        if (t % (totalTimesteps / 1/*0*/) == 0) {
             float progress = (t * 100.0f) / totalTimesteps;
             printf("Simulation progress: %.1f%% (timestep %d/%d)\n", progress, t, totalTimesteps);
         }
