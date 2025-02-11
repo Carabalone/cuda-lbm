@@ -6,6 +6,9 @@
 #include "defines.hpp"
 #include "utility.cuh"
 #include <cmath>
+#include <fstream>
+#include <sstream>
+#include <vector>
 #include "lbm_constants.cuh"
 #include "functors/defaultInit.cuh"
 #include "functors/defaultBoundary.cuh"
@@ -50,6 +53,38 @@ public:
         checkCudaErrors(cudaFree(d_f_eq));  
         checkCudaErrors(cudaFree(d_rho));
         checkCudaErrors(cudaFree(d_u));
+    }
+
+    void save_macroscopics(int timestep) {
+        int num_nodes = NX * NY;
+        
+        std::vector<float> h_rho(num_nodes);
+        std::vector<float> h_u(2 * num_nodes);
+
+        checkCudaErrors(cudaMemcpy(h_rho.data(), d_rho, num_nodes * sizeof(float), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(h_u.data(), d_u, 2 * num_nodes * sizeof(float), cudaMemcpyDeviceToHost));
+
+        std::ostringstream rho_filename, vel_filename;
+        rho_filename << "output/density/density_" << timestep << ".bin";
+        vel_filename << "output/velocity/velocity_" << timestep << ".bin";
+
+        std::ofstream rho_file(rho_filename.str(), std::ios::out | std::ios::binary);
+        if (!rho_file) {
+            printf("Error: Could not open file %s for writing.\n", rho_filename.str().c_str());
+            return;
+        }
+        rho_file.write(reinterpret_cast<const char*>(h_rho.data()), num_nodes * sizeof(float));
+        rho_file.close();
+
+        std::ofstream vel_file(vel_filename.str(), std::ios::out | std::ios::binary);
+        if (!vel_file) {
+            printf("Error: Could not open file %s for writing.\n", vel_filename.str().c_str());
+            return;
+        }
+        vel_file.write(reinterpret_cast<const char*>(h_u.data()), 2 * num_nodes * sizeof(float));
+        vel_file.close();
+
+        printf("Saved macroscopics for timestep %d\n", timestep);
     }
 
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);

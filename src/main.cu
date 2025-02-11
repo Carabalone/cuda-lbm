@@ -45,13 +45,25 @@ int main(void) {
     //     lbm.process_boundary();
     // }
 
+    const int totalTimesteps = 10000;
+    int t = 0;
+
     lbm.init();
 
-    lbm.macroscopics();
-    lbm.compute_equilibrium();
-    lbm.collide();
-    lbm.stream();
-    lbm.apply_boundaries();
+    while (t < totalTimesteps) {
+        lbm.macroscopics();
+        lbm.compute_equilibrium();
+        lbm.collide();
+        lbm.stream();
+        lbm.apply_boundaries();
+
+        if (t % (totalTimesteps / 10) == 0) {
+            float progress = (t * 100.0f) / totalTimesteps;
+            printf("Simulation progress: %.1f%% (timestep %d/%d)\n", progress, t, totalTimesteps);
+        }
+        if (t % 100 == 0)
+            lbm.save_macroscopics(t);
+    }
 
     lbm.free();
 
