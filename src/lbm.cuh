@@ -9,12 +9,15 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <filesystem>
 #include "lbm_constants.cuh"
 #include "./functors/defaultInit.cuh"
 #include "./functors/defaultBoundary.cuh"
 #include "./functors/cylinderBoundary.cuh"
 #include "./functors/zouHeInflow.cuh"
 #include "./functors/zeroGradientOutflow.cuh"
+
+namespace fs = std::filesystem;
 
 constexpr inline float viscosity_to_tau(float v) {
     return 3 * v + 0.5f;
@@ -77,6 +80,9 @@ public:
         rho_filename << "output/density/density_" << timestep << ".bin";
         vel_filename << "output/velocity/velocity_" << timestep << ".bin";
 
+        if (!fs::is_directory("output/density") || !fs::exists("output/density"))
+            fs::create_directory("output/density");
+
         std::ofstream rho_file(rho_filename.str(), std::ios::out | std::ios::binary);
         if (!rho_file) {
             printf("Error: Could not open file %s for writing.\n", rho_filename.str().c_str());
@@ -85,6 +91,8 @@ public:
         rho_file.write(reinterpret_cast<const char*>(h_rho.data()), num_nodes * sizeof(float));
         rho_file.close();
 
+        if (!fs::is_directory("output/velocity") || !fs::exists("output/velocity"))
+            fs::create_directory("output/velocity");
         std::ofstream vel_file(vel_filename.str(), std::ios::out | std::ios::binary);
         if (!vel_file) {
             printf("Error: Could not open file %s for writing.\n", vel_filename.str().c_str());

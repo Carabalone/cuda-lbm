@@ -42,7 +42,7 @@ int main(void) {
     //     lbm.process_boundary();
     // }
 
-    const int totalTimesteps = 100;
+    const int totalTimesteps = 10000;
     int t = 0;
 
     lbm.init();

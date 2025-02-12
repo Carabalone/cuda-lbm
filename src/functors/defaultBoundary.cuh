@@ -19,11 +19,11 @@ struct DefaultBoundary {
         
                 int opp_i = OPP[i];
                 
-                if (node == 0) {
-                    printf("  Applying boundary condition for direction %d:\n", i);
-                    printf("    f[%d] = %f, f_back[%d] = %f\n",
-                           baseIdx + i, f[baseIdx + i], baseIdx + opp_i, f_back[baseIdx + opp_i]);
-                }
+                // if (node == 0) {
+                //     printf("  Applying boundary condition for direction %d:\n", i);
+                //     printf("    f[%d] = %f, f_back[%d] = %f\n",
+                //            baseIdx + i, f[baseIdx + i], baseIdx + opp_i, f_back[baseIdx + opp_i]);
+                // }
 
                 f_back[baseIdx + opp_i] = f[baseIdx + i];
             } 
