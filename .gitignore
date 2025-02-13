@@ -46,3 +46,5 @@ Makefile
 # Ignore Python virtual environments (if applicable)
 venv/
 env/
+
+*.mp4

@@ -21,7 +21,17 @@ struct CylinderBoundary {
     
     __host__ __device__
     static inline void apply(float* f, float* f_back, int* C, int* OPP, int node) {
-        DefaultBoundary::apply(f, f_back, C, OPP, node);
+        int baseIdx = get_node_index(node, 0);
+
+        float saved[quadratures];
+        for (int j = 0; j < quadratures; j++) {
+            saved[j] = f[baseIdx + j];
+        }
+
+        for (int i = 0; i < quadratures; i++) {
+            int opp_i = OPP[i];
+            f[baseIdx + opp_i] = saved[i];
+        }
     }
 };
 

@@ -101,14 +101,21 @@ public:
         vel_file.write(reinterpret_cast<const char*>(h_u.data()), 2 * num_nodes * sizeof(float));
         vel_file.close();
 
-        printf("Saved macroscopics for timestep %d\n", timestep);
+        // printf("Saved macroscopics for timestep %d\n", timestep);
+    }
+
+    __host__ void swap_buffers() {
+        float* temp;
+        temp = d_f;
+        d_f = d_f_back;
+        d_f_back = temp;
     }
 
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
     __device__ static void macroscopics_node(float* f, float* rho, float* u, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
-    __device__ static void collide_node(float* f, float* f_eq, int node);
+    __device__ static void collide_node(float* f, float* f_back, float* f_eq, int node);
     __device__ static void boundaries_node(float* f, float* f_back, int node);
 
     __host__ void init();
@@ -117,6 +124,7 @@ public:
     __host__ void collide();
     __host__ void compute_equilibrium();
     __host__ void apply_boundaries();
+
 
 };
 

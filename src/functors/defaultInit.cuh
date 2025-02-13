@@ -6,8 +6,8 @@ struct DefaultInit {
     __host__ __device__
     static inline void apply(float* rho, float* u, int node) {
         rho[node]       = 1.0f;
-        u[2 * node]     = 0.00f;
-        u[2 * node + 1] = 0.05f;
+        u[2 * node]     = 0.0001f;
+        u[2 * node + 1] = 0.0001f;
     }
 };
 

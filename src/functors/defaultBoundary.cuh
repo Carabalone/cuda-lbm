@@ -10,6 +10,11 @@ struct DefaultBoundary {
         int baseIdx = get_node_index(node, 0);
         const int x = node % NX;
         const int y = node / NX;
+
+        float saved[quadratures];
+        for (int j = 0; j < quadratures; j++) {
+            saved[j] = f[baseIdx + j];
+        }
         
         for (int i = 1; i < quadratures; i++) {
             int x_neigh = x + C[2 * i];
@@ -25,7 +30,8 @@ struct DefaultBoundary {
                 //            baseIdx + i, f[baseIdx + i], baseIdx + opp_i, f_back[baseIdx + opp_i]);
                 // }
 
-                f_back[baseIdx + opp_i] = f[baseIdx + i];
+                // f_back[baseIdx + opp_i] = f_back[baseIdx + i];
+                f[baseIdx + opp_i] = saved[i];
             } 
         }
     }

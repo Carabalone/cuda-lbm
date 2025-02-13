@@ -1,8 +1,9 @@
 #include "lbm.cuh"
 #include "functors/cylinderBoundary.cuh"
 
-#define DEBUG_KERNEL 0
-#define DEBUG_NODE 2
+#define DEBUG_KERNEL 1
+#define DEBUG_NODE 5
+#define VALUE_THRESHOLD 5.0f
 
 #if DEBUG_KERNEL
   #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
@@ -231,8 +232,14 @@ void LBM::stream_node(float* f, float* f_back, int node) {
             continue;
 
         const int idx_neigh = get_node_index(NX * y_neigh + x_neigh, i);
+        float source_val = f[baseIdx + i];
 
         f_back[idx_neigh] = f[baseIdx + i];
+
+        if (fabsf(f_back[idx_neigh]) > VALUE_THRESHOLD || f_back[idx_neigh] < -0.01f) {
+            printf("[WARNING][stream_node] Node %d (x=%d,y=%d), Dir %d: f_back[%d] = %f (from f[%d] = %f) --> neighbor at (x=%d,y=%d)\n",
+                   node, x, y, i, idx_neigh, f_back[idx_neigh], baseIdx + i, source_val, x_neigh, y_neigh);
+        }
     }
 }
 
@@ -269,10 +276,10 @@ void LBM::stream() {
     stream_kernel<<<blocks, threads>>>(d_f, d_f_back);
     checkCudaErrors(cudaDeviceSynchronize());
 
-    float* temp;
-    temp = d_f;
-    d_f = d_f_back;
-    d_f_back = temp;
+    // float* temp;
+    // temp = d_f;
+    // d_f = d_f_back;
+    // d_f_back = temp;
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -283,20 +290,32 @@ void LBM::stream() {
 
 // BGK Collision
 __device__
-void LBM::collide_node(float* f, float* f_eq, int node) {
+void LBM::collide_node(float* f, float* f_back, float* f_eq, int node) {
+
+    int node_x = node % NX;
+    int node_y = node / NX;
      for (int i = 0; i < quadratures; i++) {
         int idx = get_node_index(node, i);
+        float old_val = f[idx];
 
-        f[idx] = f[idx] * (1-omega) + omega * f_eq[idx];
+        // f[idx] = f[idx] * (1-omega) + omega * f_eq[idx];
+        float new_val = old_val - omega * (old_val - f_eq[idx]);
+        f[idx] = new_val;
 
         // if (node == 0) {
         //     printf("Node %d, Dir %d: f_old = %.4f, f_eq = %.4f, f_new = %.4f\n",
         //            node, i, f_old, f_eq[idx], f[idx]);
             // }
+
+        if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
+            printf("[WARNING][collide_node] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) = %f\n",
+                   node, node_x, node_y, i, idx,
+                   idx, old_val, omega, old_val, f_eq[idx], new_val);
+        }
     }
 }
 
-__global__ void collide_kernel(float* f, float* f_eq) {
+__global__ void collide_kernel(float* f, float* f_back, float* f_eq) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -312,7 +331,7 @@ __global__ void collide_kernel(float* f, float* f_eq) {
         }
     }
 
-    LBM::collide_node(f, f_eq, node);
+    LBM::collide_node(f, f_back, f_eq, node);
 
     if (node == DEBUG_NODE) {
         DPRINTF("[collide_kernel] After collision (node %d):\n", node);
@@ -328,7 +347,7 @@ void LBM::collide() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    collide_kernel<<<blocks, threads>>>(d_f, d_f_eq);
+    collide_kernel<<<blocks, threads>>>(d_f, d_f_back, d_f_eq);
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
@@ -346,7 +365,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
 
     int idx = y * NX + x;
 
-    DefaultBoundary::apply(f, f_back, C, OPP, idx);
+    // DefaultBoundary::apply(f, f_back, C, OPP, idx);
 
     int flag = boundary_flags[idx];
     switch (flag) {

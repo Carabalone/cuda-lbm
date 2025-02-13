@@ -54,10 +54,13 @@ int main(void) {
     while (t < totalTimesteps) {
         cudaEventRecord(start);
 
+        lbm.stream();
+        lbm.swap_buffers();
+
         lbm.macroscopics();
         lbm.compute_equilibrium();
         lbm.collide();
-        lbm.stream();
+
         lbm.apply_boundaries();
 
         cudaEventRecord(stop);
@@ -66,7 +69,7 @@ int main(void) {
         float milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, start, stop);
 
-        if (t % (totalTimesteps / 1/*0*/) == 0) {
+        if (t % (totalTimesteps / 20) == 0) {
             float progress = (t * 100.0f) / totalTimesteps;
             printf("Simulation progress: %.1f%% (timestep %d/%d)\n", progress, t, totalTimesteps);
         }
