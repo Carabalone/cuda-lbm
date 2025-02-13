@@ -45,9 +45,7 @@ def update(frame):
     vmin = np.min(velocity_magnitude)
     vmax = np.max(velocity_magnitude)
 
-    # Update the image data. If needed, you can transpose the array
-    # to adjust the orientation (here .T is applied; remove it if not needed).
-    cax.set_array(velocity_magnitude.T)
+    cax.set_array(velocity_magnitude)
     cax.set_clim(vmin, vmax)
     ax.set_title(f'Velocity Magnitude at Step {frame}')
     return cax,
