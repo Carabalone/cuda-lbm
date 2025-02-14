@@ -5,12 +5,17 @@
 
 struct OutflowBoundary {
     __device__ static void apply(float* f, float* f_back, const int* C, const int* OPP, int node) {
-        node = get_node_index(node);
-        float rho = (f[0 + node] + f[1 + node] + f[3 + node] + f[4 + node] +
-                     2.0f * (f[2 + node] + f[6 + node] + f[5 + node]));
+        int baseIdx = get_node_index(node, 0);
+        
+        int x = node % NX;
+        int y = node / NX;
 
-        f[8 + node] = f[6 + node] - (1.0f / 6.0f) * rho;
-        f[7 + node] = f[5 + node] - (1.0f / 6.0f) * rho;
+        int interior_node = y * NX + (NX - 2);
+        int baseIdx_interior = get_node_index(interior_node, 0);
+        
+        f[baseIdx + 3] = f[baseIdx_interior + 3];
+        f[baseIdx + 6] = f[baseIdx_interior + 6];
+        f[baseIdx + 7] = f[baseIdx_interior + 7];
     }
 };
 

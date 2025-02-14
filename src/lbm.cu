@@ -383,7 +383,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
             InflowBoundary::apply(f, f_back, C, OPP, idx);
             break;
         case 4:
-            // OutflowBoundary::apply(f, f_back, C, OPP, idx);
+            OutflowBoundary::apply(f, f_back, C, OPP, idx);
             break;
         default:
             // Unknown flag; do nothing.
@@ -422,7 +422,7 @@ void LBM::setup_boundary_flags() {
             h_boundary_flags[node] = 3;
         }
         // top or bottom boundaries
-        else if (y == 0 || y == NY - 1 || x == NX - 1) {
+        else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
             h_boundary_flags[node] = 1;
         }
         // outflow on right
