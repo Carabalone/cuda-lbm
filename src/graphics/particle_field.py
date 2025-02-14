@@ -120,11 +120,6 @@ ax.set_title("Particle Advection in LBM Flow Field")
 current_macro_index = -1
 
 def animate(frame):
-    """
-    Animation update function.
-    Each animation frame does one particle update sub-step.
-    Every 'sub_steps' frames, load the next velocity field.
-    """
     global current_velocity, current_macro_index
     
     # Determine which macro frame we are in:
