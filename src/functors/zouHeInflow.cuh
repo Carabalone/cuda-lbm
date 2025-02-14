@@ -8,7 +8,7 @@ struct InflowBoundary {
 
         node = get_node_index(node);
         // Inflow velocity (u, v)
-        const float ux = 0.01f;  // Example velocity in the x-direction
+        const float ux = 0.03f;  // Example velocity in the x-direction
         const float uy = 0.0f;
 
         float rho = (f[0 + node] + f[3 + node] + f[4 + node] +

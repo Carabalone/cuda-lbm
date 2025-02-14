@@ -417,13 +417,13 @@ void LBM::setup_boundary_flags() {
         int x = node % NX;
         int y = node / NX;
         
-        // top or bottom boundaries
-        if (y == 0 || y == NY - 1) {
-            h_boundary_flags[node] = 1;
-        }
         // inflow on left
-        else if (x == 0) {
+        if (x == 0) {
             h_boundary_flags[node] = 3;
+        }
+        // top or bottom boundaries
+        else if (y == 0 || y == NY - 1 || x == NX - 1) {
+            h_boundary_flags[node] = 1;
         }
         // outflow on right
         else if (x == NX - 1) {
