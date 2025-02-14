@@ -1,7 +1,7 @@
 #include "lbm.cuh"
 #include "functors/cylinderBoundary.cuh"
 
-#define DEBUG_KERNEL 1
+#define DEBUG_KERNEL 0
 #define DEBUG_NODE 5
 #define VALUE_THRESHOLD 5.0f
 
@@ -380,7 +380,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
             CylinderBoundary::apply(f, f_back, C, OPP, idx);
             break;
         case 3:
-            // InflowBoundary::apply(f, f_back, C, OPP, idx);
+            InflowBoundary::apply(f, f_back, C, OPP, idx);
             break;
         case 4:
             // OutflowBoundary::apply(f, f_back, C, OPP, idx);
