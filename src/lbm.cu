@@ -1,5 +1,6 @@
 #include "lbm.cuh"
 #include "functors/cylinderBoundary.cuh"
+#include "functors/cornerBoundaries.cuh"
 
 #define DEBUG_KERNEL 0
 #define DEBUG_NODE 5
@@ -385,6 +386,12 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
         case 4:
             OutflowBoundary::apply(f, f_back, C, OPP, idx);
             break;
+        case 5:
+            CornerBoundary::apply_top_left(f, f_back, C, OPP, idx);
+            break;
+        case 6:
+            CornerBoundary::apply_bottom_left(f, f_back, C, OPP, idx);
+            break;
         default:
             // Unknown flag; do nothing.
             printf("Unknown Flag\n");
@@ -417,8 +424,16 @@ void LBM::setup_boundary_flags() {
         int x = node % NX;
         int y = node / NX;
         
+        // top left corner
+        if (x == 0 && y == 0) {
+            h_boundary_flags[node] = 5;
+        }
+        // bottom left corner
+        else if (x == 0 && y == NY-1) {
+            h_boundary_flags[node] = 6;
+        }
         // inflow on left
-        if (x == 0) {
+        else if (x == 0) {
             h_boundary_flags[node] = 3;
         }
         // top or bottom boundaries
