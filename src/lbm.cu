@@ -1,10 +1,12 @@
 #include "lbm.cuh"
 #include "functors/cylinderBoundary.cuh"
 #include "functors/cornerBoundaries.cuh"
+#include "functors/taylorGreenInit.cuh"
 
 #define DEBUG_KERNEL 0
 #define DEBUG_NODE 5
 #define VALUE_THRESHOLD 5.0f
+#define PERIODIC
 
 #if DEBUG_KERNEL
   #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
@@ -18,6 +20,7 @@
 
     __constant__ float WEIGHTS[quadratures];
     __constant__ int C[quadratures * dimensions];
+    __constant__ float vis;
     __constant__ float tau;
     __constant__ float omega;
     __constant__ int OPP[quadratures];
@@ -70,8 +73,8 @@ __global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u
     int node = y * NX + x;
 
     float node_rho = rho[node];
-    float node_ux = u[2 * node];
-    float node_uy = u[2 * node + 1];
+    float node_ux  = u[2 * node];
+    float node_uy  = u[2 * node + 1];
 
     if (node == DEBUG_NODE) {
         DPRINTF("[equilibrium_kernel] Node %d (x=%d,y=%d): rho=%f, u=(%f,%f)\n",
@@ -112,11 +115,13 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
     }
 
     // Debug
-    if (node == 0) {
-        for (int i = 0; i < quadratures; i++) {
-            printf("init f[%d] = %f\n", i, WEIGHTS[i]);
-        }
-    }
+    // if (node % 1200 == 0) {
+    //     printf("----------------------------\n");
+    //     for (int i = 0; i < quadratures; i++) {
+    //         printf("init{%d} f[%d] = %f\n", node, i, f[get_node_index(node, i)]);
+    //     }
+    //     printf("----------------------------\n");
+    // }
 
 }
 
@@ -129,7 +134,7 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
 
     int idx = y * NX + x;
 
-    InitCond::apply(rho, u, idx);
+    InitCond::apply(rho, u, vis, idx);
     atomicAdd(debug_counter, 1);
     LBM::init_node(f, f_back, f_eq, rho, u, idx);
 }
@@ -141,6 +146,7 @@ void LBM::init() {
 
     checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
     checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
+    checkCudaErrors(cudaMemcpyToSymbol(vis, &h_vis, sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
@@ -150,7 +156,7 @@ void LBM::init() {
     cudaMalloc(&d_debug_counter, 1 * sizeof(int));
     cudaMemcpy(d_debug_counter, &h_debug_counter, 1 * sizeof(int), cudaMemcpyHostToDevice);
 
-    init_kernel<DefaultInit><<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, d_debug_counter);
+    init_kernel<TaylorGreenInit><<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, d_debug_counter);
     checkCudaErrors(cudaDeviceSynchronize());
 
     cudaMemcpy(&h_debug_counter, d_debug_counter, 1 * sizeof(int), cudaMemcpyDeviceToHost);
@@ -226,11 +232,16 @@ void LBM::stream_node(float* f, float* f_back, int node) {
     const int baseIdx = get_node_index(node, 0);
 
     for (int i=1; i < quadratures; i++) {
-        const int x_neigh = x + C[2*i];
-        const int y_neigh = y + C[2*i+1];
+        int x_neigh = x + C[2*i];
+        int y_neigh = y + C[2*i+1];
 
+#ifdef PERIODIC
+        x_neigh = (x_neigh + NX) % NX;
+        y_neigh = (y_neigh + NY) % NY;
+#else
         if (x_neigh < 0 || x_neigh >= NX || y_neigh < 0 || y_neigh >= NY)
             continue;
+#endif
 
         const int idx_neigh = get_node_index(NX * y_neigh + x_neigh, i);
         float source_val = f[baseIdx + i];
@@ -414,40 +425,40 @@ void LBM::setup_boundary_flags() {
     std::vector<int> h_boundary_flags(num_nodes, 0);
 
     // This is bad and not modular, but it is just for testing. Actual geometry will use IBM and not standard bounce back boundaries.
-    CylinderBoundary cb = CylinderBoundary(
-        NX / 4.0f, // cx
-        NY / 2.0f, // cy
-        NX / 8.0f  // r
-    );
+    // CylinderBoundary cb = CylinderBoundary(
+    //     NX / 4.0f, // cx
+    //     NY / 2.0f, // cy
+    //     NX / 8.0f  // r
+    // );
 
-    for (int node = 0; node < num_nodes; node++) {
-        int x = node % NX;
-        int y = node / NX;
+    // for (int node = 0; node < num_nodes; node++) {
+    //     int x = node % NX;
+    //     int y = node / NX;
         
-        // top left corner
-        if (x == 0 && y == 0) {
-            h_boundary_flags[node] = 5;
-        }
-        // bottom left corner
-        else if (x == 0 && y == NY-1) {
-            h_boundary_flags[node] = 6;
-        }
-        // inflow on left
-        else if (x == 0) {
-            h_boundary_flags[node] = 3;
-        }
-        // top or bottom boundaries
-        else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
-            h_boundary_flags[node] = 1;
-        }
-        // outflow on right
-        else if (x == NX - 1) {
-            h_boundary_flags[node] = 4;
-        }
-        // cylinder boundary: 
-        else if (cb.is_boundary(node)) {
-            h_boundary_flags[node] = 2;
-        }
-    }
+    //     // top left corner
+    //     if (x == 0 && y == 0) {
+    //         h_boundary_flags[node] = 5;
+    //     }
+    //     // bottom left corner
+    //     else if (x == 0 && y == NY-1) {
+    //         h_boundary_flags[node] = 6;
+    //     }
+    //     // inflow on left
+    //     else if (x == 0) {
+    //         h_boundary_flags[node] = 3;
+    //     }
+    //     // top or bottom boundaries
+    //     else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
+    //         h_boundary_flags[node] = 1;
+    //     }
+    //     // outflow on right
+    //     else if (x == NX - 1) {
+    //         h_boundary_flags[node] = 4;
+    //     }
+    //     // cylinder boundary: 
+    //     else if (cb.is_boundary(node)) {
+    //         h_boundary_flags[node] = 2;
+    //     }
+    // }
     checkCudaErrors(cudaMemcpy(d_boundary_flags, h_boundary_flags.data(), num_nodes * sizeof(int), cudaMemcpyHostToDevice));
 }

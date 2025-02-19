@@ -19,10 +19,6 @@
 
 namespace fs = std::filesystem;
 
-constexpr inline float viscosity_to_tau(float v) {
-    return 3 * v + 0.5f;
-}
-
 class LBM {
 private:
     float *d_f, *d_f_back;   // f, f_back, f_eq: [NX][NY][Q]

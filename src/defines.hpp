@@ -2,8 +2,11 @@
 #define DEFINES_H
 
 // simulation parameters
-#define NX 400
-#define NY 200
+// #define NX 400
+// #define NY 200
+#define SCALE 2
+#define NX (128 * SCALE)
+#define NY (128 * SCALE)
 
 // #define D3Q27
 #define D2Q9
