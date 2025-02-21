@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "lbm.cuh"
+#include "functors/includes.cuh"
 #include <iostream>
 
 
@@ -45,7 +46,7 @@ int main(void) {
     const int save_int = 25 * SCALE * SCALE;
     int t = 0;
 
-    lbm.init();
+    lbm.init(TaylorGreenInit{1.0f/6.0f});
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);

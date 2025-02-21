@@ -100,6 +100,16 @@ void LBM::compute_equilibrium() {
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 
+__host__
+void LBM::send_consts() {
+    checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
+    checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
+    checkCudaErrors(cudaMemcpyToSymbol(vis, &h_vis, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
+}
+
 __device__
 void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
 
@@ -111,58 +121,14 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
         f_back[i] = f_eq[i];
     }
 
-    // Debug
-    // if (node % 1200 == 0) {
-    //     printf("----------------------------\n");
-    //     for (int i = 0; i < quadratures; i++) {
-    //         printf("init{%d} f[%d] = %f\n", node, i, f[get_node_index(node, i)]);
-    //     }
-    //     printf("----------------------------\n");
-    // }
-
 }
 
-template<typename InitCond>
-__global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, float* u, int* debug_counter) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (x >= NX || y >= NY) return;
-
-    int idx = y * NX + x;
-
-    InitCond::apply(rho, u, vis, idx);
-    atomicAdd(debug_counter, 1);
-    LBM::init_node(f, f_back, f_eq, rho, u, idx);
-}
-
-void LBM::init() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
-    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
-
-    checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(vis, &h_vis, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
-
-    int* d_debug_counter;
-    int h_debug_counter = 0;
-    cudaMalloc(&d_debug_counter, 1 * sizeof(int));
-    cudaMemcpy(d_debug_counter, &h_debug_counter, 1 * sizeof(int), cudaMemcpyHostToDevice);
-
-    init_kernel<TaylorGreenInit><<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, d_debug_counter);
-    checkCudaErrors(cudaDeviceSynchronize());
-
-    cudaMemcpy(&h_debug_counter, d_debug_counter, 1 * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaFree(d_debug_counter);
-
-    setup_boundary_flags();
-
-    printf("[init_kernel]: Threads executed: %d\n", h_debug_counter);
-}
+// Templated kernels and templated host wrapper funcs are defined in lbm_impl.cuh
+// The reason is the compiler cannot tell for what types it needs to implement the function
+// if the function is defined here. We need to define it in a header file to be able to do so.
+// 
+// Maybe I should just move this entire thing besides send_consts to lbm_impl.cuh. I might do this
+// later.
 
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------

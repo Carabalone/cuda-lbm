@@ -5,10 +5,14 @@
 #include "defines.hpp"
 
 struct TaylorGreenInit {
+    float nu;
 
     __host__ __device__
-    static inline void apply(float* rho, float* u, float nu, int node) {
-        // normalize because taylor green expects values in [0,1[
+    TaylorGreenInit(float v) : nu(v) { }
+
+    __device__
+    inline void operator()(float* rho, float* u, int node) {
+        printf("viscosity: %.4f", vis);
         const float x = (node % NX) + 0.5f; 
         const float y = (node / NX) + 0.5f;
         const float u_max = 0.04f/SCALE;
@@ -18,11 +22,9 @@ struct TaylorGreenInit {
         const float td = 1.0f / (nu * (kx*kx + ky*ky));
         const float t = 0.0f; // I could put this as arg to validate against other cases as well.
         
-        // Velocity with analytical decay
         float ux = -u_max * sqrt(ky/kx) * cos(kx * x) * sin(ky * y) * exp(-t / td);
         float uy = u_max * sqrt(kx/ky) * sin(kx * x) * cos(ky * y) * exp(-t / td);
         
-        // Pressure and density
         float P = -0.25f * rho0 * u_max * u_max * 
                   ((ky/kx)*cos(2*kx*x) + (kx/ky)*cos(2*ky*y)) * exp(-2*t/td);
 

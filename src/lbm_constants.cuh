@@ -51,7 +51,7 @@ constexpr inline float tau_to_viscosity(float t) {
 }
 
 // TODO: change later, ik this is bad
-constexpr float h_vis   = (1.0f / 10.0f);
+constexpr float h_vis   = (1.0f / 6.0f);
 constexpr float h_tau   = viscosity_to_tau(h_vis);
 constexpr float h_omega = 1 / h_tau;
 
