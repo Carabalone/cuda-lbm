@@ -27,6 +27,14 @@
     };
 
     const int h_OPP[] = {0, 3, 4, 1, 2, 7, 8, 5, 6};
+
+
+    extern __constant__ float WEIGHTS[quadratures];
+    extern __constant__ int C[quadratures * dimensions];
+    extern __constant__ float vis;
+    extern __constant__ float tau;
+    extern __constant__ float omega;
+    extern __constant__ int OPP[quadratures];
 #endif
 
 __device__ __host__ __forceinline__

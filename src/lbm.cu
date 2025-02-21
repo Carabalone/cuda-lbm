@@ -1,4 +1,5 @@
 #include "lbm.cuh"
+#include "lbm_constants.cuh"
 #include "functors/cylinderBoundary.cuh"
 #include "functors/cornerBoundaries.cuh"
 #include "functors/taylorGreenInit.cuh"
@@ -15,16 +16,12 @@
 #endif
 
 #ifdef D2Q9
-    // look, I know this is bad. I have to define __constant__ variables in .cu files as far as I know
-    // and this is the best way I can do it now.
-
     __constant__ float WEIGHTS[quadratures];
     __constant__ int C[quadratures * dimensions];
     __constant__ float vis;
     __constant__ float tau;
     __constant__ float omega;
     __constant__ int OPP[quadratures];
-
 #endif
 
 // u -> velocity, rho -> density

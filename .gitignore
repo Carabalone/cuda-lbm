@@ -41,10 +41,10 @@ Makefile.deps
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
 
 # Ignore Python virtual environments (if applicable)
 venv/
 env/
 
 *.mp4
+videos/
