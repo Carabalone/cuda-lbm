@@ -1,10 +1,13 @@
 #include "lbm.cuh"
+#include "lbm_constants.cuh"
 #include "functors/cylinderBoundary.cuh"
 #include "functors/cornerBoundaries.cuh"
+#include "functors/taylorGreenInit.cuh"
 
 #define DEBUG_KERNEL 0
 #define DEBUG_NODE 5
 #define VALUE_THRESHOLD 5.0f
+#define PERIODIC
 
 #if DEBUG_KERNEL
   #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
@@ -13,15 +16,12 @@
 #endif
 
 #ifdef D2Q9
-    // look, I know this is bad. I have to define __constant__ variables in .cu files as far as I know
-    // and this is the best way I can do it now.
-
     __constant__ float WEIGHTS[quadratures];
     __constant__ int C[quadratures * dimensions];
+    __constant__ float vis;
     __constant__ float tau;
     __constant__ float omega;
     __constant__ int OPP[quadratures];
-
 #endif
 
 // u -> velocity, rho -> density
@@ -70,8 +70,8 @@ __global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u
     int node = y * NX + x;
 
     float node_rho = rho[node];
-    float node_ux = u[2 * node];
-    float node_uy = u[2 * node + 1];
+    float node_ux  = u[2 * node];
+    float node_uy  = u[2 * node + 1];
 
     if (node == DEBUG_NODE) {
         DPRINTF("[equilibrium_kernel] Node %d (x=%d,y=%d): rho=%f, u=(%f,%f)\n",
@@ -100,6 +100,16 @@ void LBM::compute_equilibrium() {
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 
+__host__
+void LBM::send_consts() {
+    checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
+    checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
+    checkCudaErrors(cudaMemcpyToSymbol(vis, &h_vis, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
+}
+
 __device__
 void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
 
@@ -111,55 +121,14 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
         f_back[i] = f_eq[i];
     }
 
-    // Debug
-    if (node == 0) {
-        for (int i = 0; i < quadratures; i++) {
-            printf("init f[%d] = %f\n", i, WEIGHTS[i]);
-        }
-    }
-
 }
 
-template<typename InitCond>
-__global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, float* u, int* debug_counter) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (x >= NX || y >= NY) return;
-
-    int idx = y * NX + x;
-
-    InitCond::apply(rho, u, idx);
-    atomicAdd(debug_counter, 1);
-    LBM::init_node(f, f_back, f_eq, rho, u, idx);
-}
-
-void LBM::init() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
-    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
-
-    checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
-
-    int* d_debug_counter;
-    int h_debug_counter = 0;
-    cudaMalloc(&d_debug_counter, 1 * sizeof(int));
-    cudaMemcpy(d_debug_counter, &h_debug_counter, 1 * sizeof(int), cudaMemcpyHostToDevice);
-
-    init_kernel<DefaultInit><<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, d_debug_counter);
-    checkCudaErrors(cudaDeviceSynchronize());
-
-    cudaMemcpy(&h_debug_counter, d_debug_counter, 1 * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaFree(d_debug_counter);
-
-    setup_boundary_flags();
-
-    printf("[init_kernel]: Threads executed: %d\n", h_debug_counter);
-}
+// Templated kernels and templated host wrapper funcs are defined in lbm_impl.cuh
+// The reason is the compiler cannot tell for what types it needs to implement the function
+// if the function is defined here. We need to define it in a header file to be able to do so.
+// 
+// Maybe I should just move this entire thing besides send_consts to lbm_impl.cuh. I might do this
+// later.
 
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
@@ -226,11 +195,16 @@ void LBM::stream_node(float* f, float* f_back, int node) {
     const int baseIdx = get_node_index(node, 0);
 
     for (int i=1; i < quadratures; i++) {
-        const int x_neigh = x + C[2*i];
-        const int y_neigh = y + C[2*i+1];
+        int x_neigh = x + C[2*i];
+        int y_neigh = y + C[2*i+1];
 
+#ifdef PERIODIC
+        x_neigh = (x_neigh + NX) % NX;
+        y_neigh = (y_neigh + NY) % NY;
+#else
         if (x_neigh < 0 || x_neigh >= NX || y_neigh < 0 || y_neigh >= NY)
             continue;
+#endif
 
         const int idx_neigh = get_node_index(NX * y_neigh + x_neigh, i);
         float source_val = f[baseIdx + i];
@@ -414,40 +388,40 @@ void LBM::setup_boundary_flags() {
     std::vector<int> h_boundary_flags(num_nodes, 0);
 
     // This is bad and not modular, but it is just for testing. Actual geometry will use IBM and not standard bounce back boundaries.
-    CylinderBoundary cb = CylinderBoundary(
-        NX / 4.0f, // cx
-        NY / 2.0f, // cy
-        NX / 8.0f  // r
-    );
+    // CylinderBoundary cb = CylinderBoundary(
+    //     NX / 4.0f, // cx
+    //     NY / 2.0f, // cy
+    //     NX / 8.0f  // r
+    // );
 
-    for (int node = 0; node < num_nodes; node++) {
-        int x = node % NX;
-        int y = node / NX;
+    // for (int node = 0; node < num_nodes; node++) {
+    //     int x = node % NX;
+    //     int y = node / NX;
         
-        // top left corner
-        if (x == 0 && y == 0) {
-            h_boundary_flags[node] = 5;
-        }
-        // bottom left corner
-        else if (x == 0 && y == NY-1) {
-            h_boundary_flags[node] = 6;
-        }
-        // inflow on left
-        else if (x == 0) {
-            h_boundary_flags[node] = 3;
-        }
-        // top or bottom boundaries
-        else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
-            h_boundary_flags[node] = 1;
-        }
-        // outflow on right
-        else if (x == NX - 1) {
-            h_boundary_flags[node] = 4;
-        }
-        // cylinder boundary: 
-        else if (cb.is_boundary(node)) {
-            h_boundary_flags[node] = 2;
-        }
-    }
+    //     // top left corner
+    //     if (x == 0 && y == 0) {
+    //         h_boundary_flags[node] = 5;
+    //     }
+    //     // bottom left corner
+    //     else if (x == 0 && y == NY-1) {
+    //         h_boundary_flags[node] = 6;
+    //     }
+    //     // inflow on left
+    //     else if (x == 0) {
+    //         h_boundary_flags[node] = 3;
+    //     }
+    //     // top or bottom boundaries
+    //     else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
+    //         h_boundary_flags[node] = 1;
+    //     }
+    //     // outflow on right
+    //     else if (x == NX - 1) {
+    //         h_boundary_flags[node] = 4;
+    //     }
+    //     // cylinder boundary: 
+    //     else if (cb.is_boundary(node)) {
+    //         h_boundary_flags[node] = 2;
+    //     }
+    // }
     checkCudaErrors(cudaMemcpy(d_boundary_flags, h_boundary_flags.data(), num_nodes * sizeof(int), cudaMemcpyHostToDevice));
 }

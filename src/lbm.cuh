@@ -19,10 +19,6 @@
 
 namespace fs = std::filesystem;
 
-constexpr inline float viscosity_to_tau(float v) {
-    return 3 * v + 0.5f;
-}
-
 class LBM {
 private:
     float *d_f, *d_f_back;   // f, f_back, f_eq: [NX][NY][Q]
@@ -40,6 +36,7 @@ private:
     }
 
     void setup_boundary_flags();
+    void send_consts();
 
 public:
 
@@ -118,7 +115,8 @@ public:
     __device__ static void collide_node(float* f, float* f_back, float* f_eq, int node);
     __device__ static void boundaries_node(float* f, float* f_back, int node);
 
-    __host__ void init();
+    template<typename InitCond>
+    __host__ void init(const InitCond& init);
     __host__ void macroscopics();
     __host__ void stream();
     __host__ void collide();
@@ -127,5 +125,7 @@ public:
 
 
 };
+
+#include "lbm_impl.cuh"
 
 #endif // ! LBM_H
