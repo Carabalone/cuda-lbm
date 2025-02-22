@@ -1,8 +1,7 @@
 #ifndef CYLINDER_BOUNDARY_H
 #define CYLINDER_BOUNDARY_H
 
-#include "defaultBoundary.cuh"
-#include "../lbm_constants.cuh"
+#include "../../lbm_constants.cuh"
 
 struct CylinderBoundary {
     float cx, cy, r;

@@ -11,11 +11,7 @@
 #include <vector>
 #include <filesystem>
 #include "lbm_constants.cuh"
-#include "./functors/defaultInit.cuh"
-#include "./functors/defaultBoundary.cuh"
-#include "./functors/cylinderBoundary.cuh"
-#include "./functors/zouHeInflow.cuh"
-#include "./functors/zeroGradientOutflow.cuh"
+#include "functors/includes.cuh"
 
 namespace fs = std::filesystem;
 

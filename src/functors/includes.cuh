@@ -1,12 +1,12 @@
 #ifndef FUNCTOR_INCLUDES_H
 #define FUNCTOR_INCLUDES_H
 
-#include "./cornerBoundaries.cuh"
-#include "./defaultBoundary.cuh"
-#include "./cylinderBoundary.cuh"
-#include "./defaultInit.cuh"
-#include "./taylorGreenInit.cuh"
-#include "./zeroGradientOutflow.cuh"
-#include "./zouHeInflow.cuh"
+#include "./boundaryConditions/cornerBoundaries.cuh"
+#include "./boundaryConditions/bbDomainBoundary.cuh"
+#include "./boundaryConditions/cylinderBoundary.cuh"
+#include "./boundaryConditions/zeroGradientOutflow.cuh"
+#include "./boundaryConditions/zouHeInflow.cuh"
+#include "./initialConditions/defaultInit.cuh"
+#include "./initialConditions/taylorGreenInit.cuh"
 
 #endif // ! FUNCTOR_INCLUDES_H

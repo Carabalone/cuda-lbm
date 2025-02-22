@@ -1,8 +1,7 @@
 #include "lbm.cuh"
 #include "lbm_constants.cuh"
-#include "functors/cylinderBoundary.cuh"
-#include "functors/cornerBoundaries.cuh"
-#include "functors/taylorGreenInit.cuh"
+#include "functors/includes.cuh"
+
 
 #define DEBUG_KERNEL 0
 #define DEBUG_NODE 5
@@ -349,7 +348,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
             break;
         case 1:
             // Top/bottom bounce-back
-            DefaultBoundary::apply(f, f_back, C, OPP, idx);
+            // BBDomainBoundary::apply(f, f_back, C, OPP, idx);
             break;
         case 2:
             CylinderBoundary::apply(f, f_back, C, OPP, idx);
