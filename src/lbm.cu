@@ -1,6 +1,7 @@
 #include "lbm.cuh"
 #include "lbm_constants.cuh"
 #include "functors/includes.cuh"
+#include "configs/scenario.cuh"
 
 
 #define DEBUG_KERNEL 0
@@ -103,9 +104,9 @@ __host__
 void LBM::send_consts() {
     checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
     checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(vis, &h_vis, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(tau, &h_tau, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(omega, &h_omega, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(vis, &Config::h_vis, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(tau, &Config::h_tau, sizeof(float)));
+    checkCudaErrors(cudaMemcpyToSymbol(omega, &Config::h_omega, sizeof(float)));
     checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
 }
 
@@ -339,7 +340,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
 
     int idx = y * NX + x;
 
-    // DefaultBoundary::apply(f, f_back, C, OPP, idx);
+    BBDomainBoundary domain_boundary(false);
 
     int flag = boundary_flags[idx];
     switch (flag) {
@@ -348,7 +349,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
             break;
         case 1:
             // Top/bottom bounce-back
-            // BBDomainBoundary::apply(f, f_back, C, OPP, idx);
+            domain_boundary.apply(f, f_back, idx);
             break;
         case 2:
             CylinderBoundary::apply(f, f_back, C, OPP, idx);
@@ -387,40 +388,44 @@ void LBM::setup_boundary_flags() {
     std::vector<int> h_boundary_flags(num_nodes, 0);
 
     // This is bad and not modular, but it is just for testing. Actual geometry will use IBM and not standard bounce back boundaries.
-    // CylinderBoundary cb = CylinderBoundary(
-    //     NX / 4.0f, // cx
-    //     NY / 2.0f, // cy
-    //     NX / 8.0f  // r
-    // );
+    CylinderBoundary cb = CylinderBoundary(
+        NX / 4.0f, // cx
+        NY / 2.0f, // cy
+        NX / 8.0f  // r
+    );
 
-    // for (int node = 0; node < num_nodes; node++) {
-    //     int x = node % NX;
-    //     int y = node / NX;
+    for (int node = 0; node < num_nodes; node++) {
+        int x = node % NX;
+        int y = node / NX;
+
+        if (y == 0 || y == NY - 1) {
+            h_boundary_flags[node] = 1;
+        }
         
-    //     // top left corner
-    //     if (x == 0 && y == 0) {
-    //         h_boundary_flags[node] = 5;
-    //     }
-    //     // bottom left corner
-    //     else if (x == 0 && y == NY-1) {
-    //         h_boundary_flags[node] = 6;
-    //     }
-    //     // inflow on left
-    //     else if (x == 0) {
-    //         h_boundary_flags[node] = 3;
-    //     }
-    //     // top or bottom boundaries
-    //     else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
-    //         h_boundary_flags[node] = 1;
-    //     }
-    //     // outflow on right
-    //     else if (x == NX - 1) {
-    //         h_boundary_flags[node] = 4;
-    //     }
-    //     // cylinder boundary: 
-    //     else if (cb.is_boundary(node)) {
-    //         h_boundary_flags[node] = 2;
-    //     }
-    // }
+        // // top left corner
+        // if (x == 0 && y == 0) {
+        //     h_boundary_flags[node] = 5;
+        // }
+        // // bottom left corner
+        // else if (x == 0 && y == NY-1) {
+        //     h_boundary_flags[node] = 6;
+        // }
+        // // inflow on left
+        // else if (x == 0) {
+        //     h_boundary_flags[node] = 3;
+        // }
+        // // top or bottom boundaries
+        // else if (y == 0 || y == NY - 1 /*|| x == NX - 1*/) {
+        //     h_boundary_flags[node] = 1;
+        // }
+        // // outflow on right
+        // else if (x == NX - 1) {
+        //     h_boundary_flags[node] = 4;
+        // }
+        // // cylinder boundary: 
+        // else if (cb.is_boundary(node)) {
+        //     h_boundary_flags[node] = 2;
+        // }
+    }
     checkCudaErrors(cudaMemcpy(d_boundary_flags, h_boundary_flags.data(), num_nodes * sizeof(int), cudaMemcpyHostToDevice));
 }

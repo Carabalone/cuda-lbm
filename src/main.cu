@@ -2,6 +2,7 @@
 #include "lbm.cuh"
 #include "functors/includes.cuh"
 #include <iostream>
+#include "configs/scenario.cuh"
 
 
 void setup_cuda() {
@@ -46,7 +47,7 @@ int main(void) {
     const int save_int = 25 * SCALE * SCALE;
     int t = 0;
 
-    lbm.init(TaylorGreenInit{1.0f/6.0f});
+    lbm.init(Config::init);
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);

@@ -1,10 +1,19 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
+#define USE_TAYLOR_GREEN
+// #define USE_POISEUILLE
+
 // simulation parameters
-#define SCALE 2
-#define NX (128 * SCALE)
-#define NY (128 * SCALE)
+#ifdef USE_TAYLOR_GREEN
+    #define SCALE 2
+    #define NX (128 * SCALE)
+    #define NY (128 * SCALE)
+#elif defined(USE_POISEUILLE)
+    #define SCALE 1
+    #define NX (256 * SCALE)
+    #define NY (128 * SCALE)
+#endif
 
 // #define D3Q27
 #define D2Q9
