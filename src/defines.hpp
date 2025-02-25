@@ -1,8 +1,8 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define USE_TAYLOR_GREEN
-// #define USE_POISEUILLE
+// #define USE_TAYLOR_GREEN
+#define USE_POISEUILLE
 
 // simulation parameters
 #ifdef USE_TAYLOR_GREEN

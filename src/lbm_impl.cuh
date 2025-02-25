@@ -3,7 +3,7 @@
 
 template<typename InitCond>
 __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, float* u,
-                            InitCond init, int* debug_counter) {
+                            float* force, InitCond init, int* debug_counter) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -11,7 +11,7 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
 
     int idx = y * NX + x;
 
-    init(rho, u, idx);
+    init(rho, u, force, idx);
     atomicAdd(debug_counter, 1);
     LBM::init_node(f, f_back, f_eq, rho, u, idx);
 }
@@ -30,7 +30,7 @@ void LBM::init(const InitCond& init) {
     cudaMemcpy(d_debug_counter, &h_debug_counter, 1 * sizeof(int), cudaMemcpyHostToDevice);
 
     init_kernel<<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, 
-                                     init, d_debug_counter);
+                                     d_force, init, d_debug_counter);
     checkCudaErrors(cudaDeviceSynchronize());
 
     cudaMemcpy(&h_debug_counter, d_debug_counter, 1 * sizeof(int), cudaMemcpyDeviceToHost);

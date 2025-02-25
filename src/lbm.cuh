@@ -20,6 +20,7 @@ private:
     float *d_f, *d_f_back;   // f, f_back, f_eq: [NX][NY][Q]
     float *d_rho, *d_u;      // rho: [NX][NY], u: [NX][NY][D]
     float *d_f_eq;
+    float *d_force;          // force: [NX][NY][D]
     int   *d_boundary_flags; // [NX][NY]
 
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
@@ -45,8 +46,12 @@ public:
 
         cudaMalloc((void**) &d_rho,    NX * NY * sizeof(float));
         cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
+        
+        cudaMalloc((void**) &d_force,  NX * NY * dimensions * sizeof(float));
+        cudaMemset(d_force, 0, NX*NY*dimensions*sizeof(float));
 
         cudaMalloc((void**) &d_boundary_flags, NX * NY * sizeof(int));
+
     }
 
     void free() {
@@ -57,6 +62,7 @@ public:
         checkCudaErrors(cudaFree(d_f_eq));  
         checkCudaErrors(cudaFree(d_rho));
         checkCudaErrors(cudaFree(d_u));
+        checkCudaErrors(cudaFree(d_force));
         checkCudaErrors(cudaFree(d_boundary_flags));
     }
 
@@ -106,10 +112,11 @@ public:
 
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
-    __device__ static void macroscopics_node(float* f, float* rho, float* u, int node);
+    __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
-    __device__ static void collide_node(float* f, float* f_back, float* f_eq, int node);
+    __device__ static void collide_node(float* f, float* f_back, float* f_eq, float* force, float* u, int node);
     __device__ static void boundaries_node(float* f, float* f_back, int node);
+    __device__ static void force_node(float* force, float* u, int node);
 
     template<typename InitCond>
     __host__ void init(const InitCond& init);
@@ -118,6 +125,7 @@ public:
     __host__ void collide();
     __host__ void compute_equilibrium();
     __host__ void apply_boundaries();
+    __host__ void compute_forces();
 
 
 };

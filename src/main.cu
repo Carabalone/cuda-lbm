@@ -43,8 +43,8 @@ int main(void) {
     //     lbm.process_boundary();
     // }
 
-    const int total_timesteps = 20000/*200 * SCALE * SCALE*/;
-    const int save_int = 25 * SCALE * SCALE;
+    const int total_timesteps = 10000;
+    const int save_int = 100;
     int t = 0;
 
     lbm.init(Config::init);
@@ -64,7 +64,7 @@ int main(void) {
         lbm.compute_equilibrium();
         lbm.collide();
 
-        // lbm.apply_boundaries();
+        lbm.apply_boundaries();
 
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);

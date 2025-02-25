@@ -8,6 +8,8 @@
 #define DEBUG_NODE 5
 #define VALUE_THRESHOLD 5.0f
 #define PERIODIC
+#define PERIODIC_X
+#define PERIODIC_Y
 
 #if DEBUG_KERNEL
   #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
@@ -136,14 +138,14 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 
-__global__ void macroscopics_kernel(float* f, float* rho, float* u) {
+__global__ void macroscopics_kernel(float* f, float* rho, float* u, float* force) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= NX || y >= NY) return;
 
     int node = y * NX + x;
-    LBM::macroscopics_node(f, rho, u, node);
+    LBM::macroscopics_node(f, rho, u, force, node);
     if (node == DEBUG_NODE) {
         DPRINTF("[macroscopics_kernel] Node %d: rho=%f, u=(%f, %f)\n",
                 node, rho[node], u[2*node], u[2*node+1]);
@@ -155,13 +157,13 @@ void LBM::macroscopics() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u);
+    macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u, d_force);
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
 // assumes no forcing scheme, else will have to correct velocity with forcing term
 __device__
-void LBM::macroscopics_node(float* f, float* rho, float* u, int node) {
+void LBM::macroscopics_node(float* f, float* rho, float* u, float* force, int node) {
     rho[node]       = 0.0f;
     u[2 * node]     = 0.0f;
     u[2 * node + 1] = 0.0f;
@@ -172,6 +174,11 @@ void LBM::macroscopics_node(float* f, float* rho, float* u, int node) {
          u[2 * node]     += f[get_node_index(node, i)] * C[2 * i];
          u[2 * node + 1] += f[get_node_index(node, i)] * C[2 * i + 1];
     }
+
+    u[2 * node]     += 0.5f * force[2 * node];
+    u[2 * node + 1] += 0.5f * force[2 * node + 1];
+
+    // printf("adding %f\n", (force[2 * node]));
 
     u[2 * node]     *= 1.0f / rho[node];
     u[2 * node + 1] *= 1.0f / rho[node];
@@ -198,12 +205,19 @@ void LBM::stream_node(float* f, float* f_back, int node) {
         int x_neigh = x + C[2*i];
         int y_neigh = y + C[2*i+1];
 
-#ifdef PERIODIC
-        x_neigh = (x_neigh + NX) % NX;
-        y_neigh = (y_neigh + NY) % NY;
-#else
+
+#ifndef PERIODIC
+
         if (x_neigh < 0 || x_neigh >= NX || y_neigh < 0 || y_neigh >= NY)
             continue;
+
+#else
+    #ifdef PERIODIC_X
+        x_neigh = (x_neigh + NX) % NX;
+    #endif
+    #ifdef PERIODIC_Y
+        y_neigh = (y_neigh + NY) % NY;
+    #endif
 #endif
 
         const int idx_neigh = get_node_index(NX * y_neigh + x_neigh, i);
@@ -265,7 +279,7 @@ void LBM::stream() {
 
 // BGK Collision
 __device__
-void LBM::collide_node(float* f, float* f_back, float* f_eq, int node) {
+void LBM::collide_node(float* f, float* f_back, float* f_eq, float* force, float* u, int node) {
 
     int node_x = node % NX;
     int node_y = node / NX;
@@ -274,7 +288,29 @@ void LBM::collide_node(float* f, float* f_back, float* f_eq, int node) {
         float old_val = f[idx];
 
         // f[idx] = f[idx] * (1-omega) + omega * f_eq[idx];
-        float new_val = old_val - omega * (old_val - f_eq[idx]);
+        
+        // Guo forcing term
+        float cx  = C[2*i];
+        float cy  = C[2*i+1];
+        float fx  = force[2*node];
+        // printf("fx: %f\n", fx);
+        float fy  = force[2*node+1];
+        float cs2 = 1.0f / 3.0f;
+        
+        float force_term = WEIGHTS[i] * (
+            (1.0f - 0.5f * omega) * (
+                (cx - u[2*node]) / cs2 + 
+                (cx * u[2*node] + cy * u[2*node+1]) * cx / (cs2 * cs2)
+            ) * fx +
+            (1.0f - 0.5f * omega) * (
+                (cy - u[2*node+1]) / cs2 + 
+                (cx * u[2*node] + cy * u[2*node+1]) * cy / (cs2 * cs2)
+            ) * fy
+        );
+
+        // printf("force_term: %f\n", force_term);
+        
+        float new_val = old_val - omega * (old_val - f_eq[idx]) + force_term;
         f[idx] = new_val;
 
         // if (node == 0) {
@@ -290,7 +326,7 @@ void LBM::collide_node(float* f, float* f_back, float* f_eq, int node) {
     }
 }
 
-__global__ void collide_kernel(float* f, float* f_back, float* f_eq) {
+__global__ void collide_kernel(float* f, float* f_back, float* f_eq, float* force, float* u) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -306,7 +342,7 @@ __global__ void collide_kernel(float* f, float* f_back, float* f_eq) {
         }
     }
 
-    LBM::collide_node(f, f_back, f_eq, node);
+    LBM::collide_node(f, f_back, f_eq, force, u, node);
 
     if (node == DEBUG_NODE) {
         DPRINTF("[collide_kernel] After collision (node %d):\n", node);
@@ -322,7 +358,7 @@ void LBM::collide() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    collide_kernel<<<blocks, threads>>>(d_f, d_f_back, d_f_eq);
+    collide_kernel<<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_force, d_u);
     checkCudaErrors(cudaDeviceSynchronize());
 }
 

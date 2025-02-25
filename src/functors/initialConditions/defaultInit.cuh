@@ -7,10 +7,13 @@ struct DefaultInit {
     DefaultInit() { }
 
      __device__
-    inline void operator()(float* rho, float* u, int node) {
+    inline void operator()(float* rho, float* u, float* force, int node) {
         rho[node]       = 1.0f;
         u[2 * node]     = 0.0f;
         u[2 * node + 1] = 0.0f;
+
+        force[2 * node]     = 0.0f;
+        force[2 * node + 1] = 0.0f;
     }
 };
 

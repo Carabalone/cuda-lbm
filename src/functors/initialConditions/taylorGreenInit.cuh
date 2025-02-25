@@ -11,7 +11,7 @@ struct TaylorGreenInit {
     TaylorGreenInit(float v) : nu(v) { }
 
     __device__
-    inline void operator()(float* rho, float* u, int node) {
+    inline void operator()(float* rho, float* u, float* force, int node) {
         printf("viscosity: %.4f", vis);
         const float x = (node % NX) + 0.5f; 
         const float y = (node / NX) + 0.5f;
@@ -31,6 +31,10 @@ struct TaylorGreenInit {
         rho[node] = rho0 + 3.0f * P; // p = cs²(ρ - ρ0)
         u[2 * node] = ux;
         u[2 * node + 1] = uy;
+
+        force[2 * node] = 0.0f;
+        force[2 * node + 1] = 0.0f;
+        
     }
 
 };
