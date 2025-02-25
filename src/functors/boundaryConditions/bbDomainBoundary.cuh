@@ -23,20 +23,15 @@ struct BBDomainBoundary {
         for (int i = 1; i < quadratures; i++) {
             int x_neigh = x + C[2 * i];
             int y_neigh = y + C[2 * i + 1];
-            if ((x && (x_neigh < 0 || x_neigh >= NX)) ||
-                (y && (y_neigh < 0 || y_neigh >= NY))) {
-        
+
+            bool is_x_boundary = this->x && (x_neigh < 0 || x_neigh >= NX);
+            bool is_y_boundary = this->y && (y_neigh < 0 || y_neigh >= NY);
+            
+            if (is_x_boundary || is_y_boundary) {
                 int opp_i = OPP[i];
                 
-                // if (node == 0) {
-                //     printf("  Applying boundary condition for direction %d:\n", i);
-                //     printf("    f[%d] = %f, f_back[%d] = %f\n",
-                //            base_idx + i, f[base_idx + i], base_idx + opp_i, f_back[base_idx + opp_i]);
-                // }
-
-                // f_back[base_idx + opp_i] = f_back[base_idx + i];
                 f[base_idx + opp_i] = saved[i];
-            } 
+            }
         }
     }
 };
