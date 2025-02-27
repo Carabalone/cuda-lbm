@@ -11,8 +11,8 @@
     #define NY (128 * SCALE)
 #elif defined(USE_POISEUILLE)
     #define SCALE 1
-    #define NX (256 * SCALE)
-    #define NY (128 * SCALE)
+    #define NX (150 * SCALE)
+    #define NY (100 * SCALE)
 #endif
 
 // #define D3Q27

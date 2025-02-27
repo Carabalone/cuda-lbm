@@ -3,6 +3,11 @@
 
 #include "lbm_constants.cuh"
 
+
+// TODO: I could probably just ignore the x and y part, and just make separate cases for top
+// and bottom boundaries, one for left/right boundaries and get rid of the loop and branching
+// I am going to redo this when we start dealing with domain boundaries in separate kernels.
+
 struct BBDomainBoundary {
     bool x, y;
 

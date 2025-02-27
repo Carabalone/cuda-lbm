@@ -23,6 +23,9 @@ private:
     float *d_force;          // force: [NX][NY][D]
     int   *d_boundary_flags; // [NX][NY]
 
+    std::array<float, NX * NY> h_rho;
+    std::array<float, NX * NY * dimensions> h_u;
+
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
     }
@@ -48,10 +51,8 @@ public:
         cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
         
         cudaMalloc((void**) &d_force,  NX * NY * dimensions * sizeof(float));
-        cudaMemset(d_force, 0, NX*NY*dimensions*sizeof(float));
 
         cudaMalloc((void**) &d_boundary_flags, NX * NY * sizeof(int));
-
     }
 
     void free() {
@@ -66,14 +67,37 @@ public:
         checkCudaErrors(cudaFree(d_boundary_flags));
     }
 
-    void save_macroscopics(int timestep) {
+    void update_macroscopics() {
         int num_nodes = NX * NY;
-        
-        std::vector<float> h_rho(num_nodes);
-        std::vector<float> h_u(2 * num_nodes);
 
         checkCudaErrors(cudaMemcpy(h_rho.data(), d_rho, num_nodes * sizeof(float), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(h_u.data(), d_u, 2 * num_nodes * sizeof(float), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(h_u.data(), d_u, num_nodes * dimensions * sizeof(float), cudaMemcpyDeviceToHost));
+    }
+
+    float compute_L2_error(const std::vector<float>& analytical_u) {
+        float error_sum = 0.0f;
+    
+        for (int y = 0; y < NY; y++) {
+            float sum_ux = 0.0f;
+            for (int x = 0; x < NX; x++) {
+                int index = (y * NX + x) * dimensions; 
+                sum_ux += h_u[index];
+            }
+            float avg_ux = sum_ux / NX;
+
+            printf("avg_ux in y=%d: %.4f\n", y, avg_ux);
+            
+            float diff = avg_ux - analytical_u[y];
+            error_sum += diff * diff;
+        }
+        
+        return std::sqrt(error_sum / NY);
+    }
+
+    void save_macroscopics(int timestep) {
+        int num_nodes = NX * NY;
+
+        update_macroscopics();
 
         std::ostringstream rho_filename, vel_filename;
         rho_filename << "output/density/density_" << timestep << ".bin";

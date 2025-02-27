@@ -35,15 +35,14 @@ int main(void) {
     LBM lbm; // idea is control from host and give args to the kernels for the device.
     lbm.allocate();
 
-    // while (timestaps) {
-    //     lbm.stream(); <
-    //     lbm.update_macroscopic(); <
-    //     lbm.calc_equilibrium() <
-    //     lbm.collide(); <
-    //     lbm.process_boundary();
-    // }
+    std::vector<float> analytical_u;
+    analytical_u.reserve(NY);
 
-    const int total_timesteps = 10000;
+    for (int i=0; i < NY; i++) {
+        analytical_u[i] = Config::poiseuille_analytical(i);
+    }
+
+    const int total_timesteps = 60000;
     const int save_int = 100;
     int t = 0;
 
@@ -76,8 +75,11 @@ int main(void) {
             float progress = (t * 100.0f) / total_timesteps;
             printf("Simulation progress: %.1f%% (timestep %d/%d)\n", progress, t, total_timesteps);
         }
-        if (save)
-            lbm.save_macroscopics(t+1);
+        if (save) {
+            lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
+            printf("L2[%d]: error, %.2f%\n", t+1,
+                    (lbm.compute_L2_error(analytical_u) * 100.0f / Config::u_max));
+        }
 
         t++;
     }
