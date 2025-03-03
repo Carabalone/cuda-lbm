@@ -23,9 +23,6 @@ private:
     float *d_force;          // force: [NX][NY][D]
     int   *d_boundary_flags; // [NX][NY]
 
-    std::array<float, NX * NY> h_rho;
-    std::array<float, NX * NY * dimensions> h_u;
-
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
     }
@@ -36,9 +33,22 @@ private:
     }
 
     void setup_boundary_flags();
-    void send_consts();
+
+    template <typename Scenario>
+    void send_consts() {
+        checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(vis, &Scenario::viscosity, sizeof(float)));
+        checkCudaErrors(cudaMemcpyToSymbol(tau, &Scenario::tau, sizeof(float)));
+        checkCudaErrors(cudaMemcpyToSymbol(omega, &Scenario::omega, sizeof(float)));
+        checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
+    }
 
 public:
+    std::array<float, NX * NY> h_rho;
+    std::array<float, NX * NY * dimensions> h_u;
+
+    int timestep = 0, update_ts = 0;
 
     void allocate() {
         std::cout << "[LBM]: allocating\n";
@@ -67,31 +77,28 @@ public:
         checkCudaErrors(cudaFree(d_boundary_flags));
     }
 
+    template <typename Scenario>
+    void increase_ts() {
+        timestep++;
+        Scenario::update_ts(timestep);
+    }
+
     void update_macroscopics() {
         int num_nodes = NX * NY;
+        update_ts = timestep;
 
         checkCudaErrors(cudaMemcpy(h_rho.data(), d_rho, num_nodes * sizeof(float), cudaMemcpyDeviceToHost));
         checkCudaErrors(cudaMemcpy(h_u.data(), d_u, num_nodes * dimensions * sizeof(float), cudaMemcpyDeviceToHost));
     }
 
-    float compute_L2_error(const std::vector<float>& analytical_u) {
-        float error_sum = 0.0f;
-    
-        for (int y = 0; y < NY; y++) {
-            float sum_ux = 0.0f;
-            for (int x = 0; x < NX; x++) {
-                int index = (y * NX + x) * dimensions; 
-                sum_ux += h_u[index];
-            }
-            float avg_ux = sum_ux / NX;
-
-            printf("avg_ux in y=%d: %.4f\n", y, avg_ux);
-            
-            float diff = avg_ux - analytical_u[y];
-            error_sum += diff * diff;
+    template <typename Scenario>
+    float compute_error() {
+        if constexpr (Scenario::has_analytical_solution) {
+            return Scenario::computeError(*this);
+        } else {
+            printf("Scenario does not provide verification/validation.\n");
+            return 0.0f;
         }
-        
-        return std::sqrt(error_sum / NY);
     }
 
     void save_macroscopics(int timestep) {
@@ -142,8 +149,8 @@ public:
     __device__ static void boundaries_node(float* f, float* f_back, int node);
     __device__ static void force_node(float* force, float* u, int node);
 
-    template<typename InitCond>
-    __host__ void init(const InitCond& init);
+    template<typename Scenario>
+    __host__ void init();
     __host__ void macroscopics();
     __host__ void stream();
     __host__ void collide();

@@ -2,7 +2,16 @@
 #include "lbm.cuh"
 #include "functors/includes.cuh"
 #include <iostream>
-#include "configs/scenario.cuh"
+
+#define SCENARIO TAYLOR_GREEN
+
+#if defined(SCENARIO) && SCENARIO == TAYLOR_GREEN
+    #include "scenarios/taylorGreen2D/TaylorGreenScenario.cuh"
+    using Scenario = TaylorGreenScenario;
+#else
+    #include "scenarios/poiseuille/PoiseuilleScenario.cuh"
+    using Scenario = PoiseuilleScenario;
+#endif
 
 
 void setup_cuda() {
@@ -30,23 +39,18 @@ void setup_cuda() {
 int main(void) {
     setup_cuda();
 
-    std::cout << viscosity_to_tau(1.0f/6.0f) << std::endl;
+    std::cout << "Running " << Scenario::name() << " scenario" << std::endl;
+    std::cout << "Viscosity: " << Scenario::viscosity 
+              << ", Tau: " << Scenario::tau << std::endl;
 
     LBM lbm; // idea is control from host and give args to the kernels for the device.
     lbm.allocate();
 
-    std::vector<float> analytical_u;
-    analytical_u.reserve(NY);
-
-    for (int i=0; i < NY; i++) {
-        analytical_u[i] = Config::poiseuille_analytical(i);
-    }
-
-    const int total_timesteps = 60000;
+    const int total_timesteps = 10000;
     const int save_int = 100;
     int t = 0;
 
-    lbm.init(Config::init);
+    lbm.init<Scenario>();
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -55,6 +59,8 @@ int main(void) {
     while (t < total_timesteps) {
         bool save = (t+1)%save_int == 0;
         cudaEventRecord(start);
+
+        lbm.increase_ts<Scenario>();
 
         lbm.stream();
         lbm.swap_buffers();
@@ -77,8 +83,11 @@ int main(void) {
         }
         if (save) {
             lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
-            printf("L2[%d]: error, %.2f%\n", t+1,
-                    (lbm.compute_L2_error(analytical_u) * 100.0f / Config::u_max));
+            if constexpr (Scenario::has_analytical_solution) {
+                printf("%s[%d]: error, %.2f%%\n", 
+                       Scenario::name(), t+1,
+                       lbm.compute_error<Scenario>());
+            }
         }
 
         t++;

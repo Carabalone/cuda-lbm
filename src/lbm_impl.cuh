@@ -16,13 +16,16 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
     LBM::init_node(f, f_back, f_eq, rho, u, idx);
 }
 
-template<typename InitCond>
-void LBM::init(const InitCond& init) {
+template<typename Scenario>
+void LBM::init() {
     dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    send_consts();
+    auto init = Scenario::init();
+    auto boundary_functor = Scenario::boundary();
+
+    send_consts<Scenario>();
 
     int* d_debug_counter;
     int h_debug_counter = 0;

@@ -1,7 +1,6 @@
 #include "lbm.cuh"
 #include "lbm_constants.cuh"
 #include "functors/includes.cuh"
-#include "configs/scenario.cuh"
 
 
 #define DEBUG_KERNEL 0
@@ -101,16 +100,6 @@ void LBM::compute_equilibrium() {
 // ---------------------------------------INIT----------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
-
-__host__
-void LBM::send_consts() {
-    checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
-    checkCudaErrors(cudaMemcpyToSymbol(vis, &Config::h_vis, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(tau, &Config::h_tau, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(omega, &Config::h_omega, sizeof(float)));
-    checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
-}
 
 __device__
 void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
@@ -435,7 +424,7 @@ void LBM::setup_boundary_flags() {
         int y = node / NX;
 
         if (y == 0 || y == NY - 1) {
-            h_boundary_flags[node] = 1;
+            // h_boundary_flags[node] = 1;
         }
         
         // // top left corner

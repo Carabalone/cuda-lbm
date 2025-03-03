@@ -50,10 +50,9 @@ constexpr inline float tau_to_viscosity(float t) {
     return (t - 0.5f) / 3.0f;
 }
 
-// TODO: change later, ik this is bad
-// constexpr float h_vis   = (1.0f / 6.0f);
-// constexpr float h_vis   = Config::h_vis;
-// constexpr float h_tau   = viscosity_to_tau(h_vis);
-// constexpr float h_omega = 1 / h_tau;
+enum BC_flag {
+    FLUID,
+    BOUNCE_BACK,
+};
 
 #endif // LBM_CONSTANTS_H

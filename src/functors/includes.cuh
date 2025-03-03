@@ -7,6 +7,5 @@
 #include "./boundaryConditions/zeroGradientOutflow.cuh"
 #include "./boundaryConditions/zouHeInflow.cuh"
 #include "./initialConditions/defaultInit.cuh"
-#include "./initialConditions/taylorGreenInit.cuh"
 
 #endif // ! FUNCTOR_INCLUDES_H
