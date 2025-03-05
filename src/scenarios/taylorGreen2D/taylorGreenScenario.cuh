@@ -9,7 +9,7 @@ struct TaylorGreenScenario : public ScenarioTrait <
     TaylorGreenBoundary,
     TaylorGreenValidation
 > {
-    static constexpr float u0 = 0.04f;
+    static constexpr float u_max = 0.04f;
     static constexpr float viscosity = 1.0f/6.0f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
@@ -17,7 +17,7 @@ struct TaylorGreenScenario : public ScenarioTrait <
     static const char* name() { return "TaylorGreen"; }
     
     static InitType init() { 
-        return InitType(viscosity, u0); 
+        return InitType(viscosity, u_max); 
     }
 
     static BoundaryType boundary() {
@@ -25,7 +25,7 @@ struct TaylorGreenScenario : public ScenarioTrait <
     }
     
     static ValidationType analyticalSolution() {
-        return ValidationType(u0, viscosity, t);
+        return ValidationType(u_max, viscosity, t);
     }
     
     template <typename LBMSolver>

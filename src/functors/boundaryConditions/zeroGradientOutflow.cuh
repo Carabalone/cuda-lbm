@@ -4,7 +4,7 @@
 #include "lbm_constants.cuh"
 
 struct OutflowBoundary {
-    __device__ static void apply(float* f, float* f_back, const int* C, const int* OPP, int node) {
+    __device__ static void apply(float* f, float* f_back, int node) {
         int baseIdx = get_node_index(node, 0);
         
         int x = node % NX;

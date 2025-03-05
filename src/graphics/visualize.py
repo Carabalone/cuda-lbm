@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-steps = 10000
-NX, NY = 256, 256
+steps = 30000
+NX, NY = 129, 129
 
 fig, ax = plt.subplots(figsize=(10, 8))
 cax = ax.imshow(np.zeros((NY, NX)), origin='lower', extent=[0, NX, 0, NY], cmap='jet', vmin=0, vmax=1)

@@ -32,7 +32,8 @@ private:
         return node;
     }
 
-    void setup_boundary_flags();
+    template<typename BoundaryFunctor>
+    void setup_boundary_flags(BoundaryFunctor boundary_func);
 
     template <typename Scenario>
     void send_consts() {
@@ -155,6 +156,7 @@ public:
     __host__ void stream();
     __host__ void collide();
     __host__ void compute_equilibrium();
+    template <typename Scenario>
     __host__ void apply_boundaries();
     __host__ void compute_forces();
 

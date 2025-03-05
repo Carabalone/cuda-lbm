@@ -36,6 +36,11 @@ struct BBDomainBoundary {
                 int opp_i = OPP[i];
                 
                 f[base_idx + opp_i] = saved[i];
+
+                if (saved[i] < 0.0f) {
+                    printf("[BOUNCE_BACK] Bounced negative value at node (%d, %d): from dir %d to dir %d, value = %f\n", 
+                           x, y, i, opp_i, saved[i]);
+                }
             }
         }
     }
