@@ -65,11 +65,12 @@ int main(void) {
         lbm.stream();
         lbm.swap_buffers();
 
+        lbm.apply_boundaries();
+
         lbm.macroscopics();
         lbm.compute_equilibrium();
         lbm.collide();
 
-        lbm.apply_boundaries();
 
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
