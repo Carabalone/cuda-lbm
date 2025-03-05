@@ -15,6 +15,8 @@ struct ScenarioTrait {
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
     static inline float t = 0.0f;
+
+    static constexpr float u_max = 0.1f;
     
     static const char* name() { return "BaseScenario"; }
     

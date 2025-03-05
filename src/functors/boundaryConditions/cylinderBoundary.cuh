@@ -19,7 +19,7 @@ struct CylinderBoundary {
     }
     
     __host__ __device__
-    static inline void apply(float* f, float* f_back, int* C, int* OPP, int node) {
+    static inline void apply(float* f, float* f_back, int node) {
         int baseIdx = get_node_index(node, 0);
 
         float saved[quadratures];

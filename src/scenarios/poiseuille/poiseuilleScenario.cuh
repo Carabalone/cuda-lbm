@@ -1,4 +1,3 @@
-// PoiseuilleScenario.cuh
 #ifndef POISEUILLE_SCENARIO_H
 #define POISEUILLE_SCENARIO_H
 

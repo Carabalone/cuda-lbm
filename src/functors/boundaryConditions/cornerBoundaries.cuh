@@ -2,7 +2,7 @@
 #define CORNER_H
 
 struct CornerBoundary {
-    __device__ static void apply_top_left(float* f, float* f_back, const int* C, const int* OPP, int node) {
+    __device__ static void apply_top_left(float* f, float* f_back, int node) {
         node = get_node_index(node);
         
         const float ux = 0.03f;

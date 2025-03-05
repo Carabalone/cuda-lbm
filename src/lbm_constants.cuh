@@ -53,6 +53,12 @@ constexpr inline float tau_to_viscosity(float t) {
 enum BC_flag {
     FLUID,
     BOUNCE_BACK,
+    ZOU_HE_TOP,
+    ZOU_HE_LEFT,
+    ZOU_HE_TOP_LEFT_TOP_INFLOW,
+    ZOU_HE_TOP_RIGHT_TOP_INFLOW,
+    CYLINDER,
+    ZG_OUTFLOW
 };
 
 #endif // LBM_CONSTANTS_H
