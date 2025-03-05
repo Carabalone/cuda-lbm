@@ -3,20 +3,6 @@
 
 #include "lbm_constants.cuh"
 
-enum class ZouHeType {
-    LEFT_INLET,
-    TOP_INLET,
-    TOP_LEFT_CORNER,
-    TOP_RIGHT_CORNER
-};
-
-// I know you will come back here tomorrow, here are some useful links:
-// https://palabos-forum.unige.ch/t/corner-nodes-2d-channel-boundary-condition-zou-he/577/4
-// https://palabos-forum.unige.ch/t/lbm-zou-he-boundary-on-corner-nodes-2dcavity-flow/1284
-// https://palabos-forum.unige.ch/t/corner-implementation-in-d2q9/795/3
-// https://palabos-forum.unige.ch/t/problem-with-pouseuille-flow/103/4
-
-
 struct ZouHe {
 
     __device__
@@ -33,13 +19,8 @@ struct ZouHe {
 
         float f2_f4_diff = f[2 + node] - f[4 + node];
         
-        // this is not right. In theory it should be divided by 2.0f. But the simulation is rather
-        // unstable if I do so. The solution was to just divide by 4.0f to dampen the effect.
-        // In theory this is non-physical, but I won't need Zou-He Boundaries for long, so I'm
-        // leaving this here.
-        // TODO: fix this later. I read this again and made apply_top normally.
-        float f57_diff =  f2_f4_diff / 4.0f;
-        float f68_diff = -f2_f4_diff / 4.0f;
+        float f57_diff =  f2_f4_diff / 2.0f;
+        float f68_diff = -f2_f4_diff / 2.0f;
         
         f[5 + node] = f[7 + node] + f57_diff + (1.0f/6.0f) * rho * ux;
         f[8 + node] = f[6 + node] + f68_diff + (1.0f/6.0f) * rho * ux;
