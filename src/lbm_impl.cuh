@@ -86,11 +86,13 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
             break;
 
         case BC_flag::ZOU_HE_TOP_LEFT_TOP_INFLOW:
-            ZouHe::apply_top_left_corner(f, f_back, idx);
+            // ZouHe::apply_top_left_corner(f, f_back, idx);
+            printf("[NOT_IMPLEMENTED] Zou/He Top-left (top inflow)\n");
             break;
 
         case BC_flag::ZOU_HE_TOP_RIGHT_TOP_INFLOW:
-            ZouHe::apply_top_right_corner(f, f_back, idx);
+            // ZouHe::apply_top_right_corner(f, f_back, idx);
+            printf("[NOT_IMPLEMENTED] Zou/He Top-right (top inflow)\n");
             break;
 
         case BC_flag::CYLINDER:
