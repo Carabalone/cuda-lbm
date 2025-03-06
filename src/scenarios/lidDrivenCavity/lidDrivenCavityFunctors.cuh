@@ -1,7 +1,7 @@
 #ifndef LID_DRIVEN_CAVITY_FUNCTORS_H
 #define LID_DRIVEN_CAVITY_FUNCTORS_H
 
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 #include "defines.hpp"
 
 struct LidDrivenInit {

@@ -1,7 +1,7 @@
 #ifndef OUTFLOW_H
 #define OUTFLOW_H
 
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 
 struct OutflowBoundary {
     __device__ static void apply(float* f, float* f_back, int node) {

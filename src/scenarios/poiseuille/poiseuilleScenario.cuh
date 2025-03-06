@@ -1,7 +1,7 @@
 #ifndef POISEUILLE_SCENARIO_H
 #define POISEUILLE_SCENARIO_H
 
-#include "../scenario.cuh"
+#include "scenarios/scenario.cuh"
 #include "poiseuilleFunctors.cuh"
 
 

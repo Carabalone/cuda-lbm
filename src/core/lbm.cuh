@@ -4,15 +4,18 @@
 #include <iostream>
 #include <stdint.h>
 #include "defines.hpp"
-#include "utility.cuh"
+#include "util/utility.cuh"
 #include <cmath>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <filesystem>
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 #include "functors/includes.cuh"
 #include "assert.cuh"
+
+#define DEBUG_NODE 5
+#define VALUE_THRESHOLD 5.0f
 
 namespace fs = std::filesystem;
 
@@ -164,6 +167,7 @@ public:
 
 };
 
-#include "lbm_impl.cuh"
+#include "core/init.cuh"
+#include "core/boundaries.cuh"
 
 #endif // ! LBM_H

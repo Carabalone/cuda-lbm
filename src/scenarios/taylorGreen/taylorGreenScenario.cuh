@@ -1,7 +1,7 @@
 #ifndef TAYLOR_GREEN_SCENARIO_H
 #define TAYLOR_GREEN_SCENARIO_H
 
-#include "../scenario.cuh"
+#include "scenarios/scenario.cuh"
 #include "taylorGreenFunctors.cuh"
 
 struct TaylorGreenScenario : public ScenarioTrait <

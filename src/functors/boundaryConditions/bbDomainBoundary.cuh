@@ -1,7 +1,7 @@
 #ifndef BBDOMAIN_BOUNDARY_H
 #define BBDOMAIN_BOUNDARY_H
 
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 
 
 // TODO: I could probably just ignore the x and y part, and just make separate cases for top

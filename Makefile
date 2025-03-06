@@ -10,10 +10,10 @@ OUTPUTDIR = output
 TARGET = $(BINDIR)/lbm_solver
 
 # Source files
-CXX_SRCS = $(wildcard $(SRCDIR)/*.cpp)
-CU_SRCS = $(wildcard $(SRCDIR)/*.cu)
-CXX_OBJS = $(addprefix $(BINDIR)/, $(notdir $(CXX_SRCS:.cpp=.cpp.o)))
-CU_OBJS = $(addprefix $(BINDIR)/, $(notdir $(CU_SRCS:.cu=.cu.o)))
+CXX_SRCS = $(shell find $(SRCDIR) -name "*.cpp")
+CU_SRCS = $(shell find $(SRCDIR) -name "*.cu")
+CXX_OBJS = $(patsubst $(SRCDIR)/%.cpp,$(BINDIR)/%.cpp.o,$(CXX_SRCS))
+CU_OBJS = $(patsubst $(SRCDIR)/%.cu,$(BINDIR)/%.cu.o,$(CU_SRCS))
 OBJS = $(CXX_OBJS) $(CU_OBJS)
 
 # Dependency files
@@ -31,10 +31,12 @@ $(TARGET): $(OBJS)
 
 # Compile C++ files
 $(BINDIR)/%.cpp.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MD -MF $(@:.o=.d) -c $< -o $@
 
 # Compile CUDA files
 $(BINDIR)/%.cu.o: $(SRCDIR)/%.cu
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MD -MF $(@:.o=.d) -c $< -o $@
 
 # Create binary directory if needed

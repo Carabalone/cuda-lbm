@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include "lbm.cuh"
+#include "core/lbm.cuh"
 #include "functors/includes.cuh"
 #include <iostream>
 #include <chrono> 
-#include "timer.cuh"
+#include "util/timer.cuh"
 
 #if defined(USE_TAYLOR_GREEN)
     #include "scenarios/taylorGreen/TaylorGreenScenario.cuh"

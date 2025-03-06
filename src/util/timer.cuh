@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "lbm.cuh"
+#include "core/lbm.cuh"
 #include "functors/includes.cuh"
 #include <iostream>
 #include <chrono>

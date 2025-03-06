@@ -1,7 +1,7 @@
 #ifndef POISEUILLE_FUNCTORS_H
 #define POISEUILLE_FUNCTORS_H
 
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 #include "defines.hpp"
 
 struct PoiseuilleInit {

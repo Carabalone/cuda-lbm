@@ -33,4 +33,10 @@ inline void __getLastCudaError(const char *const errorMessage, const char *const
     }
 }
 
+#ifdef DEBUG_KERNEL
+  #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+  #define DPRINTF(fmt, ...)
+#endif
+
 #endif // UTILITY_H

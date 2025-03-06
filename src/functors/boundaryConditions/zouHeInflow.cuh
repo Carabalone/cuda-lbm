@@ -1,7 +1,7 @@
 #ifndef ZOU_HE_H
 #define ZOU_HE_H
 
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 
 struct ZouHe {
 

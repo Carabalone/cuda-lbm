@@ -2,7 +2,7 @@
 #ifndef TAYLOR_GREEN_FUNCTORS_H
 #define TAYLOR_GREEN_FUNCTORS_H
 
-#include "lbm_constants.cuh"
+#include "core/lbm_constants.cuh"
 #include "defines.hpp"
 
 struct TaylorGreenInit {
