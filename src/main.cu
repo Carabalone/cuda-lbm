@@ -3,18 +3,18 @@
 #include "functors/includes.cuh"
 #include <iostream>
 #include <chrono> 
+#include "timer.cuh"
 
 #if defined(USE_TAYLOR_GREEN)
-    #include "scenarios/taylorGreen2D/TaylorGreenScenario.cuh"
+    #include "scenarios/taylorGreen/TaylorGreenScenario.cuh"
     using Scenario = TaylorGreenScenario;
 #elif defined(USE_POISEUILLE)
     #include "scenarios/poiseuille/PoiseuilleScenario.cuh"
     using Scenario = PoiseuilleScenario;
 #elif defined(USE_LID_DRIVEN)
-    #include "scenarios/lidDrivenCavity2D/lidDrivenCavityScenario.cuh"
+    #include "scenarios/lidDrivenCavity/lidDrivenCavityScenario.cuh"
     using Scenario = LidDrivenScenario;
 #endif
-
 
 void setup_cuda() {
     checkCudaErrors(cudaSetDevice(0));
@@ -57,6 +57,9 @@ int main(void) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
+    Timer simulation_timer;
+    float last_progress_time = 0.0f;
+    simulation_timer.reset();
 
     while (t < total_timesteps) {
         bool save = (t+1)%save_int == 0;
@@ -80,9 +83,26 @@ int main(void) {
         float milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, start, stop);
 
+        float elapsed = simulation_timer.elapsed_seconds();
+        simulation_timer.checkpoint_seconds();
+
         if (t % (total_timesteps / 20) == 0) {
+            last_progress_time = elapsed;
             float progress = (t * 100.0f) / total_timesteps;
             printf("Simulation progress: %.1f%% (timestep %d/%d)\n", progress, t, total_timesteps);
+            float median_ts = simulation_timer.median_timestep();
+            float remaining = median_ts * (total_timesteps - t);
+            
+            std::cout << std::fixed << std::setprecision(1);
+            std::cout << "Median timestep: " << median_ts * 1000.0f << " ms | ";
+            
+            int rem_hours = static_cast<int>(remaining / 3600);
+            int rem_mins = static_cast<int>((remaining - rem_hours * 3600) / 60);
+            int rem_secs = static_cast<int>(remaining - rem_hours * 3600 - rem_mins * 60);
+            
+            std::cout << "Est. remaining: ";
+            if (rem_hours > 0) std::cout << rem_hours << "h ";
+            std::cout << rem_mins << "m " << rem_secs << "s" << std::endl;
         }
         if (save) {
             lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.

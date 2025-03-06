@@ -202,9 +202,13 @@ void LBM::stream_node(float* f, float* f_back, int node) {
 
 #else
     #ifdef PERIODIC_X
+        if (y_neigh < 0 || y_neigh >= NY)
+            continue;
         x_neigh = (x_neigh + NX) % NX;
     #endif
     #ifdef PERIODIC_Y
+        if (x_neigh < 0 || x_neigh >= NX)
+            continue;
         y_neigh = (y_neigh + NY) % NY;
     #endif
 #endif

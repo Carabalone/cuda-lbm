@@ -48,3 +48,5 @@ env/
 
 *.mp4
 videos/
+
+src/grep_context.py
