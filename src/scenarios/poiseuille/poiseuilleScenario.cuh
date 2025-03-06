@@ -30,7 +30,7 @@ struct PoiseuilleScenario : public ScenarioTrait <
     }
     
     template <typename LBMSolver>
-    static float computeError(LBMSolver& solver) {
+    static float compute_error(LBMSolver& solver) {
         auto analytical_profile = validation().getProfile();
         
         if (solver.update_ts < solver.timestep)

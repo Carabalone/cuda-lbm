@@ -36,9 +36,9 @@ def update(frame):
     velocity_magnitude = np.sqrt(U**2 + V**2)
 
     vmin = np.min(velocity_magnitude)
-    vmin = -0.02
+    vmin = -0.0
     vmax = np.max(velocity_magnitude)
-    vmax = 0.02
+    vmax = 0.5
 
     cax.set_array(velocity_magnitude)
     cax.set_clim(vmin, vmax)

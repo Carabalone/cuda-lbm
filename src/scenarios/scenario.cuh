@@ -26,7 +26,7 @@ struct ScenarioTrait {
     static constexpr bool has_analytical_solution = !std::is_same<ValidationFunctor, void>::value;
     
     template <typename LBMSolver>
-    static float computeError(LBMSolver& solver);
+    static float compute_error(LBMSolver& solver);
 
     static void update_ts(float new_ts) {
         t = new_ts;

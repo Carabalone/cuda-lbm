@@ -95,7 +95,7 @@ public:
     template <typename Scenario>
     float compute_error() {
         if constexpr (Scenario::has_analytical_solution) {
-            return Scenario::computeError(*this);
+            return Scenario::compute_error(*this);
         } else {
             printf("Scenario does not provide verification/validation.\n");
             return 0.0f;

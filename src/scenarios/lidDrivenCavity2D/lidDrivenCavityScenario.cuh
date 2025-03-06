@@ -10,10 +10,13 @@ struct LidDrivenScenario : public ScenarioTrait <
     LidDrivenBoundary,
     LidDrivenValidation
 > {
-    // for Re = 100, tau = 1.2, L = 128 = NX - 1 
-    // L = 128 = NX - 1 
-    static constexpr float u_max =  0.0517f;
-    static constexpr float viscosity = 0.0667f; 
+    // Re=100
+    // static constexpr float u_max =  0.0517f;
+    // static constexpr float viscosity = 0.0667f; 
+
+    // Re=1000 (a little bit of instability but still converges)
+    static constexpr float u_max =  0.43402777777f;
+    static constexpr float viscosity = 1.0f / 18.0f; 
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
     
@@ -32,13 +35,13 @@ struct LidDrivenScenario : public ScenarioTrait <
     }
     
     template <typename LBMSolver>
-    static float computeError(LBMSolver& solver) {
+    static float compute_error(LBMSolver& solver) {
 
         if (solver.update_ts < solver.timestep)
             solver.update_macroscopics();
 
         const auto validator = validation();
-        const int re = 100;
+        const int re = 1000;
         
         float error_sum_ux = 0.0f;
         float ref_sum_ux = 0.0f;
@@ -48,15 +51,18 @@ struct LidDrivenScenario : public ScenarioTrait <
         int center_x = NX / 2;
         int center_y = NY / 2;
         
-        // printf("\n%-8s %-8s %-10s %-10s %-10s | %-8s %-10s %-10s %-10s\n", 
-        //       "y", "node_y", "ux-LBM", "ux-Ghia", "ux-Diff", 
-        //       "node_x", "uy-LBM", "uy-Ghia", "uy-Diff");
-        // printf("---------------------------------------------------------------------------------\n");
+        printf("\n%-8s %-8s %-10s %-10s %-10s | %-8s %-10s %-10s %-10s\n", 
+              "y", "node_y", "ux-LBM", "ux-Ghia", "ux-Diff", 
+              "node_x", "uy-LBM", "uy-Ghia", "uy-Diff");
+        printf("---------------------------------------------------------------------------------\n");
+
+        const float* ux_ref = validator.ux_ref(re);
+        const float* uy_ref = validator.uy_ref(re);
         
         for (int i = 0; i < validator.ghia_u_count; i++) {
             // processing ux along mid y axis. (y_norm = 0.5)
             float y_norm = validator.ghia_y[i];
-            float ux_ghia = validator.ghia_ux_100[i];
+            float ux_ghia = ux_ref[i];
             
             int y = round(y_norm * (NY - 1));
             y = std::max(0, std::min(y, NY-1));
@@ -70,7 +76,7 @@ struct LidDrivenScenario : public ScenarioTrait <
             
             // processing uy along mid x axis. (x_norm = 0.5)
             float x_norm = validator.ghia_x[i];
-            float uy_ghia = validator.ghia_uy_100[i];
+            float uy_ghia = uy_ref[i];
             
             int x = round(x_norm * (NX - 1));
             x = std::max(0, std::min(x, NX-1));

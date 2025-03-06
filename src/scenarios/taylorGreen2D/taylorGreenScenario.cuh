@@ -24,13 +24,13 @@ struct TaylorGreenScenario : public ScenarioTrait <
         return BoundaryType();
     }
     
-    static ValidationType analyticalSolution() {
+    static ValidationType validation() {
         return ValidationType(u_max, viscosity, t);
     }
     
     template <typename LBMSolver>
-    static float computeError(LBMSolver& solver) {
-        auto analytical_field = analyticalSolution().getFullField();
+    static float compute_error(LBMSolver& solver) {
+        auto analytical_field = validation().getFullField();
         
         if (solver.update_ts < solver.timestep)
             solver.update_macroscopics();
