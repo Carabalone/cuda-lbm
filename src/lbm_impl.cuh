@@ -28,6 +28,10 @@ void LBM::init() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
+    LBM_ASSERT(Scenario::viscosity > 0.0f, "Negative Viscosity");
+    LBM_ASSERT(Scenario::tau > 0.5f, "Instability warning: tau < 0.5");
+    LBM_ASSERT(Scenario::u_max < 0.5f, "Instability warning: u_max > 0.5");
+
     auto init = Scenario::init();
     auto boundary_func = Scenario::boundary();
 

@@ -12,6 +12,7 @@
 #include <filesystem>
 #include "lbm_constants.cuh"
 #include "functors/includes.cuh"
+#include "assert.cuh"
 
 namespace fs = std::filesystem;
 
