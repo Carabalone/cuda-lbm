@@ -13,15 +13,26 @@ struct LidDrivenScenario : public ScenarioTrait <
     MRT
 > {
     // Re=100
-    static constexpr float u_max =  0.0517f;
+    // static constexpr float u_max =  0.0517f;
     // static constexpr float viscosity = 0.0667f; 
-    static constexpr float viscosity = 1.0f/6.0f;
 
     // Re=1000 (a little bit of instability but still converges)
-    // static constexpr float u_max =  0.43402777777f;
-    // static constexpr float viscosity = 1.0f / 18.0f; 
+    static constexpr float u_max =  0.43402777777f;
+    static constexpr float viscosity = 1.0f / 18.0f; 
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
+
+    static constexpr float S[quadratures] = {
+        0.0f,      // density (conserved)
+        omega, // bulk viscosity related - controls compressibility
+        omega, // energy flux tensor
+        0.0f,      // momentum-x (conserved)
+        omega, // energy square moment - affects stability in high Reynolds number flows
+        0.0f,      // momentum-y (conserved)
+        omega, // third-order moment - affects numerical stability near boundaries
+        omega, // kinematic viscosity (shear viscosity)
+        omega  // kinematic viscosity (shear viscosity)
+    };
     
     static const char* name() { return "LidDriven"; }
     
@@ -44,7 +55,7 @@ struct LidDrivenScenario : public ScenarioTrait <
             solver.update_macroscopics();
 
         const auto validator = validation();
-        const int re = 100;
+        const int re = 1000;
         
         float error_sum_ux = 0.0f;
         float ref_sum_ux = 0.0f;

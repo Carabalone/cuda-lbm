@@ -64,18 +64,14 @@ private:
         checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
         checkCudaErrors(cudaMemcpyToSymbol(M, h_M, sizeof(float) * quadratures * quadratures));
         checkCudaErrors(cudaMemcpyToSymbol(M_inv, h_M_inv, sizeof(float) * quadratures * quadratures));
-        checkCudaErrors(cudaMemcpyToSymbol(S, h_S, sizeof(float) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(S, Scenario::S, sizeof(float) * quadratures));
 
-        float P[81];
-        matmul(h_M_inv, h_M, P, 9);
-        printf("Matrix P:\n");
-        for (int i = 0; i < 9; i++) {
-            printf("|");
-            for (int j = 0; j < 9; j++) {
-                printf(" %.4f", P[i *9 + j]);  // Adjust width for alignment
-            }
-            printf(" |\n");
-        }
+        LBM_ASSERT(fabs(Scenario::S[7] - Scenario::omega) < 1e-6, 
+                   "MRT relaxation value S[7] does not match scenario viscosity");
+
+        LBM_ASSERT(fabs(Scenario::S[8] - Scenario::omega) < 1e-6,
+                   "MRT relaxation value S[8] does not match scenario viscosity"); 
+
     }
 
 public:

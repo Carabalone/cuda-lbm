@@ -4,9 +4,9 @@
 
 
 #define DEBUG_KERNEL
-// #define PERIODIC
-// #define PERIODIC_X
-// #define PERIODIC_Y
+#define PERIODIC
+#define PERIODIC_X
+#define PERIODIC_Y
 
 
 #ifdef D2Q9
@@ -103,13 +103,17 @@ void LBM::stream_node(float* f, float* f_back, int node) {
 
 #else
     #ifdef PERIODIC_X
+        #ifndef PERIODIC_Y
         if (y_neigh < 0 || y_neigh >= NY)
             continue;
+        #endif
         x_neigh = (x_neigh + NX) % NX;
     #endif
     #ifdef PERIODIC_Y
+        #ifndef PERIODIC_X
         if (x_neigh < 0 || x_neigh >= NX)
             continue;
+        #endif
         y_neigh = (y_neigh + NY) % NY;
     #endif
 #endif
