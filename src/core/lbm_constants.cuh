@@ -28,6 +28,52 @@
 
     const int h_OPP[] = {0, 3, 4, 1, 2, 7, 8, 5, 6};
 
+    const float h_M[] = {
+        1,  1,  1,  1,  1,  1,  1,  1,  1,
+       -4, -1, -1, -1, -1,  2,  2,  2,  2,
+        4, -2, -2, -2, -2,  1,  1,  1,  1,
+        0,  1,  0, -1,  0,  1, -1, -1,  1,
+        0, -2,  0,  2,  0,  1, -1, -1,  1,
+        0,  0,  1,  0, -1,  1,  1, -1, -1,
+        0,  0, -2,  0,  2,  1,  1, -1, -1,
+        0,  1, -1,  1, -1,  0,  0,  0,  0,
+        0,  0,  0,  0,  0,  1, -1,  1, -1
+    };
+
+    const float h_M_inv[] = {
+        1.0f/9.0f,  -1.0f/9.0f,  1.0f/9.0f,    0.0f,       0.0f,        0.0f,        0.0f,        0.0f,       0.0f,
+        1.0f/9.0f,  -1.0f/36.0f, -1.0f/18.0f,  1.0f/6.0f, -1.0f/6.0f,   0.0f,        0.0f,        1.0f/4.0f,  0.0f,
+        1.0f/9.0f,  -1.0f/36.0f, -1.0f/18.0f,  0.0f,       0.0f,        1.0f/6.0f,  -1.0f/6.0f,  -1.0f/4.0f,  0.0f,
+        1.0f/9.0f,  -1.0f/36.0f, -1.0f/18.0f, -1.0f/6.0f,  1.0f/6.0f,   0.0f,        0.0f,        1.0f/4.0f,  0.0f,
+        1.0f/9.0f,  -1.0f/36.0f, -1.0f/18.0f,  0.0f,       0.0f,       -1.0f/6.0f,   1.0f/6.0f,  -1.0f/4.0f,  0.0f,
+        1.0f/9.0f,   1.0f/18.0f,  1.0f/36.0f,  1.0f/6.0f,  1.0f/12.0f,  1.0f/6.0f,   1.0f/12.0f,  0.0f,       1.0f/4.0f,
+        1.0f/9.0f,   1.0f/18.0f,  1.0f/36.0f, -1.0f/6.0f, -1.0f/12.0f,  1.0f/6.0f,   1.0f/12.0f,  0.0f,      -1.0f/4.0f,
+        1.0f/9.0f,   1.0f/18.0f,  1.0f/36.0f, -1.0f/6.0f, -1.0f/12.0f, -1.0f/6.0f,  -1.0f/12.0f,  0.0f,       1.0f/4.0f,
+        1.0f/9.0f,   1.0f/18.0f,  1.0f/36.0f,  1.0f/6.0f,  1.0f/12.0f, -1.0f/6.0f,  -1.0f/12.0f,  0.0f,      -1.0f/4.0f
+    };
+    // const float h_M_inv[] = {
+    //     1/9, -1/9, 1/9, 0, 0, 0,0,0,0,
+    //     1/9, -1/36, -1/18, 1/6, -1/6, 0,0,1/4,0,
+    //     1/9, -1/36, -1/18, 0,0,1/6,-1/6, -1/4, 0,
+    //     1/9, -1/36, -1/18, -1/6, 1/6,0,0,1/4,0,
+    //     1/9, -1/36, -1/18,0,0,-1/6, 1/6, -1/4, 0,
+    //     1/9, 1/18, 1/36, 1/6, 1/12, 1/6, 1/12, 0, 1/4,
+    //     1/9, 1/18, 1/36, -1/6, -1/12, 1/6, 1/12, 0, -1/4,
+    //     1/9, 1/18, 1/36, -1/6, -1/12, -1/6, -1/12, 0, 1/4,
+    //     1/9, 1/18, 1/36, 1/6, 1/12, -1/6, -1/12, 0, -1/4
+    // };
+
+    const float h_S[] = {
+        0.0f,    // density (conserved)
+        1.0f,    // energy 
+        1.0f,    // energy squared
+        0.0f,    // x-momentum (conserved)
+        0.0f,    // y-momentum (conserved)
+        1.0f,    // x heat flux
+        1.0f,    // y heat flux
+        1.0f,    // xx stress (related to viscosity)
+        1.0f     // xy stress (related to viscosity)
+    };
 
     extern __constant__ float WEIGHTS[quadratures];
     extern __constant__ int C[quadratures * dimensions];
@@ -35,6 +81,12 @@
     extern __constant__ float tau;
     extern __constant__ float omega;
     extern __constant__ int OPP[quadratures];
+
+    extern __constant__ float M[quadratures*quadratures];
+    extern __constant__ float M_inv[quadratures*quadratures];
+    extern __constant__ float S[quadratures];
+
+
 #endif
 
 __device__ __host__ __forceinline__

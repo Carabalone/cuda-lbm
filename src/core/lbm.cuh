@@ -39,6 +39,21 @@ private:
     template<typename BoundaryFunctor>
     void setup_boundary_flags(BoundaryFunctor boundary_func);
 
+    void matmul(const float* M, const float* N, float* P, int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                P[i*size + j] = 0.0f;
+            }
+        }
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                for (int k = 0; k < size; k++) {
+                    P[i*size + j] += M[i*size + k] * N[k*size + j];
+                }
+            }
+        }
+    }
+
     template <typename Scenario>
     void send_consts() {
         checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
@@ -47,6 +62,20 @@ private:
         checkCudaErrors(cudaMemcpyToSymbol(tau, &Scenario::tau, sizeof(float)));
         checkCudaErrors(cudaMemcpyToSymbol(omega, &Scenario::omega, sizeof(float)));
         checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(M, h_M, sizeof(float) * quadratures * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(M_inv, h_M_inv, sizeof(float) * quadratures * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(S, h_S, sizeof(float) * quadratures));
+
+        float P[81];
+        matmul(h_M_inv, h_M, P, 9);
+        printf("Matrix P:\n");
+        for (int i = 0; i < 9; i++) {
+            printf("|");
+            for (int j = 0; j < 9; j++) {
+                printf(" %.4f", P[i *9 + j]);  // Adjust width for alignment
+            }
+            printf(" |\n");
+        }
     }
 
 public:
@@ -150,7 +179,8 @@ public:
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
     __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
-    __device__ static void collide_node(float* f, float* f_back, float* f_eq, float* force, float* u, int node);
+    template <typename CollisionOp>
+    __device__ static void collide_node(float* f, float* f_eq, float* u, float* force, int node, int q);
     __device__ static void boundaries_node(float* f, float* f_back, int node);
     __device__ static void force_node(float* force, float* u, int node);
 
@@ -158,6 +188,7 @@ public:
     __host__ void init();
     __host__ void macroscopics();
     __host__ void stream();
+    template <typename CollisionOp>
     __host__ void collide();
     __host__ void compute_equilibrium();
     template <typename Scenario>

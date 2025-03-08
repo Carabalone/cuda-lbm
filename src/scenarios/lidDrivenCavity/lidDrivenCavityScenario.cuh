@@ -3,16 +3,19 @@
 
 #include "scenarios/scenario.cuh"
 #include "lidDrivenCavityFunctors.cuh"
+#include "core/collision.cuh"
 
 
 struct LidDrivenScenario : public ScenarioTrait <
     LidDrivenInit,
     LidDrivenBoundary,
-    LidDrivenValidation
+    LidDrivenValidation,
+    MRT
 > {
     // Re=100
     static constexpr float u_max =  0.0517f;
-    static constexpr float viscosity = 0.0667f; 
+    // static constexpr float viscosity = 0.0667f; 
+    static constexpr float viscosity = 1.0f/6.0f;
 
     // Re=1000 (a little bit of instability but still converges)
     // static constexpr float u_max =  0.43402777777f;

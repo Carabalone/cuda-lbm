@@ -1,9 +1,9 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-// #define USE_TAYLOR_GREEN
+#define USE_TAYLOR_GREEN
 // #define USE_POISEUILLE
-#define USE_LID_DRIVEN
+// #define USE_LID_DRIVEN
 // #define USE_TURBULENT_CHANNEL
 
 // simulation parameters

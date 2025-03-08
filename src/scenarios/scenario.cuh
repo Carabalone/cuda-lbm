@@ -4,12 +4,14 @@
 #include <vector>
 #include <array>
 #include <string>
+#include "core/collision.cuh"
 
-template <typename InitFunctor, typename BoundaryFunctor, typename ValidationFunctor = void>
+template <typename InitFunctor, typename BoundaryFunctor, typename ValidationFunctor = void, typename CollisionType = BGK>
 struct ScenarioTrait {
     using InitType = InitFunctor;
     using BoundaryType = BoundaryFunctor;
     using ValidationType = ValidationFunctor;
+    using CollisionOp = CollisionType;
     
     static constexpr float viscosity = 1.0f/6.0f;
     static constexpr float tau = viscosity_to_tau(viscosity);
