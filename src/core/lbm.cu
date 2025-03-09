@@ -6,7 +6,7 @@
 #define DEBUG_KERNEL
 #define PERIODIC
 #define PERIODIC_X
-#define PERIODIC_Y
+// #define PERIODIC_Y
 
 
 #ifdef D2Q9

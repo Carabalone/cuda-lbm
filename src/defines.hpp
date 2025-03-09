@@ -2,9 +2,10 @@
 #define DEFINES_H
 
 // #define USE_TAYLOR_GREEN
-#define USE_POISEUILLE
+// #define USE_POISEUILLE
 // #define USE_LID_DRIVEN
 // #define USE_TURBULENT_CHANNEL
+#define USE_FLOW_PAST_CYLINDER
 
 // simulation parameters
 #ifdef USE_TAYLOR_GREEN
@@ -22,6 +23,10 @@
 #elif defined(USE_TURBULENT_CHANNEL)
     #define SCALE 1
     #define NX (512 * SCALE)
+    #define NY (256 * SCALE)
+#elif defined(USE_FLOW_PAST_CYLINDER)
+    #define SCALE 1
+    #define NX (128 * SCALE)
     #define NY (256 * SCALE)
 #endif
 

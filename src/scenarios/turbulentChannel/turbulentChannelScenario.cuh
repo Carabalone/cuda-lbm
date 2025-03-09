@@ -1,15 +1,16 @@
 #ifndef TURBULENT_CHANNEL_SCENARIO_H
 #define TURBULENT_CHANNEL_SCENARIO_H
 
-#include "../scenario.cuh"
+#include "scenarios/scenario.cuh"
 #include "turbulentChannelFunctors.cuh"
 
 struct TurbulentChannelScenario : public ScenarioTrait <
     TurbulentChannelInit,
     TurbulentChannelBoundary,
-    TurbulentChannelValidation
+    TurbulentChannelValidation,
+    MRT
 > {
-    static constexpr float Re = 3000.0f;
+    static constexpr float Re = 8000.0f;
     static constexpr int N_half = NY / 2;
     
     static constexpr float u_max = 0.1f;
@@ -18,6 +19,19 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     static constexpr float omega = 1.0f / tau;
     
     static constexpr float perturbation = 0.05f * u_max;
+
+    // Lallemand and Luo (2000) magic parameters.
+    static constexpr float S[quadratures] = {
+        0.0f,  // density (conserved)
+        1.63f, // bulk viscosity related - controls compressibility
+        1.14f, // energy flux tensor
+        0.0f,  // momentum-x (conserved)
+        1.92f, // energy square moment - affects stability in high Reynolds number flows
+        0.0f,  // momentum-y (conserved)
+        1.98f, // third-order moment - affects numerical stability near boundaries
+        omega, // kinematic viscosity (shear viscosity)
+        omega  // kinematic viscosity (shear viscosity)
+    };
     
     static const char* name() { return "TurbulentChannel"; }
     
