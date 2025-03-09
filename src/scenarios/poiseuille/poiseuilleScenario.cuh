@@ -8,12 +8,25 @@
 struct PoiseuilleScenario : public ScenarioTrait <
     PoiseuilleInit,
     PoiseuilleBoundary,
-    PoiseuilleValidation
+    PoiseuilleValidation,
+    MRT
 > {
     static constexpr float u_max = 0.05f;
     static constexpr float viscosity = 1.0f/6.0f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
+
+    static constexpr float S[quadratures] = {
+        0.0f,    // density (conserved)
+        omega,    // bulk viscosity (compressibility control)
+        omega,    // energy flux tensor (stability control)
+        0.0f,    // momentum-x (conserved)
+        omega,    // energy square moment (stability for high Re)
+        0.0f,    // momentum-y (conserved)
+        omega,    // third-order moment (stability control)
+        omega,   // shear viscosity (controls physical viscosity)
+        omega    // shear viscosity (controls physical viscosity)
+    };
     
     static const char* name() { return "Poiseuille"; }
     

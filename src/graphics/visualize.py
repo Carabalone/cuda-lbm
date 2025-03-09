@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 steps = 30000
-NX, NY = 512, 256
+NX, NY = 150, 100
 
 fig, ax = plt.subplots(figsize=(10, 8))
 cax = ax.imshow(np.zeros((NY, NX)), origin='lower', extent=[0, NX, 0, NY], cmap='jet', vmin=0, vmax=1)
@@ -36,9 +36,9 @@ def update(frame):
     velocity_magnitude = np.sqrt(U**2 + V**2)
 
     vmin = np.min(velocity_magnitude)
-    vmin = -0.0
+    vmin = -0.05
     vmax = np.max(velocity_magnitude)
-    vmax = 0.1
+    vmax = 0.05
 
     cax.set_array(velocity_magnitude)
     cax.set_clim(vmin, vmax)

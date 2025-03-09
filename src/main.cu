@@ -66,6 +66,7 @@ int main(void) {
     simulation_timer.reset();
 
     while (t < total_timesteps) {
+        // printf("\n----------------------------------------NEW_TS----------------------------------------\n");
         bool save = (t+1)%save_int == 0;
         cudaEventRecord(start);
 
@@ -78,7 +79,7 @@ int main(void) {
         
         lbm.macroscopics();
         lbm.compute_equilibrium();
-        lbm.collide();
+        lbm.collide<Scenario::CollisionOp>();
         
 
         cudaEventRecord(stop);
