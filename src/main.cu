@@ -14,7 +14,11 @@
 #elif defined(USE_LID_DRIVEN)
     #include "scenarios/lidDrivenCavity/lidDrivenCavityScenario.cuh"
     using Scenario = LidDrivenScenario;
+#elif defined(USE_TURBULENT_CHANNEL)
+    #include "scenarios/turbulentChannel/turbulentChannelScenario.cuh"
+    using Scenario = TurbulentChannelScenario;
 #endif
+
 
 void setup_cuda() {
     checkCudaErrors(cudaSetDevice(0));
