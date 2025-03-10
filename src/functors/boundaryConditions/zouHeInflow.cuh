@@ -9,21 +9,25 @@ struct ZouHe {
     static void apply_left(float* f, float* f_back, float u_lid, int node) {
 
         node = get_node_index(node);
-        const float ux = 0.03f;
+        const float ux = u_lid;
         const float uy = 0.0f;
 
-        float rho = (f[0 + node] + f[2 + node] + f[3 + node] + 
-                    f[4 + node] + f[6 + node] + f[7 + node]) / (1.0f - ux);
+        float rho = (f[0 + node] + f[2 + node] + f[4 + node] + 
+                    2*(f[2 + node] + f[6 + node] + f[7 + node])) / (1.0f - ux);
 
         f[1 + node] = f[3 + node] + (2.0f/3.0f) * rho * ux;
 
-        float f2_f4_diff = f[2 + node] - f[4 + node];
-        
-        float f57_diff =  f2_f4_diff / 2.0f;
-        float f68_diff = -f2_f4_diff / 2.0f;
-        
-        f[5 + node] = f[7 + node] + f57_diff + (1.0f/6.0f) * rho * ux;
-        f[8 + node] = f[6 + node] + f68_diff + (1.0f/6.0f) * rho * ux;
+        f[5 + node] = f[7 + node] - 0.5f * (f[2 + node] - f[4 + node]) + (1.0f/6.0f) * rho * ux;
+        f[8 + node] = f[6 + node] + 0.5f * (f[2 + node] - f[4 + node]) + (1.0f/6.0f) * rho * ux;
+
+        // ensure mass conservation...
+        // if (rho > 1.1f || rho < 0.9f)
+        //     printf("rho in zou he: %.4f\n", rho);
+        // float sum = 0.0f;
+        // for (int i = 1; i < quadratures; i++) {
+        //     sum += f[node + i];
+        // }
+        // f[0 + node] = rho - sum;
 
     }
 
