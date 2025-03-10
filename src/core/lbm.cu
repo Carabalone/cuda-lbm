@@ -4,8 +4,8 @@
 
 
 #define DEBUG_KERNEL
-#define PERIODIC
-#define PERIODIC_X
+// #define PERIODIC
+// #define PERIODIC_X
 // #define PERIODIC_Y
 
 
@@ -21,7 +21,6 @@
     __constant__ float M_inv[quadratures * quadratures];
     __constant__ float S[quadratures];
 #endif
-
 
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------

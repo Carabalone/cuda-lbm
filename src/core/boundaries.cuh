@@ -16,7 +16,14 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
 
     int idx = y * NX + x;
 
+    // TODO solve the instantiation issue.
     BBDomainBoundary domain_boundary(true, true);
+
+    static constexpr float r = NY / 12.0f;
+    static constexpr float cx = NX / 4.0f;
+    static constexpr float cy = NY / 2.0f;
+
+    CylinderBoundary cb(cx, cy, r);
 
     int flag = boundary_flags[idx];
     switch (flag) {
@@ -38,25 +45,29 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
 
         case BC_flag::ZOU_HE_TOP_LEFT_TOP_INFLOW:
             // ZouHe::apply_top_left_corner(f, f_back, idx);
-            printf("[NOT_IMPLEMENTED] Zou/He Top-left (top inflow)\n");
+            LBM_ASSERT(false, "[NOT_IMPLEMENTED] Zou/He Top-left (top inflow)\n");
             break;
 
         case BC_flag::ZOU_HE_TOP_RIGHT_TOP_INFLOW:
             // ZouHe::apply_top_right_corner(f, f_back, idx);
-            printf("[NOT_IMPLEMENTED] Zou/He Top-right (top inflow)\n");
+            LBM_ASSERT(false, "[NOT_IMPLEMENTED] Zou/He Top-right (top inflow)\n");
             break;
 
         case BC_flag::CYLINDER:
-            CylinderBoundary::apply(f, f_back, idx);
+            cb.apply(f, f_back, idx);
             break;
 
         case BC_flag::ZG_OUTFLOW:
             OutflowBoundary::apply(f, f_back, idx);
             break;
 
+        case BC_flag::PRESSURE_OUTLET:
+            PressureOutlet::apply(f, f_back, idx);
+            break;
+
         default:
             // Unknown flag; do nothing.
-            printf("Unknown Flag\n");
+            printf("Unknown Flag %d\n", flag);
             break;
     }
 

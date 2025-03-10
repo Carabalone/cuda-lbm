@@ -32,7 +32,7 @@ struct BGK {
             float new_val = f[idx] - omega * (f[idx] - f_eq[idx]) + force_term;
             f[idx] = new_val;
     
-            if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
+            if (fabsf(f[idx]) > 1.1f || f[idx] < -0.01f) {
                 const int node_x = node % NX;
                 const int node_y = node / NX;
     
@@ -108,8 +108,8 @@ struct MRT {
                 const int node_x = node % NX;
                 const int node_y = node / NX;
                 
-                printf("f[%d + %d] = %.4f | BGK would be: %.4f - 1.0 * (%.4f - %.4f) + %.4f = %.4f\n",
-           idx, k, f[idx + k], old_f[k], old_f[k], f_eq[idx + k], 0.0f, new_val);
+                // printf("f[%d + %d] = %.4f | BGK would be: %.4f - 1.0 * (%.4f - %.4f) + %.4f = %.4f\n",
+        //    idx, k, f[idx + k], old_f[k], old_f[k], f_eq[idx + k], 0.0f, new_val);
                 printf("[WARNING][MRT::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
                       node, node_x, node_y, k, idx + k, old_f[k], f[idx + k]);
             }

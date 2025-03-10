@@ -26,8 +26,8 @@
     #define NY (256 * SCALE)
 #elif defined(USE_FLOW_PAST_CYLINDER)
     #define SCALE 1
-    #define NX (128 * SCALE)
-    #define NY (256 * SCALE)
+    #define NX (256 * SCALE)
+    #define NY (128 * SCALE)
 #endif
 
 // #define D3Q27

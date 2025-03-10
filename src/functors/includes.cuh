@@ -5,6 +5,7 @@
 #include "./boundaryConditions/bbDomainBoundary.cuh"
 #include "./boundaryConditions/cylinderBoundary.cuh"
 #include "./boundaryConditions/zeroGradientOutflow.cuh"
+#include "./boundaryConditions/pressureOutlet.cuh"
 #include "./boundaryConditions/zouHeInflow.cuh"
 #include "./initialConditions/defaultInit.cuh"
 

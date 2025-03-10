@@ -17,6 +17,9 @@
 #elif defined(USE_TURBULENT_CHANNEL)
     #include "scenarios/turbulentChannel/turbulentChannelScenario.cuh"
     using Scenario = TurbulentChannelScenario;
+#elif defined(USE_FLOW_PAST_CYLINDER)
+    #include "scenarios/flowPastCylinder/flowPastCylinderScenario.cuh"
+    using Scenario = FlowPastCylinderScenario;
 #endif
 
 
@@ -44,6 +47,7 @@ void setup_cuda() {
 
 int main(void) {
     setup_cuda();
+
 
     std::cout << "Running " << Scenario::name() << " scenario" << std::endl;
     std::cout << "Viscosity: " << Scenario::viscosity 
