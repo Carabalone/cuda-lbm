@@ -7,6 +7,8 @@
 #include "./boundaryConditions/zeroGradientOutflow.cuh"
 #include "./boundaryConditions/pressureOutlet.cuh"
 #include "./boundaryConditions/zouHeInflow.cuh"
+#include "./boundaryConditions/regularizedInlet.cuh"
+#include "./boundaryConditions/regularizedBounceBack.cuh"
 #include "./initialConditions/defaultInit.cuh"
 
 #endif // ! FUNCTOR_INCLUDES_H

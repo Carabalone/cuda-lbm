@@ -79,6 +79,10 @@ constexpr inline float tau_to_viscosity(float t) {
     return (t - 0.5f) / 3.0f;
 }
 
+constexpr float compute_reynolds(float u_max, float domain_size, float viscosity) {
+    return (u_max * domain_size) / viscosity;
+}
+
 enum BC_flag {
     FLUID,
     BOUNCE_BACK,
@@ -88,7 +92,10 @@ enum BC_flag {
     ZOU_HE_TOP_RIGHT_TOP_INFLOW,
     CYLINDER,
     ZG_OUTFLOW,
-    PRESSURE_OUTLET
+    PRESSURE_OUTLET,
+    REGULARIZED_INLET_TOP,
+    REGULARIZED_BOUNCE_BACK,
+    REGULARIZED_BOUNCE_BACK_CORNER
 };
 
 #endif // LBM_CONSTANTS_H

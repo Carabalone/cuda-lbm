@@ -8,7 +8,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 template <typename Scenario>
-__global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) {
+__global__ void boundaries_kernel(float* f, float* f_back, float* u, int* boundary_flags) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -18,6 +18,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
 
     // TODO solve the instantiation issue.
     BBDomainBoundary domain_boundary(true, true);
+    RegularizedBounceBack rbb(true, true);
 
     static constexpr float r = NY / 12.0f;
     static constexpr float cx = NX / 4.0f;
@@ -64,7 +65,17 @@ __global__ void boundaries_kernel(float* f, float* f_back, int* boundary_flags) 
         case BC_flag::PRESSURE_OUTLET:
             PressureOutlet::apply(f, f_back, idx);
             break;
+        
+        case BC_flag::REGULARIZED_INLET_TOP:
+            RegularizedInlet::apply_top(f, f_back, Scenario::u_max, idx);
+            break;
 
+        case BC_flag::REGULARIZED_BOUNCE_BACK:
+            rbb.apply(f, f_back, u[2*idx], u[2*idx+1], idx);
+            break;
+        case BC_flag::REGULARIZED_BOUNCE_BACK_CORNER:
+            RegularizedCornerBounceBack::apply(f, f_back, u[2*idx], u[2*idx+1], idx);
+            break;
         default:
             // Unknown flag; do nothing.
             printf("Unknown Flag %d\n", flag);
@@ -79,7 +90,7 @@ void LBM::apply_boundaries() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    boundaries_kernel<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_boundary_flags);
+    boundaries_kernel<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
