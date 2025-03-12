@@ -49,14 +49,18 @@ int main(void) {
     setup_cuda();
 
 
+    constexpr float Re = compute_reynolds(Scenario::u_max, NY, Scenario::viscosity);
     std::cout << "Running " << Scenario::name() << " scenario" << std::endl;
     std::cout << "Viscosity: " << Scenario::viscosity 
               << ", Tau: " << Scenario::tau << std::endl;
+    std::cout << "Reynolds number: " << Re << std::endl;
+
+
 
     LBM lbm; // idea is control from host and give args to the kernels for the device.
     lbm.allocate();
 
-    const int total_timesteps = 30000;
+    const int total_timesteps = 300000;
     const int save_int = 100;
     int t = 0;
 
@@ -70,7 +74,7 @@ int main(void) {
     simulation_timer.reset();
 
     while (t < total_timesteps) {
-        // printf("\n----------------------------------------NEW_TS----------------------------------------\n");
+        // printf("\n----------------------------------------NEW_TS{%d}----------------------------------------\n",t);
         bool save = (t+1)%save_int == 0;
         cudaEventRecord(start);
 
@@ -114,10 +118,11 @@ int main(void) {
             std::cout << rem_mins << "m " << rem_secs << "s" << std::endl;
         }
         if (save) {
-            lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
+            // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 
+                lbm.update_macroscopics();
                 printf("%s[%d]: error, %.2f%%\n", 
                        Scenario::name(), t+1,
                        lbm.compute_error<Scenario>());
