@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <iostream>
 
+// #define DEBUG_KERNEL 1
+
 // returns from [0, 1[
 __device__ float inline gpu_rand(curandState &state) {
     return curand_uniform(&state);

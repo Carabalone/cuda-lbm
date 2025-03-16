@@ -3,10 +3,10 @@
 #include "functors/includes.cuh"
 
 
-#define DEBUG_KERNEL
-// #define PERIODIC
-// #define PERIODIC_X
-// #define PERIODIC_Y
+// #define DEBUG_KERNEL
+#define PERIODIC
+#define PERIODIC_X
+#define PERIODIC_Y
 
 
 #ifdef D2Q9

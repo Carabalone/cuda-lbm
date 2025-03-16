@@ -123,6 +123,7 @@ def gen_code():
             idx = i * 9 + j
             c_expr = add_float_suffix(sp.ccode(expand(final_exprs[idx])))
             print(f"    M_inv[{i} * {quadratures} + {j}] = {c_expr};")
+        print("")
 
     print("}")
 

@@ -8,12 +8,25 @@ struct TaylorGreenScenario : public ScenarioTrait <
     TaylorGreenInit,
     TaylorGreenBoundary,
     TaylorGreenValidation,
-    MRT
+    CM
 > {
     static constexpr float u_max = 0.04f;
     static constexpr float viscosity = 1.0f/6.0f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
+
+    // central moments deifnition have a different moment order
+    static constexpr float S[quadratures] = {
+        0.0f,      // ρ (density) - conserved
+        0.0f,      // kₓ (first-order x central moment - conserved) 
+        0.0f,      // kᵧ (first-order y central moment - conserved)
+        1.0f,     // kₓₓ + kᵧᵧ (bulk viscosity)
+        omega,     // kₓₓ - kᵧᵧ (shear viscosity)
+        omega,     // kₓᵧ (shear viscosity)
+        1.0f,     // kₓₓᵧ (higher-order)
+        1.0f,     // kₓᵧᵧ (higher-order)
+        1.0f      // kₓₓᵧᵧ (higher-order)
+    };
     
     static const char* name() { return "TaylorGreen"; }
     

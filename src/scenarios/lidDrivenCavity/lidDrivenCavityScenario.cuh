@@ -10,17 +10,19 @@ struct LidDrivenScenario : public ScenarioTrait <
     LidDrivenInit,
     LidDrivenBoundary,
     LidDrivenValidation,
-    BGK
+    MRT
 > {
     // Re=100
-    // static constexpr float u_max =  0.0517f;
-    // static constexpr float viscosity = 0.0667f; 
+    static constexpr float u_max =  0.0517f;
+    static constexpr float viscosity = 0.0667f; 
 
     // Re=1000
     // static constexpr float u_max =  0.1f;
     // static constexpr float viscosity = 0.0128f;
 
-    // Re=3200 (innacurate, but stable) (err ~= 25%)
+    // Re=3200 (innacurate, but stable) (err ~= 25%) (already unstable for non-regularized boundaries + BGK)
+    // stable for non-regularized boundaries + MRT
+    // stable for anything with regularized boundaries
     // static constexpr float u_max =  0.1f;
     // static constexpr float viscosity = 0.004f;
     // static constexpr float viscosity = 0.0064f; // for 2000
@@ -30,9 +32,9 @@ struct LidDrivenScenario : public ScenarioTrait <
     // static constexpr float u_max =  0.1f;
     // static constexpr float viscosity = 0.00258f;
 
-    // Re=7500 (innacurate, but stable)
-    static constexpr float u_max =  0.1f;
-    static constexpr float viscosity = 0.00172f;
+    // Re=7500
+    // static constexpr float u_max =  0.1f;
+    // static constexpr float viscosity = 0.00172f;
     
 
     static constexpr float tau = viscosity_to_tau(viscosity);
@@ -40,12 +42,12 @@ struct LidDrivenScenario : public ScenarioTrait <
 
     static constexpr float S[quadratures] = {
         0.0f,      // density (conserved)
-        omega, // bulk viscosity related - controls compressibility
-        omega, // energy flux tensor
+        1.0f, // bulk viscosity related - controls compressibility
+        1.4f, // energy flux tensor
         0.0f,      // momentum-x (conserved)
-        omega, // energy square moment - affects stability in high Reynolds number flows
+        1.2f, // energy square moment - affects stability in high Reynolds number flows
         0.0f,      // momentum-y (conserved)
-        omega, // third-order moment - affects numerical stability near boundaries
+        1.9f, // third-order moment - affects numerical stability near boundaries
         omega, // kinematic viscosity (shear viscosity)
         omega  // kinematic viscosity (shear viscosity)
     };

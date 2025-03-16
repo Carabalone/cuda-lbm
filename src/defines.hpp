@@ -3,9 +3,9 @@
 
 // #define USE_TAYLOR_GREEN
 // #define USE_POISEUILLE
-#define USE_LID_DRIVEN
+// #define USE_LID_DRIVEN
 // #define USE_TURBULENT_CHANNEL
-// #define USE_FLOW_PAST_CYLINDER
+#define USE_FLOW_PAST_CYLINDER
 
 // simulation parameters
 #ifdef USE_TAYLOR_GREEN
