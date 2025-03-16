@@ -1,11 +1,5 @@
 import sympy as sp
 
-def expand_small_powers(expr):
-    return expr.replace(
-        lambda e: isinstance(e, sp.Pow) and e.exp.is_Integer and e.exp > 1,
-        lambda e: sp.Mul(*([e.base] * int(e.exp)))
-    )
-
 def generate_cuda_equilibrium():
     rho, ux, uy, cs = sp.symbols('rho ux uy cs')
     cs2_sym, cs4_sym = sp.symbols('cs2 cs4')

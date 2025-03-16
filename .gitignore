@@ -50,3 +50,5 @@ env/
 videos/
 
 src/grep_context.py
+
+__pycache__/
