@@ -4,6 +4,9 @@
 #include "core/lbm_constants.cuh"
 
 //TODO: MAYBE CHANGE MOMENT ORDER IN MRT & CM TO BE CONSISTENT. 
+//TODO: This file needs a big refactor: 1. BGK forcing term computes f_eq manually
+//TODO: 2. CM forcing term code is horrible
+//TODO: 3. I need a way for deciding the equilibrium order.
 
 struct BGK {
 
@@ -132,6 +135,10 @@ struct CM {
         int idx = get_node_index(node);
         float ux = u[2*node];
         float uy = u[2*node+1];
+
+        float Fx = force[2*node];
+        float Fy = force[2*node+1];
+
         float rho = 0.0f;
         
         // TODO: pass in later
@@ -188,21 +195,33 @@ struct CM {
         k_eq[3] = 2.0f * rho * cs2;
         k_eq[4] = 0.0f;
         k_eq[5] = 0.0f;
-        k_eq[6] = -rho * ux * ux * uy;
-        k_eq[7] = -rho * ux * uy * uy;
-        k_eq[8] = rho * cs2 * cs2 * (27 * ux * ux * uy * uy + 1);
+        // The commented ones are for the 2nd order equilibrium, I am gonna use 4th order based on:
+        // Universal formulation of central-moments-based lattice Boltzmann method with external forcing for the simulation of multiphysics phenomena
+        // de rosis 2019.
+        // k_eq[6] = -rho * ux * ux * uy;
+        // k_eq[7] = -rho * ux * uy * uy;
+        k_eq[6] = 0.0f;
+        k_eq[7] = 0.0f;
+        // k_eq[8] = rho * cs2 * cs2 * (27 * ux * ux * uy * uy + 1);
+        k_eq[8] = rho * cs2 * cs2;
+
+        // De Rosis Universal 2019 appendix b.
+        float F[quadratures] = {
+            0.0f,
+            Fx,
+            Fy,
+            0.0f,
+            0.0f,
+            0.0f,
+            Fy * cs2,
+            Fx * cs2,
+            0.0f
+        };
         
         for (int i = 0; i < quadratures; i++) {
-            k_post[i] = k[i] - S[i] * (k[i] - k_eq[i]);
+            k_post[i] = k[i] - S[i] * (k[i] - k_eq[i]) + (1.0f - 0.5f*S[i]) * F[i];
         }
         
-        // TODO: deal with forces
-        float fx = force[2*node];
-        float fy = force[2*node+1];
-        if (fabs(fx) > 0.0f || fabs(fy) > 0.0f) {
-            printf("forcing not implemented for CM\n");
-        }
-
         cm_matrix_inverse(T_inv, ux, uy);
 
         for (int i = 0; i < quadratures; i++) {
