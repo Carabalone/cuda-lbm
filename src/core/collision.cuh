@@ -127,9 +127,9 @@ struct MRT {
     }
 };
 
+// template <typename AdapterType = NoAdapter>
 struct CM {
     
-
     __device__ __forceinline__ static
     void apply(float* f, float* f_eq, float* u, float* force, int node) {
         int idx = get_node_index(node);
@@ -160,7 +160,6 @@ struct CM {
             old_f[i] = f[idx + i];
         }
         
-
         k[0] = rho;    
         k[1] = 0.0f;   
         k[2] = 0.0f;   
@@ -217,9 +216,20 @@ struct CM {
             Fx * cs2,
             0.0f
         };
+
+        // float rho_u_mag = sqrtf(ux*ux + uy*uy) * rho;
+
+        // float high_order_relaxation = AdapterType::compute_high_order_relaxation(
+        //     rho, rho_u_mag, pi_mag, rho_avg, rho_u_avg, pi_avg);
         
         for (int i = 0; i < quadratures; i++) {
-            k_post[i] = k[i] - S[i] * (k[i] - k_eq[i]) + (1.0f - 0.5f*S[i]) * F[i];
+            // float relaxation_rate = AdapterType::is_higher_order(i) ? 
+            //                         high_order_relaxation : S[i];
+
+            float relaxation_rate = S[i];
+
+            k_post[i] = k[i] - relaxation_rate * (k[i] - k_eq[i]) +  
+                        (1.0f - 0.5f*relaxation_rate) * F[i];
         }
         
         cm_matrix_inverse(T_inv, ux, uy);
@@ -367,6 +377,52 @@ struct CM {
     }
 
 };
+
+// currently only for 2D
+// will extend to 3D later.
+struct Adapter {
+    static constexpr int i_star = 4;
+    
+    __device__ __forceinline__
+    static bool is_higher_order(int moment_idx) {
+        return moment_idx >= i_star;
+    }
+};
+
+struct NoAdapter : public Adapter {
+    __device__ __forceinline__
+    static float compute_high_order_relaxation(float rho, float rho_u_mag, float pi_mag,
+                                              float rho_avg, float rho_u_avg, float pi_avg) {
+        return 1.0f;
+    }
+};
+
+struct OptimalAdapter : public Adapter {
+    __device__ __forceinline__
+    static float compute_high_order_relaxation(float rho, float rho_u_mag, float pi_mag,
+                                              float rho_avg, float rho_u_avg, float pi_avg) {
+
+        // W. Li, Y. Chen, M. Desbrun, C. Zheng, and X. Liu, “Fast and Scalable Turbulent Flow Simulation
+        // with Two-Way Coupling,” ACM Trans. Graph., vol. 39, no. 4, p. 47, 2020.
+        // θ* = (0.0003, -0.00775, 0.00016, 0.0087)
+        float s_p[4] = {
+            rho / rho_avg,
+            rho_u_mag / rho_u_avg,
+            pi_mag / pi_avg,
+            1.0f  // affine term
+        };
+        
+        float theta[4] = {0.0003f, -0.00775f, 0.00016f, 0.0087f};
+        float tau_star = 0.0f;
+        
+        for (int i = 0; i < 4; i++) {
+            tau_star += theta[i] * s_p[i];
+        }
+        
+        return 1.0f / (tau_star + 0.5f);
+    }
+};
+
 
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------

@@ -19,13 +19,22 @@
 
 namespace fs = std::filesystem;
 
+struct MomentInfo {
+    float rho_avg_norm;
+    float momentum_avg_norm;
+    float pi_avg_norm;
+};
+
 class LBM {
 private:
     float *d_f, *d_f_back;   // f, f_back, f_eq: [NX][NY][Q]
     float *d_rho, *d_u;      // rho: [NX][NY], u: [NX][NY][D]
     float *d_f_eq;
-    float *d_force;          // force: [NX][NY][D]
-    int   *d_boundary_flags; // [NX][NY]
+    float *d_force;            // force: [NX][NY][D]
+    int   *d_boundary_flags;   // [NX][NY]
+
+    float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
+    MomentInfo* d_moment_avg;   // used for adaptive relaxation
 
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
@@ -93,6 +102,9 @@ public:
         cudaMalloc((void**) &d_force,  NX * NY * dimensions * sizeof(float));
 
         cudaMalloc((void**) &d_boundary_flags, NX * NY * sizeof(int));
+
+        cudaMalloc((void**) &d_moment_avg, sizeof(MomentInfo));
+        cudaMalloc((void**) &d_pi_mag, NX * NY * sizeof(float));
     }
 
     void free() {
@@ -105,6 +117,8 @@ public:
         checkCudaErrors(cudaFree(d_u));
         checkCudaErrors(cudaFree(d_force));
         checkCudaErrors(cudaFree(d_boundary_flags));
+        checkCudaErrors(cudaFree(d_moment_avg));
+        checkCudaErrors(cudaFree(d_pi_mag));
     }
 
     template <typename Scenario>
@@ -173,7 +187,7 @@ public:
 
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
-    __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, int node);
+    __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, float* d_pi_mag, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
     template <typename CollisionOp>
     __device__ static void collide_node(float* f, float* f_eq, float* u, float* force, int node, int q);

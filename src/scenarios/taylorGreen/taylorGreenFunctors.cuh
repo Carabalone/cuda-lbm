@@ -60,6 +60,9 @@ struct TaylorGreenValidation {
     
     __host__ __device__
     void operator()(int x_node, int y_node, float& ux, float& uy) const {
+
+        if ((int)t % 100 == 0 && x_node ==0 && y_node ==0)
+            printf("t: %.4f\n", t);
         const float x = x_node + 0.5f; 
         const float y = y_node + 0.5f;
         const float u_max = 0.04f/SCALE;
