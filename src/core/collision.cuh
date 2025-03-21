@@ -2,6 +2,7 @@
 #define COLLISION_OPS_H
 
 #include "core/lbm_constants.cuh"
+#include "core/collision/adapters.cuh"
 
 //TODO: MAYBE CHANGE MOMENT ORDER IN MRT & CM TO BE CONSISTENT. 
 //TODO: This file needs a big refactor: 1. BGK forcing term computes f_eq manually
@@ -127,7 +128,7 @@ struct MRT {
     }
 };
 
-// template <typename AdapterType = NoAdapter>
+template <typename AdapterType = NoAdapter>
 struct CM {
     
     __device__ __forceinline__ static
@@ -150,6 +151,7 @@ struct CM {
         float k_eq[quadratures];
         float k_post[quadratures];
         float old_f[quadratures]; // for debug
+        float pi[3] = {0.0f}; // bad for 3D, but ok for now.
 
         float test_f[quadratures] = {0.0f};
 
@@ -175,16 +177,24 @@ struct CM {
             float c_cy = C[2*i+1] - uy;
             float c_cx2 = c_cx * c_cx;
             float c_cy2 = c_cy * c_cy;
+            float f_i = f[idx + i];
             
-            k[1] += f[idx + i] * (c_cx);
-            k[2] += f[idx + i] * (c_cy);
-            k[3] += f[idx + i] * (c_cx2 + c_cy2);
-            k[4] += f[idx + i] * (c_cx2 - c_cy2);
-            k[5] += f[idx + i] * c_cx * c_cy;
-            k[6] += f[idx + i] * c_cx2 * c_cy;
-            k[7] += f[idx + i] * c_cx * c_cy2;
-            k[8] += f[idx + i] * c_cx2 * c_cy2;
+            k[1] += f_i * (c_cx);
+            k[2] += f_i * (c_cy);
+            k[3] += f_i * (c_cx2 + c_cy2);
+            k[4] += f_i * (c_cx2 - c_cy2);
+            k[5] += f_i * c_cx * c_cy;
+            k[6] += f_i * c_cx2 * c_cy;
+            k[7] += f_i * c_cx * c_cy2;
+            k[8] += f_i * c_cx2 * c_cy2;
+
+            pi[0] += f_i * C[2*i] * C[2*i];        
+            pi[1] += f_i * C[2*i] * C[2*i+1];      
+            pi[2] += f_i * C[2*i+1] * C[2*i+1];    
+
         }
+
+        float pi_mag = sqrtf(pi[0] * pi[0] + 2.0f * pi[1] * pi[1] + pi[2] * pi[2]);
 
         const float cs2 = 1.0f / 3.0f;
 
@@ -217,16 +227,28 @@ struct CM {
             0.0f
         };
 
-        // float rho_u_mag = sqrtf(ux*ux + uy*uy) * rho;
+        float j_mag = sqrtf(ux*ux + uy*uy) * rho;
+        // printf("u_macroscopics(%.8f, %.8f)\nu_microscopic(%.8f, %.8f)\n",
+        //         ux, uy, utest[0], utest[1]);
+        // printf("j_mag: %.4f: sqrt(%.4f + %.4f) * %.4f\n"
+        //        "with utest: j_mag: %.4f: sqrt(%.4f + %.4f) * %.4f\n",
+        //         j_mag,(ux*ux), (uy*uy), rho,
+        //         sqrtf(utest[0]*utest[0] + utest[1]*utest[1]),
+        //         (utest[0]*utest[0]), (utest[1]*utest[1]), rho);
 
-        // float high_order_relaxation = AdapterType::compute_high_order_relaxation(
-        //     rho, rho_u_mag, pi_mag, rho_avg, rho_u_avg, pi_avg);
+        float high_order_relaxation = AdapterType::compute_higher_order_relaxation(
+            rho, j_mag, pi_mag, d_moment_avg);
         
         for (int i = 0; i < quadratures; i++) {
-            // float relaxation_rate = AdapterType::is_higher_order(i) ? 
-            //                         high_order_relaxation : S[i];
+            float relaxation_rate = AdapterType::is_higher_order(i) ? 
+                                    high_order_relaxation : S[i];
 
-            float relaxation_rate = S[i];
+            if (node == DEBUG_NODE) {
+                if (AdapterType::is_higher_order(i)) {
+                    printf("[ACMAdapt] Node %d: Moment %d (high-order): Using relaxation = %.6f\n", 
+                        node, i, relaxation_rate);
+                }
+            }
 
             k_post[i] = k[i] - relaxation_rate * (k[i] - k_eq[i]) +  
                         (1.0f - 0.5f*relaxation_rate) * F[i];
@@ -377,52 +399,6 @@ struct CM {
     }
 
 };
-
-// currently only for 2D
-// will extend to 3D later.
-struct Adapter {
-    static constexpr int i_star = 4;
-    
-    __device__ __forceinline__
-    static bool is_higher_order(int moment_idx) {
-        return moment_idx >= i_star;
-    }
-};
-
-struct NoAdapter : public Adapter {
-    __device__ __forceinline__
-    static float compute_high_order_relaxation(float rho, float rho_u_mag, float pi_mag,
-                                              float rho_avg, float rho_u_avg, float pi_avg) {
-        return 1.0f;
-    }
-};
-
-struct OptimalAdapter : public Adapter {
-    __device__ __forceinline__
-    static float compute_high_order_relaxation(float rho, float rho_u_mag, float pi_mag,
-                                              float rho_avg, float rho_u_avg, float pi_avg) {
-
-        // W. Li, Y. Chen, M. Desbrun, C. Zheng, and X. Liu, “Fast and Scalable Turbulent Flow Simulation
-        // with Two-Way Coupling,” ACM Trans. Graph., vol. 39, no. 4, p. 47, 2020.
-        // θ* = (0.0003, -0.00775, 0.00016, 0.0087)
-        float s_p[4] = {
-            rho / rho_avg,
-            rho_u_mag / rho_u_avg,
-            pi_mag / pi_avg,
-            1.0f  // affine term
-        };
-        
-        float theta[4] = {0.0003f, -0.00775f, 0.00016f, 0.0087f};
-        float tau_star = 0.0f;
-        
-        for (int i = 0; i < 4; i++) {
-            tau_star += theta[i] * s_p[i];
-        }
-        
-        return 1.0f / (tau_star + 0.5f);
-    }
-};
-
 
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------

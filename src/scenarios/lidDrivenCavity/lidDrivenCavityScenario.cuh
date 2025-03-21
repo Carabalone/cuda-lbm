@@ -13,8 +13,8 @@ struct LidDrivenScenario : public ScenarioTrait <
     CM<OptimalAdapter>
 > {
     // Re=100
-    static constexpr float u_max =  0.0517f;
-    static constexpr float viscosity = 0.0667f; 
+    // static constexpr float u_max =  0.0517f;
+    // static constexpr float viscosity = 0.0667f; 
 
     // Re=1000
     // static constexpr float u_max =  0.1f;

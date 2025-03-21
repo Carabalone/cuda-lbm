@@ -22,6 +22,8 @@
     __constant__ float S[quadratures];
 #endif
 
+__device__ MomentInfo d_moment_avg = {0.0f, 0.0f, 0.0f};
+
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 // ------------------------------------MACROSCOPICS-----------------------------------------------------
@@ -85,9 +87,9 @@ void update_avg_mag(float* rho, float* u, float* pi_mag, MomentInfo* moment_info
     }
 
     if (tid == 0) {
-        atomicAdd(&moment_info->rho_avg_norm,      (s_rho[0]    / (NX*NY)));
-        atomicAdd(&moment_info->momentum_avg_norm, (s_j_mag[0]  / (NX*NY)));
-        atomicAdd(&moment_info->pi_avg_norm,       (s_pi_mag[0] / (NX*NY)));
+        atomicAdd(&(moment_info->rho_avg_norm), (s_rho[0]    / (NX*NY)));
+        atomicAdd(&(moment_info->j_avg_norm),   (s_j_mag[0]  / (NX*NY)));
+        atomicAdd(&(moment_info->pi_avg_norm),  (s_pi_mag[0] / (NX*NY)));
 
         // printf("[update_avg_mag] Block (%d, %d): rho_avg_norm=%.6f, momentum_avg_norm=%.6f, pi_avg_norm=%.6f\n",
         //        blockIdx.x, blockIdx.y,
@@ -110,18 +112,22 @@ void LBM::macroscopics() {
 
     // reset
     MomentInfo h_moment = {0.0f, 0.0f, 0.0f};
-    cudaMemcpy(d_moment_avg, &h_moment, sizeof(MomentInfo), cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpyToSymbol(d_moment_avg, &h_moment, sizeof(MomentInfo)));
 
     // updating every timestep, but we could do it in intervals
-    update_avg_mag<<<blocks, threads, shared_size>>>(d_rho, d_u, d_pi_mag, d_moment_avg);
+
+    MomentInfo* d_moment_avg_ptr;
+    checkCudaErrors(cudaGetSymbolAddress((void**)&d_moment_avg_ptr, d_moment_avg));
+
+    update_avg_mag<<<blocks, threads, shared_size>>>(d_rho, d_u, d_pi_mag, d_moment_avg_ptr);
     checkCudaErrors(cudaDeviceSynchronize());
 
-    cudaMemcpy(&h_moment, d_moment_avg, sizeof(MomentInfo), cudaMemcpyDeviceToHost);
+    checkCudaErrors(cudaMemcpyFromSymbol(&h_moment, d_moment_avg, sizeof(MomentInfo)));
     checkCudaErrors(cudaDeviceSynchronize());
 
-    if (timestep % 500 == 0)
+    if (timestep > -1)
         printf("[macroscopics] Moment Averages: rho_avg_norm=%.6f, momentum_avg_norm=%.6f, pi_avg_norm=%.6f\n",
-            h_moment.rho_avg_norm, h_moment.momentum_avg_norm, h_moment.pi_avg_norm);
+            h_moment.rho_avg_norm, h_moment.j_avg_norm, h_moment.pi_avg_norm);
 }
 
 __device__

@@ -18,12 +18,19 @@
     omega_val    /* kinematic viscosity */ \
 }
 
-template <typename InitFunctor, typename BoundaryFunctor, typename ValidationFunctor = void, typename CollisionType = BGK>
+template <
+    typename InitFunctor,
+    typename BoundaryFunctor,
+    typename ValidationFunctor = void,
+    typename CollisionType = BGK,
+    typename AdapterType = NoAdapter
+>
 struct ScenarioTrait {
-    using InitType = InitFunctor;
-    using BoundaryType = BoundaryFunctor;
+    using InitType       = InitFunctor;
+    using BoundaryType   = BoundaryFunctor;
     using ValidationType = ValidationFunctor;
-    using CollisionOp = CollisionType;
+    using CollisionOp    = CollisionType;
+    using AdapterOp      = AdapterType;
     
     static constexpr float viscosity = 1.0f/6.0f;
     static constexpr float tau = viscosity_to_tau(viscosity);

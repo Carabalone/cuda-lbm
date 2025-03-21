@@ -21,9 +21,13 @@ namespace fs = std::filesystem;
 
 struct MomentInfo {
     float rho_avg_norm;
-    float momentum_avg_norm;
+    float j_avg_norm;
     float pi_avg_norm;
 };
+
+// not great, but not many solutions that doesn't require changing the collision functors type
+// signature, or manual instancing.
+extern __device__ MomentInfo d_moment_avg;   // used for adaptive relaxation
 
 class LBM {
 private:
@@ -34,7 +38,6 @@ private:
     int   *d_boundary_flags;   // [NX][NY]
 
     float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
-    MomentInfo* d_moment_avg;   // used for adaptive relaxation
 
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
@@ -103,7 +106,7 @@ public:
 
         cudaMalloc((void**) &d_boundary_flags, NX * NY * sizeof(int));
 
-        cudaMalloc((void**) &d_moment_avg, sizeof(MomentInfo));
+        // cudaMalloc((void**) &d_moment_avg, sizeof(MomentInfo));
         cudaMalloc((void**) &d_pi_mag, NX * NY * sizeof(float));
     }
 
@@ -117,7 +120,7 @@ public:
         checkCudaErrors(cudaFree(d_u));
         checkCudaErrors(cudaFree(d_force));
         checkCudaErrors(cudaFree(d_boundary_flags));
-        checkCudaErrors(cudaFree(d_moment_avg));
+        // checkCudaErrors(cudaFree(d_moment_avg));
         checkCudaErrors(cudaFree(d_pi_mag));
     }
 
