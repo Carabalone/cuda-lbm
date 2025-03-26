@@ -236,18 +236,26 @@ struct CM {
         //         sqrtf(utest[0]*utest[0] + utest[1]*utest[1]),
         //         (utest[0]*utest[0]), (utest[1]*utest[1]), rho);
 
-        float high_order_relaxation = AdapterType::compute_higher_order_relaxation(
-            rho, j_mag, pi_mag, d_moment_avg);
+        float high_order_relaxation;
+        if constexpr (!std::is_same_v<AdapterType, NoAdapter>) {
+            high_order_relaxation = AdapterType::compute_higher_order_relaxation(
+                rho, j_mag, pi_mag, d_moment_avg);
+        }
         
         for (int i = 0; i < quadratures; i++) {
-            float relaxation_rate = AdapterType::is_higher_order(i) ? 
-                                    high_order_relaxation : S[i];
+
+            float relaxation_rate;
+            if constexpr (!std::is_same_v<AdapterType, NoAdapter>) {
+                relaxation_rate = AdapterType::is_higher_order(i) ? high_order_relaxation : S[i];
+            } else {
+                relaxation_rate = S[i];
+            };
 
             if (node == DEBUG_NODE) {
-                if (AdapterType::is_higher_order(i)) {
-                    printf("[ACMAdapt] Node %d: Moment %d (high-order): Using relaxation = %.6f\n", 
-                        node, i, relaxation_rate);
-                }
+                // if (AdapterType::is_higher_order(i)) {
+                //     printf("[ACMAdapt] Node %d: Moment %d (high-order): Using relaxation = %.6f\n", 
+                //         node, i, relaxation_rate);
+                // }
             }
 
             k_post[i] = k[i] - relaxation_rate * (k[i] - k_eq[i]) +  
