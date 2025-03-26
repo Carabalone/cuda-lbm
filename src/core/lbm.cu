@@ -125,7 +125,7 @@ void LBM::macroscopics() {
     checkCudaErrors(cudaMemcpyFromSymbol(&h_moment, d_moment_avg, sizeof(MomentInfo)));
     checkCudaErrors(cudaDeviceSynchronize());
 
-    if (timestep > -1)
+    if (timestep % 500 == 0 )
         printf("[macroscopics] Moment Averages: rho_avg_norm=%.6f, momentum_avg_norm=%.6f, pi_avg_norm=%.6f\n",
             h_moment.rho_avg_norm, h_moment.j_avg_norm, h_moment.pi_avg_norm);
 }
@@ -255,3 +255,9 @@ void LBM::stream() {
     // d_f = d_f_back;
     // d_f_back = temp;
 }
+
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------IMMERSED BOUNDARY-------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------

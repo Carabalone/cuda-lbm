@@ -13,6 +13,7 @@
 #include "core/lbm_constants.cuh"
 #include "functors/includes.cuh"
 #include "assert.cuh"
+#include "IBM/IBMManager.cuh"
 
 #define DEBUG_NODE 5
 #define VALUE_THRESHOLD 5.0f
@@ -38,6 +39,8 @@ private:
     int   *d_boundary_flags;   // [NX][NY]
 
     float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
+    
+    IBMManager IBM;
 
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
@@ -92,6 +95,7 @@ public:
 
     int timestep = 0, update_ts = 0;
 
+    template <typename Scenario>
     void allocate() {
         std::cout << "[LBM]: allocating\n";
 
@@ -108,6 +112,9 @@ public:
 
         // cudaMalloc((void**) &d_moment_avg, sizeof(MomentInfo));
         cudaMalloc((void**) &d_pi_mag, NX * NY * sizeof(float));
+
+        Scenario::add_bodies();
+        IBM.init_and_dispatch(Scenario::IBM_bodies);
     }
 
     void free() {
@@ -208,6 +215,9 @@ public:
     __host__ void apply_boundaries();
     __host__ void compute_forces();
 
+    ~LBM() {
+        free();
+    }
 
 };
 

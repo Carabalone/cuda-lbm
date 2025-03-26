@@ -4,6 +4,7 @@
 #include <iostream>
 #include <chrono> 
 #include "util/timer.cuh"
+#include "IBM/IBMBody.cuh"
 
 #if defined(USE_TAYLOR_GREEN)
     #include "scenarios/taylorGreen/TaylorGreenScenario.cuh"
@@ -55,10 +56,10 @@ int main(void) {
               << ", Tau: " << Scenario::tau << std::endl;
     std::cout << "Reynolds number: " << Re << std::endl;
 
-
-
     LBM lbm; // idea is control from host and give args to the kernels for the device.
-    lbm.allocate();
+
+    // destructor frees automatically
+    lbm.allocate<Scenario>();
 
     const int total_timesteps = 300000;
     const int save_int = 100;
@@ -136,7 +137,7 @@ int main(void) {
         t++;
     }
 
-    lbm.free();
+    // destructor frees automatically
 
     return 0;
 }

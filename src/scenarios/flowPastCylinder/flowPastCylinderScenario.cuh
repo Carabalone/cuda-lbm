@@ -9,9 +9,9 @@ struct FlowPastCylinderScenario : public ScenarioTrait <
     FlowPastCylinderInit,
     FlowPastCylinderBoundary,
     FlowPastCylinderValidation,
-    CM
+    CM<NoAdapter>
 > {
-    static constexpr float Re = 3000.0f;             
+    static constexpr float Re = 50.0f;             
     
     static constexpr float D = 16.0f;               
     static constexpr float r = D/2.0f;             
@@ -38,6 +38,10 @@ struct FlowPastCylinderScenario : public ScenarioTrait <
         1.0f,     // kₓᵧᵧ (higher-order)
         1.0f      // kₓₓᵧᵧ (higher-order)
     };
+
+    static void add_bodies() {
+        IBM_bodies.push_back(create_cylinder(cx, cy, r));
+    }
     // static constexpr float S[quadratures] = {
     //     0.0f,  // density (conserved)
     //     1.2f, // bulk viscosity related - controls compressibility

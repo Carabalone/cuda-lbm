@@ -5,6 +5,7 @@
 #include <array>
 #include <string>
 #include "core/collision.cuh"
+#include "IBM/IBMBody.cuh"
 
 #define DEFAULT_MRT_S_MATRIX(omega_val) { \
     0.0f,        /* density (conserved) */ \
@@ -36,6 +37,7 @@ struct ScenarioTrait {
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
     static inline float t = 0.0f;
+    static inline std::vector<IBMBody> IBM_bodies;
 
     // WARNING: PLEASE DEFINE YOUR OWN S MATRIX IF YOU ARE GOING TO USE MRT IN A SCENARIO.
     // IN THE ABSENSE OF AN OVERWRITE, THE PROGRAM DEFAULTS TO THIS S MATRIX WHICH WILL MATCH
@@ -65,6 +67,10 @@ struct ScenarioTrait {
     
     template <typename LBMSolver>
     static float compute_error(LBMSolver& solver);
+
+    static void add_bodies() {
+        return;
+    }
 
     static void update_ts(float new_ts) {
         t = new_ts;
