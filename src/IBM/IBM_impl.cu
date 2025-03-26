@@ -1,4 +1,5 @@
 #include "IBM/IBMBody.cuh"
+#include "IBM/IBMUtils.cuh"
 
 IBMBody create_cylinder(float cx, float cy, float r, int num_pts) {
 
@@ -20,4 +21,10 @@ IBMBody create_cylinder(float cx, float cy, float r, int num_pts) {
 
 
     return body;
+}
+
+// this is a convolution kernel, we can optimize it like avg_macroscopics later
+__global__
+void interpolate_velocities(float* bodies, float* u) {
+    
 }
