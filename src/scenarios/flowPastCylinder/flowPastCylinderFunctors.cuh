@@ -27,8 +27,8 @@ struct FlowPastCylinderInit {
             u[2*node] = 0.0f;
             u[2*node+1] = 0.0f;
         } else {
-            u[2*node] = 0.5 * u_max * (1.0f - exp(-static_cast<float>(x) / 20.0f));
-            u[2*node+1] = 0.0f;
+            // u[2*node] = 0.5 * u_max * (1.0f - exp(-static_cast<float>(x) / 20.0f));
+            // u[2*node+1] = 0.0f;
         }
 
         force[2*node] = 0.0f;
@@ -60,8 +60,9 @@ struct FlowPastCylinderBoundary {
         // Check if node is inside cylinder
         float dx = x - cx;
         float dy = y - cy;
-        if ((dx * dx + dy * dy) <= (r * r))
-            return BC_flag::CYLINDER;
+        // use ibm now
+        // if ((dx * dx + dy * dy) <= (r * r))
+        //     return BC_flag::CYLINDER;
             
         // Default: fluid node
         return BC_flag::FLUID;

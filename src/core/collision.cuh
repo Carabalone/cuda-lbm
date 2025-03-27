@@ -22,6 +22,8 @@ struct BGK {
             
             float fy  = force[2*node+1];
             float cs2 = 1.0f / 3.0f;
+
+            // printf("forces: (%.4f, %.4f)\n", fx, fy);
             
             float force_term = WEIGHTS[q] * (
                 (1.0f - 0.5f * omega) * (
@@ -42,9 +44,9 @@ struct BGK {
                 const int node_x = node % NX;
                 const int node_y = node / NX;
     
-                printf("[WARNING][collide_node] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) = %f\n",
-                       node, node_x, node_y, q, idx,
-                       idx, old_val, omega, old_val, f_eq[idx], new_val);
+                // printf("[WARNING][collide_node] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) = %f\n\tforces: (%.4f, %.4f)/ft: %.4f\n",
+                //        node, node_x, node_y, q, idx,
+                //        idx, old_val, omega, old_val, f_eq[idx], new_val, fx, fy, force_term);
             }
         }
     }

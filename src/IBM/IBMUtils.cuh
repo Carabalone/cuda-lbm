@@ -4,8 +4,9 @@
 
 __host__ __device__
 float delta(float r) {
-    return fabsf(r) <= 1 ? 
-            1.0f - r 
+    float absr = fabsf(r);
+    return absr <= 1 ? 
+            1.0f - absr 
             : 0;
 }
 

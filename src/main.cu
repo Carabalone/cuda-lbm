@@ -61,7 +61,7 @@ int main(void) {
     // destructor frees automatically
     lbm.allocate<Scenario>();
 
-    const int total_timesteps = 300000;
+    const int total_timesteps = 10000;
     const int save_int = 100;
     int t = 0;
 
@@ -87,6 +87,14 @@ int main(void) {
         lbm.apply_boundaries<Scenario>();
         
         lbm.macroscopics();
+
+        // -----------IBM stuff-----------------
+        lbm.reset_force();
+        lbm.interp(); //test remove this later
+        lbm.compute();
+        lbm.spread();
+        // -------------------------------------
+
         lbm.compute_equilibrium();
         lbm.collide<Scenario::CollisionOp>();
         
@@ -119,7 +127,7 @@ int main(void) {
             std::cout << rem_mins << "m " << rem_secs << "s" << std::endl;
         }
         if (save) {
-            // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
+            lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 
