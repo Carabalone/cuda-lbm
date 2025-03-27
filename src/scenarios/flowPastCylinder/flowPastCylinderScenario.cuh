@@ -9,7 +9,8 @@ struct FlowPastCylinderScenario : public ScenarioTrait <
     FlowPastCylinderInit,
     FlowPastCylinderBoundary,
     FlowPastCylinderValidation,
-    CM<NoAdapter>
+    BGK
+    // CM<NoAdapter>
 > {
     static constexpr float Re = 50.0f;             
     

@@ -39,8 +39,6 @@ private:
     int   *d_boundary_flags;   // [NX][NY]
 
     float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
-    
-    IBMManager IBM;
 
     __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
         return node * quadratures + quadrature;
@@ -92,6 +90,8 @@ private:
 public:
     std::array<float, NX * NY> h_rho;
     std::array<float, NX * NY * dimensions> h_u;
+    
+    IBMManager IBM;
 
     int timestep = 0, update_ts = 0;
 
@@ -193,6 +193,22 @@ public:
         temp = d_f;
         d_f = d_f_back;
         d_f_back = temp;
+    }
+
+    void interp() {
+        IBM.interpolate(d_u);
+    }
+
+    void spread() {
+        IBM.spread_forces(d_force);
+    }
+
+    void compute() {
+        IBM.compute_penalties(d_rho);
+    }
+
+    void reset_force() {
+        checkCudaErrors(cudaMemset(d_force, 0.0f, sizeof(float) * 2 * NX * NY));
     }
 
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
