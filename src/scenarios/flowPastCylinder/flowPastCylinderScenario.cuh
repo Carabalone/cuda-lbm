@@ -42,6 +42,7 @@ struct FlowPastCylinderScenario : public ScenarioTrait <
 
     static void add_bodies() {
         IBM_bodies.push_back(create_cylinder(cx, cy, r));
+        IBM_bodies.push_back(create_cylinder(144, cy, r));
     }
     // static constexpr float S[quadratures] = {
     //     0.0f,  // density (conserved)

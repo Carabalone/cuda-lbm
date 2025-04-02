@@ -90,9 +90,7 @@ int main(void) {
 
         // -----------IBM stuff-----------------
         lbm.reset_force();
-        lbm.interp(); //test remove this later
-        lbm.compute();
-        lbm.spread();
+        lbm.ibm_step();
         // -------------------------------------
 
         lbm.compute_equilibrium();
