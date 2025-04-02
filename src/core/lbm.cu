@@ -30,14 +30,14 @@ __device__ MomentInfo d_moment_avg = {0.0f, 0.0f, 0.0f};
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 
-__global__ void macroscopics_kernel(float* f, float* rho, float* u, float* force, float* d_pi_mag) {
+__global__ void macroscopics_kernel(float* f, float* rho, float* u, float* force, float* d_pi_mag, float* d_u_uncorrected) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= NX || y >= NY) return;
 
     int node = y * NX + x;
-    LBM::macroscopics_node(f, rho, u, force, d_pi_mag, node);
+    LBM::macroscopics_node(f, rho, u, force, d_pi_mag, d_u_uncorrected, node);
     if (node == DEBUG_NODE) {
         DPRINTF("[macroscopics_kernel] Node %d: rho=%f, u=(%f, %f)\n",
                 node, rho[node], u[2*node], u[2*node+1]);
@@ -105,7 +105,7 @@ void LBM::macroscopics() {
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
+    macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag, d_u_uncorrected);
     checkCudaErrors(cudaDeviceSynchronize());
 
     size_t shared_size = 3 * sizeof(float) * BLOCK_SIZE * BLOCK_SIZE;
@@ -132,7 +132,7 @@ void LBM::macroscopics() {
 
 __device__
 void LBM::macroscopics_node(float* f, float* rho, float* u, float* force,
-                            float* pi_mag, int node) {
+                            float* pi_mag, float* u_uncorrected, int node) {
     rho[node]       = 0.0f;
     u[2 * node]     = 0.0f;
     u[2 * node + 1] = 0.0f;
@@ -150,6 +150,8 @@ void LBM::macroscopics_node(float* f, float* rho, float* u, float* force,
          pi[2]           += f_i * C[2*i+1] * C[2*i+1];
     }
 
+    u_uncorrected[2*node] = u[2*node];
+    u_uncorrected[2*node+1] = u[2*node+1];
     u[2 * node]     += 0.5f * force[2 * node];
     u[2 * node + 1] += 0.5f * force[2 * node + 1];
 
@@ -210,9 +212,9 @@ void LBM::stream_node(float* f, float* f_back, int node) {
         f_back[idx_neigh] = f[baseIdx + i];
 
         if (fabsf(f_back[idx_neigh]) > VALUE_THRESHOLD || f_back[idx_neigh] < -0.01f) {
-            printf("[WARNING][stream_node] Pushing negative/large value: "
-                "Node (x=%3d, y=%3d) is pushing f[%d]=% .6f in Dir %d to neighbor at (x=%3d, y=%3d)\n",
-                x, y, i, f[baseIdx + i], i, x_neigh, y_neigh);
+            // printf("[WARNING][stream_node] Pushing negative/large value: "
+            //     "Node (x=%3d, y=%3d) is pushing f[%d]=% .6f in Dir %d to neighbor at (x=%3d, y=%3d)\n",
+            //     x, y, i, f[baseIdx + i], i, x_neigh, y_neigh);
         }
     }
 }

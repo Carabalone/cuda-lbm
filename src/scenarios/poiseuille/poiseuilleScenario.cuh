@@ -9,7 +9,8 @@ struct PoiseuilleScenario : public ScenarioTrait <
     PoiseuilleInit,
     PoiseuilleBoundary,
     PoiseuilleValidation,
-    CM<NoAdapter>
+    BGK
+    // CM<NoAdapter>
 > {
     static constexpr float u_max = 0.05f;
     static constexpr float viscosity = 1.0f/6.0f;
@@ -40,6 +41,15 @@ struct PoiseuilleScenario : public ScenarioTrait <
     
     static ValidationType validation() {
         return ValidationType(u_max, viscosity);
+    }
+
+    static void add_bodies() {
+        constexpr float D = 16.0f;               
+        constexpr float r = D/2.0f;             
+        constexpr float cx = 48.0f;              // ~3D from inlet
+        constexpr float cy = NY/2.0f;            
+
+        IBM_bodies.push_back(create_cylinder(cx, cy, r));
     }
     
     template <typename LBMSolver>

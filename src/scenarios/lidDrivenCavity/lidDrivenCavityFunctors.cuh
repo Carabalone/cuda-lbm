@@ -9,6 +9,12 @@ struct LidDrivenInit {
 
     LidDrivenInit(float u_lid) : u_lid(u_lid) {}
 
+    __host__ __device__
+    void inline apply_forces(float* rho, float* u, float* force, int node) {
+        force[2*node] = 0.0f;
+        force[2*node+1] = 0.0f;
+    }
+
     // TODO: maybe pass in the pointer to the specific location of u force and rho.
     // so we just need to do float* fx, float* *fy. fx = ..., *fy = ...
     // so that the scenario stays unaware of memory layout.
@@ -23,9 +29,8 @@ struct LidDrivenInit {
         // u[2*node]   = (y == NY-1) ? u_lid : 0.0f;
         u[2*node]   = 0.0f;
         u[2*node+1] = 0.0f;
-
-        force[2*node]   = 0.0f;
-        force[2*node+1] = 0.0f;
+        
+        apply_forces(rho, u, force, node);
     }
 
 };

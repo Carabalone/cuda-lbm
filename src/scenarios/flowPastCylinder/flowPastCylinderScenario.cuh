@@ -58,6 +58,7 @@ struct FlowPastCylinderScenario : public ScenarioTrait <
     
     static const char* name() { return "FlowPastCylinder"; }
     
+    __host__ __device__
     static InitType init() { 
         return InitType(u_max, cx, cy, r); 
     }

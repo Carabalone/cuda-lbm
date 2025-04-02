@@ -199,13 +199,14 @@ struct IBMManager {
             
             correct_velocities(d_eul_u_prev, d_eul_force_iter, d_rho_lbm);
             
-            accumulate_forces(d_eul_force_acc, d_eul_force_iter);
+            accumulate_forces(d_force_lbm, d_eul_force_iter);
             
             iter_count++;
         }
         
-        checkCudaErrors(cudaMemcpy(d_force_lbm, d_eul_force_acc, 
-                                  2 * NX * NY * sizeof(float), cudaMemcpyDeviceToDevice));
+        // checkCudaErrors(cudaMemcpy(d_force_lbm, d_eul_force_acc, 
+        //                           2 * NX * NY * sizeof(float), cudaMemcpyDeviceToDevice));
+        // sum_arrays(d_force_lbm, d_eul_force_acc, d_force_lbm, 2*NX*NY);
 
         checkCudaErrors(cudaMemcpy(d_u_lbm, d_eul_u_prev, 
                                   2 * NX * NY * sizeof(float), cudaMemcpyDeviceToDevice));

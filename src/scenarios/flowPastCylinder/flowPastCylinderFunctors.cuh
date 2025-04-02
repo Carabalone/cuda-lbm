@@ -12,6 +12,16 @@ struct FlowPastCylinderInit {
     FlowPastCylinderInit(float u_max, float cx, float cy, float r) 
         : u_max(u_max), cx(cx), cy(cy), r(r) {}
     
+    // This seems arbitrary, but it is EXTREMELY important to add this apply forces function if you plan to use the IBM
+    // This function will be called when we need to reset the forces after an IBM step.
+    // Even if you do not plan to use it, it is still good practice.
+    // Without it you will just get an empty array instead of an array with your forces.
+    __host__ __device__
+    void inline apply_forces(float* rho, float* u, float* force, int node) {
+        force[2*node]   = 0.0f;
+        force[2*node+1] = 0.0f;
+    }
+    
     __host__ __device__
     void operator()(float* rho, float* u, float* force, int node) {
         int x = node % NX;
@@ -31,9 +41,7 @@ struct FlowPastCylinderInit {
             // u[2*node+1] = 0.0f;
         }
 
-        force[2*node] = 0.0f;
-        force[2*node+1] = 0.0f;
-
+        apply_forces(rho, u, force, node);
     }
 };
 

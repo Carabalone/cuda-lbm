@@ -10,3 +10,16 @@ void check_cuda(cudaError_t result, char const *const func, const char *const fi
         exit(99);
     }
 }
+
+// template <typename T>
+__global__ 
+void sum_arrays_kernel(float* arr1, float* arr2, float* result, size_t size) {
+    // static_assert(std::is_arithmetic<T>::value, "Type must be numeric");
+
+    int idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (idx >= size)
+        return;
+
+    result[idx] = arr1[idx] + arr2[idx];
+}

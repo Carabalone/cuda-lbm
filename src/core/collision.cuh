@@ -44,9 +44,9 @@ struct BGK {
                 const int node_x = node % NX;
                 const int node_y = node / NX;
     
-                // printf("[WARNING][collide_node] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) = %f\n\tforces: (%.4f, %.4f)/ft: %.4f\n",
-                //        node, node_x, node_y, q, idx,
-                //        idx, old_val, omega, old_val, f_eq[idx], new_val, fx, fy, force_term);
+                printf("[WARNING][collide_node] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) +  = %f\n\tforces: (%.4f, %.4f)/ft: %.4f\n",
+                       node, node_x, node_y, q, idx,
+                       idx, old_val, omega, old_val, f_eq[idx], new_val, fx, fy, force_term);
             }
         }
     }
