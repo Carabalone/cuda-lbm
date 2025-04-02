@@ -195,16 +195,8 @@ public:
         d_f_back = temp;
     }
 
-    void interp() {
-        IBM.interpolate(d_u);
-    }
-
-    void spread() {
-        IBM.spread_forces(d_force);
-    }
-
-    void compute() {
-        IBM.compute_penalties(d_rho);
+    void ibm_step() {
+        IBM.multi_direct(d_rho, d_u, d_force);
     }
 
     void reset_force() {
