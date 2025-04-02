@@ -37,6 +37,7 @@ private:
     float *d_f_eq;
     float *d_force;            // force: [NX][NY][D]
     int   *d_boundary_flags;   // [NX][NY]
+    float *d_u_uncorrected;
 
     float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
 
@@ -105,6 +106,7 @@ public:
 
         cudaMalloc((void**) &d_rho,    NX * NY * sizeof(float));
         cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
+        cudaMalloc((void**) &d_u_uncorrected,      NX * NY * dimensions * sizeof(float));
         
         cudaMalloc((void**) &d_force,  NX * NY * dimensions * sizeof(float));
 
@@ -129,6 +131,7 @@ public:
         checkCudaErrors(cudaFree(d_boundary_flags));
         // checkCudaErrors(cudaFree(d_moment_avg));
         checkCudaErrors(cudaFree(d_pi_mag));
+        checkCudaErrors(cudaFree(d_u_uncorrected));
     }
 
     template <typename Scenario>
@@ -196,16 +199,15 @@ public:
     }
 
     void ibm_step() {
-        IBM.multi_direct(d_rho, d_u, d_force);
+        IBM.multi_direct(d_rho, d_u_uncorrected, d_force);
     }
 
-    void reset_force() {
-        checkCudaErrors(cudaMemset(d_force, 0.0f, sizeof(float) * 2 * NX * NY));
-    }
+    template <typename Scenario>
+    void reset_forces();
 
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
-    __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, float* d_pi_mag, int node);
+    __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, float* d_pi_mag, float* u_uncorrected, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
     template <typename CollisionOp>
     __device__ static void collide_node(float* f, float* f_eq, float* u, float* force, int node, int q);
@@ -231,5 +233,6 @@ public:
 
 #include "core/init.cuh"
 #include "core/boundaries.cuh"
+#include "core/lbm_impl.cuh"
 
 #endif // ! LBM_H

@@ -61,7 +61,7 @@ int main(void) {
     // destructor frees automatically
     lbm.allocate<Scenario>();
 
-    const int total_timesteps = 10000;
+    const int total_timesteps = 30000;
     const int save_int = 100;
     int t = 0;
 
@@ -89,7 +89,7 @@ int main(void) {
         lbm.macroscopics();
 
         // -----------IBM stuff-----------------
-        lbm.reset_force();
+        lbm.reset_forces<Scenario>();
         lbm.ibm_step();
         // -------------------------------------
 
@@ -117,8 +117,8 @@ int main(void) {
             std::cout << "Median timestep: " << median_ts * 1000.0f << " ms | ";
             
             int rem_hours = static_cast<int>(remaining / 3600);
-            int rem_mins = static_cast<int>((remaining - rem_hours * 3600) / 60);
-            int rem_secs = static_cast<int>(remaining - rem_hours * 3600 - rem_mins * 60);
+            int rem_mins  = static_cast<int>((remaining - rem_hours * 3600) / 60);
+            int rem_secs  = static_cast<int>(remaining - rem_hours * 3600 - rem_mins * 60);
             
             std::cout << "Est. remaining: ";
             if (rem_hours > 0) std::cout << rem_hours << "h ";

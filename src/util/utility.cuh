@@ -5,6 +5,7 @@
 #include <curand_kernel.h>
 #include <cstdlib>
 #include <iostream>
+#include <type_traits>
 
 // #define DEBUG_KERNEL 1
 
@@ -33,6 +34,19 @@ inline void __getLastCudaError(const char *const errorMessage, const char *const
                 file, line, (int)err, cudaGetErrorString(err));
         exit(-1);
     }
+}
+
+// template <typename T>
+__global__ 
+void sum_arrays_kernel(float* arr1, float* arr2, float* res, size_t size);
+
+// template <typename T>
+inline void sum_arrays(float* arr1, float* arr2, float* res, size_t size) {
+    dim3 threads(256);
+    dim3 blocks((size+255) / 256);
+
+    sum_arrays_kernel<<<threads, blocks>>>(arr1, arr2, res, size);
+    checkCudaErrors(cudaDeviceSynchronize());
 }
 
 #ifdef DEBUG_KERNEL

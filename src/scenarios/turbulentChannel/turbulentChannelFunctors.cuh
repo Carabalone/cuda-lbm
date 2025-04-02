@@ -10,6 +10,13 @@ struct TurbulentChannelInit {
     
     TurbulentChannelInit(float u_max, float perturbation) 
         : u_max(u_max), perturbation(perturbation) {}
+
+    __host__ __device__
+    void inline apply_forces(float* rho, float* u, float* force, int node) {
+        float N_half = NY/2;
+        force[2*node]   = 8.0f * vis * u_max / (N_half * N_half);
+        force[2*node+1] = 0.0f;
+    }
     
     __host__ __device__
     void operator()(float* rho, float* u, float* force, int node) {
@@ -35,9 +42,7 @@ struct TurbulentChannelInit {
         u[2*node]   = base_velocity + perturbation * random_value_x;
         u[2*node+1] = perturbation * random_value_y;
         
-        float N_half = NY/2;
-        force[2*node]   = 8.0f * vis * u_max / (N_half * N_half);
-        force[2*node+1] = 0.0f;
+        apply_forces(rho, u, force, node);
     }
 };
 

@@ -14,6 +14,13 @@ struct TaylorGreenInit {
         u_max = _u_max / SCALE;
     }
 
+
+    __host__ __device__
+    void inline apply_forces(float* rho, float* u, float* force, int node) {
+        force[2 * node] = 0.0f;
+        force[2 * node + 1] = 0.0f;
+    }
+
     __device__
     inline void operator()(float* rho, float* u, float* force, int node) {
         // printf("viscosity: %.4f", vis);
@@ -36,9 +43,7 @@ struct TaylorGreenInit {
         u[2 * node + 1] = uy;
 
         // printf("u[%d] = (%.4f, %.4f)\n", node, ux, uy);
-
-        force[2 * node] = 0.0f;
-        force[2 * node + 1] = 0.0f;
+        apply_forces(rho, u, force, node);
     }
 };
 

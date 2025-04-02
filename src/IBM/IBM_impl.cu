@@ -145,8 +145,8 @@ void accumulate_forces_kernel(float* forces_total, float* iter_force) {
     forces_total[2 * node]   += iter_force[2 * node];
     forces_total[2 * node + 1] += iter_force[2 * node + 1];
 
-    if (forces_total[2 * node] > 0.001f) {
-            printf("Node (%d, %d) | Force X: %.6f | Force Y: %.6f\n", 
-                x, y, forces_total[2 * node], forces_total[2 * node + 1]);
+    if (fabsf(forces_total[2 * node]) > 0.001f) {
+            // printf("Node (%d, %d) | Force X: %.6f | Force Y: %.6f\n", 
+            //     x, y, forces_total[2 * node], forces_total[2 * node + 1]);
     }
 }
