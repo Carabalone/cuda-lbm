@@ -86,12 +86,14 @@ int main(void) {
 
         lbm.apply_boundaries<Scenario>();
         
-        lbm.macroscopics();
+        lbm.uncorrected_macroscopics();
 
         // -----------IBM stuff-----------------
         lbm.reset_forces<Scenario>();
         lbm.ibm_step();
         // -------------------------------------
+
+        lbm.correct_macroscopics();
 
         lbm.compute_equilibrium();
         lbm.collide<Scenario::CollisionOp>();

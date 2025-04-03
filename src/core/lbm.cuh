@@ -199,7 +199,7 @@ public:
     }
 
     void ibm_step() {
-        IBM.multi_direct(d_rho, d_u_uncorrected, d_force);
+        IBM.multi_direct(d_rho, d_u, d_force);
     }
 
     template <typename Scenario>
@@ -216,7 +216,8 @@ public:
 
     template<typename Scenario>
     __host__ void init();
-    __host__ void macroscopics();
+    __host__ void uncorrected_macroscopics();
+    __host__ void correct_macroscopics();
     __host__ void stream();
     template <typename CollisionOp>
     __host__ void collide();

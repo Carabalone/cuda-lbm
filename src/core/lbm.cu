@@ -30,20 +30,6 @@ __device__ MomentInfo d_moment_avg = {0.0f, 0.0f, 0.0f};
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 
-__global__ void macroscopics_kernel(float* f, float* rho, float* u, float* force, float* d_pi_mag, float* d_u_uncorrected) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (x >= NX || y >= NY) return;
-
-    int node = y * NX + x;
-    LBM::macroscopics_node(f, rho, u, force, d_pi_mag, d_u_uncorrected, node);
-    if (node == DEBUG_NODE) {
-        DPRINTF("[macroscopics_kernel] Node %d: rho=%f, u=(%f, %f)\n",
-                node, rho[node], u[2*node], u[2*node+1]);
-    }
-}
-
 // from Optimizing Parallel Reduction in CUDA - Mark Harris
 __global__
 void update_avg_mag(float* rho, float* u, float* pi_mag, MomentInfo* moment_info) {
@@ -100,12 +86,76 @@ void update_avg_mag(float* rho, float* u, float* pi_mag, MomentInfo* moment_info
 
 }
 
-void LBM::macroscopics() {
+__global__ void uncorrected_macroscopics_kernel(float* f, float* rho, float* u, float* force, float* pi_mag) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int node = y * NX + x;
+
+
+    rho[node]       = 0.0f;
+    u[2 * node]     = 0.0f;
+    u[2 * node + 1] = 0.0f;
+
+    // bad for 3d but whatever. we fix it later
+    float pi[3] = {0.0f}; //pi_xy=pi_yx 
+
+    for (int i=0; i < quadratures; i++) { 
+        float f_i = f[get_node_index(node, i)];
+         rho[node]       += f_i;
+         u[2 * node]     += f_i * C[2*i];
+         u[2 * node + 1] += f_i * C[2*i+1];
+         pi[0]           += f_i * C[2*i] * C[2*i];
+         pi[1]           += f_i * C[2*i] * C[2*i+1];
+         pi[2]           += f_i * C[2*i+1] * C[2*i+1];
+    }
+
+    // u_uncorrected[2*node] = u[2*node];
+    // u_uncorrected[2*node+1] = u[2*node+1];
+    // u[2 * node]     += 0.5f * force[2 * node];
+    // u[2 * node + 1] += 0.5f * force[2 * node + 1];
+
+    u[2 * node]     *= 1.0f / rho[node];
+    u[2 * node + 1] *= 1.0f / rho[node];
+
+    pi_mag[node] = sqrtf(pi[0] * pi[0] + 2.0f * pi[1] * pi[1] + pi[2] * pi[2]);
+
+
+    if (node == DEBUG_NODE) {
+        DPRINTF("[macroscopics_kernel] Node %d: rho=%f, u=(%f, %f)\n",
+                node, rho[node], u[2*node], u[2*node+1]);
+    }
+}
+
+__global__ void correct_macroscopics_kernel(float* f, float* rho, float* u, float* force, float* d_pi_mag) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= NX || y >= NY) return;
+
+    int node = y * NX + x;
+
+    u[2*node]   += 0.5f * force[2*node]   / rho[node];
+    u[2*node+1] += 0.5f * force[2*node+1] / rho[node];
+}
+
+void LBM::uncorrected_macroscopics() {
     dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-    macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag, d_u_uncorrected);
+    uncorrected_macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
+    checkCudaErrors(cudaDeviceSynchronize());
+}
+
+void LBM::correct_macroscopics() {
+    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
+    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+
+    correct_macroscopics_kernel<<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
     checkCudaErrors(cudaDeviceSynchronize());
 
     size_t shared_size = 3 * sizeof(float) * BLOCK_SIZE * BLOCK_SIZE;
@@ -128,42 +178,6 @@ void LBM::macroscopics() {
     if (timestep % 500 == 0 )
         printf("[macroscopics] Moment Averages: rho_avg_norm=%.6f, momentum_avg_norm=%.6f, pi_avg_norm=%.6f\n",
             h_moment.rho_avg_norm, h_moment.j_avg_norm, h_moment.pi_avg_norm);
-}
-
-__device__
-void LBM::macroscopics_node(float* f, float* rho, float* u, float* force,
-                            float* pi_mag, float* u_uncorrected, int node) {
-    rho[node]       = 0.0f;
-    u[2 * node]     = 0.0f;
-    u[2 * node + 1] = 0.0f;
-
-    // bad for 3d but whatever. we fix it later
-    float pi[3] = {0.0f}; //pi_xy=pi_yx 
-
-    for (int i=0; i < quadratures; i++) { 
-        float f_i = f[get_node_index(node, i)];
-         rho[node]       += f_i;
-         u[2 * node]     += f_i * C[2*i];
-         u[2 * node + 1] += f_i * C[2*i+1];
-         pi[0]           += f_i * C[2*i] * C[2*i];
-         pi[1]           += f_i * C[2*i] * C[2*i+1];
-         pi[2]           += f_i * C[2*i+1] * C[2*i+1];
-    }
-
-    u_uncorrected[2*node] = u[2*node];
-    u_uncorrected[2*node+1] = u[2*node+1];
-    u[2 * node]     += 0.5f * force[2 * node];
-    u[2 * node + 1] += 0.5f * force[2 * node + 1];
-
-    u[2 * node]     *= 1.0f / rho[node];
-    u[2 * node + 1] *= 1.0f / rho[node];
-
-    pi_mag[node] = sqrtf(pi[0] * pi[0] + 2.0f * pi[1] * pi[1] + pi[2] * pi[2]);
-
-    // if (node == 0) {
-    //     printf("Node 0: rho=%.4f, ux=%.4f, uy=%.4f\n", 
-    //           rho[node], u[2*node], u[2*node+1]);
-    // }
 }
 
 

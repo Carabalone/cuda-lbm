@@ -182,6 +182,8 @@ struct IBMManager {
 
     void multi_direct(float* d_rho_lbm, float* d_u_lbm, float* d_force_lbm) {
         iter_count = 0;
+        if (num_bodies == 0)
+            return;
         
         checkCudaErrors(cudaMemcpy(d_eul_u_prev, d_u_lbm, 2 * NX * NY * sizeof(float), 
                                   cudaMemcpyDeviceToDevice));
@@ -208,8 +210,8 @@ struct IBMManager {
         //                           2 * NX * NY * sizeof(float), cudaMemcpyDeviceToDevice));
         // sum_arrays(d_force_lbm, d_eul_force_acc, d_force_lbm, 2*NX*NY);
 
-        checkCudaErrors(cudaMemcpy(d_u_lbm, d_eul_u_prev, 
-                                  2 * NX * NY * sizeof(float), cudaMemcpyDeviceToDevice));
+        // checkCudaErrors(cudaMemcpy(d_u_lbm, d_eul_u_prev, 
+        //                           2 * NX * NY * sizeof(float), cudaMemcpyDeviceToDevice));
         checkCudaErrors(cudaDeviceSynchronize());
     }
 };
