@@ -7,10 +7,16 @@
 // -----------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------
 
+template<int dim>
 __device__ __forceinline__
-void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
+void LBM<dim>::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node) {
 
-    equilibrium_node(f_eq, u[2*node], u[2*node+1], rho[node], node);
+    if constexpr (dim == 2) {
+        equilibrium_node(f_eq, u[get_vec_index(node, 0)], u[get_vec_index(node, 1)], 0.0f, rho[node], node);
+    }
+    else {
+        equilibrium_node(f_eq, u[get_vec_index(node, 0)], u[get_vec_index(node, 1)], u[get_vec_index(node, 2)], rho[node], node);
+    }
 
     for (int q = 0; q < quadratures; q++) {
         int i = get_node_index(node, q);
@@ -20,7 +26,7 @@ void LBM::init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, 
 
 }
 
-template<typename InitCond>
+template<int dim, typename InitCond>
 __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, float* u,
                             float* force, InitCond init, int* debug_counter) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -32,11 +38,12 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
 
     init(rho, u, force, idx);
     atomicAdd(debug_counter, 1);
-    LBM::init_node(f, f_back, f_eq, rho, u, idx);
+    LBM<dim>::init_node(f, f_back, f_eq, rho, u, idx);
 }
 
+template<int dim>
 template<typename Scenario>
-void LBM::init() {
+void LBM<dim>::init() {
     dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
@@ -55,7 +62,7 @@ void LBM::init() {
     cudaMalloc(&d_debug_counter, 1 * sizeof(int));
     cudaMemcpy(d_debug_counter, &h_debug_counter, 1 * sizeof(int), cudaMemcpyHostToDevice);
 
-    init_kernel<<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, 
+    init_kernel<dim><<<blocks, threads>>>(d_f, d_f_back, d_f_eq, d_rho, d_u, 
                                      d_force, init, d_debug_counter);
     checkCudaErrors(cudaDeviceSynchronize());
 

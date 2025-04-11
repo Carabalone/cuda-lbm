@@ -4,7 +4,7 @@
 #include <vector>
 #include <array>
 #include <string>
-#include "core/collision.cuh"
+#include "core/collision/collision.cuh"
 #include "IBM/IBMBody.cuh"
 
 #define DEFAULT_MRT_S_MATRIX(omega_val) { \

@@ -56,7 +56,7 @@ int main(void) {
               << ", Tau: " << Scenario::tau << std::endl;
     std::cout << "Reynolds number: " << Re << std::endl;
 
-    LBM lbm; // idea is control from host and give args to the kernels for the device.
+    LBM<dimensions> lbm; // idea is control from host and give args to the kernels for the device.
 
     // destructor frees automatically
     lbm.allocate<Scenario>();
@@ -89,8 +89,8 @@ int main(void) {
         lbm.uncorrected_macroscopics();
 
         // -----------IBM stuff-----------------
-        lbm.reset_forces<Scenario>();
-        lbm.ibm_step();
+        // lbm.reset_forces<Scenario>();
+        // lbm.ibm_step();
         // -------------------------------------
 
         lbm.correct_macroscopics();
@@ -127,7 +127,7 @@ int main(void) {
             std::cout << rem_mins << "m " << rem_secs << "s" << std::endl;
         }
         if (save) {
-            lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
+            // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 

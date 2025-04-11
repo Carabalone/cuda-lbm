@@ -26,10 +26,9 @@ struct MomentInfo {
     float pi_avg_norm;
 };
 
-// not great, but not many solutions that doesn't require changing the collision functors type
-// signature, or manual instancing.
 extern __device__ MomentInfo d_moment_avg;   // used for adaptive relaxation
 
+template <int dim>
 class LBM {
 private:
     float *d_f, *d_f_back;   // f, f_back, f_eq: [NX][NY][Q]
@@ -70,15 +69,16 @@ private:
 
     template <typename Scenario>
     void send_consts() {
-        checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
-        checkCudaErrors(cudaMemcpyToSymbol(C, h_C, sizeof(int) * dimensions * quadratures));
         checkCudaErrors(cudaMemcpyToSymbol(vis, &Scenario::viscosity, sizeof(float)));
-        checkCudaErrors(cudaMemcpyToSymbol(tau, &Scenario::tau, sizeof(float)));
-        checkCudaErrors(cudaMemcpyToSymbol(omega, &Scenario::omega, sizeof(float)));
-        checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP, sizeof(int) * quadratures));
-        checkCudaErrors(cudaMemcpyToSymbol(M, h_M, sizeof(float) * quadratures * quadratures));
-        checkCudaErrors(cudaMemcpyToSymbol(M_inv, h_M_inv, sizeof(float) * quadratures * quadratures));
-        checkCudaErrors(cudaMemcpyToSymbol(S, Scenario::S, sizeof(float) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(tau, &Scenario::tau,       sizeof(float)));
+        checkCudaErrors(cudaMemcpyToSymbol(omega, &Scenario::omega,   sizeof(float)));
+        
+        checkCudaErrors(cudaMemcpyToSymbol(C, h_C,             sizeof(int) * dimensions * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(OPP, h_OPP,         sizeof(int) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(WEIGHTS, h_weights, sizeof(float) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(M, h_M,             sizeof(float) * quadratures * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(M_inv, h_M_inv,     sizeof(float) * quadratures * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(S, Scenario::S,     sizeof(float) * quadratures));
 
         // LBM_ASSERT(fabs(Scenario::S[7] - Scenario::omega) < 1e-6, 
         //            "MRT relaxation value S[7] does not match scenario viscosity");
@@ -99,21 +99,22 @@ public:
     template <typename Scenario>
     void allocate() {
         std::cout << "[LBM]: allocating\n";
+        // for 2D, NZ is 1 by default.
 
-        cudaMalloc((void**) &d_f,      NX * NY * quadratures * sizeof(float));
-        cudaMalloc((void**) &d_f_back, NX * NY * quadratures * sizeof(float));
-        cudaMalloc((void**) &d_f_eq,   NX * NY * quadratures * sizeof(float));
+        cudaMalloc((void**) &d_f,      NX * NY * NZ * quadratures * sizeof(float));
+        cudaMalloc((void**) &d_f_back, NX * NY * NZ * quadratures * sizeof(float));
+        cudaMalloc((void**) &d_f_eq,   NX * NY * NZ * quadratures * sizeof(float));
 
-        cudaMalloc((void**) &d_rho,    NX * NY * sizeof(float));
-        cudaMalloc((void**) &d_u,      NX * NY * dimensions * sizeof(float));
-        cudaMalloc((void**) &d_u_uncorrected,      NX * NY * dimensions * sizeof(float));
+        cudaMalloc((void**) &d_rho,    NX * NY * NZ * sizeof(float));
+        cudaMalloc((void**) &d_u,      NX * NY * NZ * dimensions * sizeof(float));
+        cudaMalloc((void**) &d_u_uncorrected,      NX * NY * NZ * dimensions * sizeof(float));
         
-        cudaMalloc((void**) &d_force,  NX * NY * dimensions * sizeof(float));
+        cudaMalloc((void**) &d_force,  NX * NY * NZ * dimensions * sizeof(float));
 
-        cudaMalloc((void**) &d_boundary_flags, NX * NY * sizeof(int));
+        cudaMalloc((void**) &d_boundary_flags, NX * NY * NZ * sizeof(int));
 
         // cudaMalloc((void**) &d_moment_avg, sizeof(MomentInfo));
-        cudaMalloc((void**) &d_pi_mag, NX * NY * sizeof(float));
+        cudaMalloc((void**) &d_pi_mag, NX * NY * NZ * sizeof(float));
 
         Scenario::add_bodies();
         IBM.init_and_dispatch(Scenario::IBM_bodies);
@@ -141,7 +142,7 @@ public:
     }
 
     void update_macroscopics() {
-        int num_nodes = NX * NY;
+        int num_nodes = NX * NY * NZ;
         update_ts = timestep;
 
         checkCudaErrors(cudaMemcpy(h_rho.data(), d_rho, num_nodes * sizeof(float), cudaMemcpyDeviceToHost));
@@ -205,9 +206,8 @@ public:
     template <typename Scenario>
     void reset_forces();
 
-    __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float rho, int node);
+    __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float uz, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
-    __device__ static void macroscopics_node(float* f, float* rho, float* u, float* force, float* d_pi_mag, float* u_uncorrected, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
     template <typename CollisionOp>
     __device__ static void collide_node(float* f, float* f_eq, float* u, float* force, int node, int q);
@@ -229,11 +229,13 @@ public:
     ~LBM() {
         free();
     }
-
 };
 
-#include "core/init.cuh"
-#include "core/boundaries.cuh"
-#include "core/lbm_impl.cuh"
+#include "core/init/init.cuh"
+#include "core/streaming/streaming.cuh"
+#include "core/macroscopics/macroscopics.cuh"
+#include "core/equilibrium/equilibrium.cuh"
+#include "core/boundaries/boundaries.cuh"
+#include "core/collision/collision.cuh"
 
 #endif // ! LBM_H

@@ -444,8 +444,9 @@ __global__ void collide_kernel(float* f, float* f_eq, float* u, float* force) {
     }
 }
 
+template <int dim>
 template <typename CollisionOp>
-void LBM::collide() {
+void LBM<dim>::collide() {
     dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);

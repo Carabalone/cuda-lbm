@@ -84,8 +84,9 @@ __global__ void boundaries_kernel(float* f, float* f_back, float* u, int* bounda
 
 }
 
+template <int dim>
 template <typename Scenario>
-void LBM::apply_boundaries() {
+void LBM<dim>::apply_boundaries() {
     dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                 (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
     dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
@@ -94,8 +95,9 @@ void LBM::apply_boundaries() {
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
+template <int dim>
 template<typename BoundaryFunctor>
-void LBM::setup_boundary_flags(BoundaryFunctor boundary_func) {
+void LBM<dim>::setup_boundary_flags(BoundaryFunctor boundary_func) {
     int num_nodes = NX * NY;
     std::vector<int> h_boundary_flags(num_nodes, 0);
     
