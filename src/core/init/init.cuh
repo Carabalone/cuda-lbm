@@ -31,10 +31,11 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
                             float* force, InitCond init, int* debug_counter) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
 
-    if (x >= NX || y >= NY) return;
+    if (x >= NX || y >= NY || z >= NZ) return;
 
-    int idx = y * NX + x;
+    int idx = z * NX * NY + y * NX + x;
 
     init(rho, u, force, idx);
     atomicAdd(debug_counter, 1);
@@ -44,9 +45,19 @@ __global__ void init_kernel(float* f, float* f_back, float* f_eq, float* rho, fl
 template<int dim>
 template<typename Scenario>
 void LBM<dim>::init() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
-    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 threads, blocks;
+
+    if constexpr (dim == 2) {
+        threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
+        blocks  = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                    (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    }
+    else {
+        threads = dim3(8, 8, 4);
+        blocks  = dim3((NX + threads.x - 1) / threads.x,
+                    (NY + threads.y - 1) / threads.y,
+                    (NZ + threads.z - 1) / threads.z);
+    }
 
     LBM_DEVICE_ASSERT(Scenario::viscosity > 0.0f, "Negative Viscosity");
     LBM_DEVICE_ASSERT(Scenario::tau > 0.5f, "Instability warning: tau < 0.5");

@@ -80,4 +80,57 @@ void LBM<3>::equilibrium_node(float* f_eq, float ux, float uy, float uz, float r
     f_eq[get_node_index(node, 25)] = inv_cs2_cs4*half_rho*WEIGHTS[25]*(1.0f*cs2*pow(-ux + uy + uz, 2) + two_cs2_cs4 - two_cs4*(-ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
     f_eq[get_node_index(node, 26)] = inv_cs2_cs4*half_rho*WEIGHTS[26]*(1.0f*cs2*pow(ux + uy + uz, 2) + two_cs2_cs4 - two_cs4*(ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
 
+    debug_equilibrium(f_eq, node);
+
+}
+
+
+__device__
+void debug_equilibrium(float* f_eq, int node) {
+    if ((node == 0) || (node == NX*NY*NZ-1) || (node == NX*NY*NZ/2)) {
+        printf("EQ Node %d: {\n"
+               "  \"f_eq[0]\": %.6f,\n"
+               "  \"f_eq[1]\": %.6f,\n"
+               "  \"f_eq[2]\": %.6f,\n"
+               "  \"f_eq[3]\": %.6f,\n"
+               "  \"f_eq[4]\": %.6f,\n"
+               "  \"f_eq[5]\": %.6f,\n"
+               "  \"f_eq[6]\": %.6f,\n"
+               "  \"f_eq[7]\": %.6f,\n"
+               "  \"f_eq[8]\": %.6f,\n"
+               "  \"f_eq[9]\": %.6f,\n"
+               "  \"f_eq[10]\": %.6f,\n"
+               "  \"f_eq[11]\": %.6f,\n"
+               "  \"f_eq[12]\": %.6f,\n"
+               "  \"f_eq[13]\": %.6f,\n"
+               "  \"f_eq[14]\": %.6f,\n"
+               "  \"f_eq[15]\": %.6f,\n"
+               "  \"f_eq[16]\": %.6f,\n"
+               "  \"f_eq[17]\": %.6f,\n"
+               "  \"f_eq[18]\": %.6f,\n"
+               "  \"f_eq[19]\": %.6f,\n"
+               "  \"f_eq[20]\": %.6f,\n"
+               "  \"f_eq[21]\": %.6f,\n"
+               "  \"f_eq[22]\": %.6f,\n"
+               "  \"f_eq[23]\": %.6f,\n"
+               "  \"f_eq[24]\": %.6f,\n"
+               "  \"f_eq[25]\": %.6f\n"
+               "  \"f_eq[26]\": %.6f\n"
+               "}\n",
+               node,
+               f_eq[get_node_index(node, 0)], f_eq[get_node_index(node, 1)],
+               f_eq[get_node_index(node, 2)], f_eq[get_node_index(node, 3)],
+               f_eq[get_node_index(node, 4)], f_eq[get_node_index(node, 5)],
+               f_eq[get_node_index(node, 6)], f_eq[get_node_index(node, 7)],
+               f_eq[get_node_index(node, 8)], f_eq[get_node_index(node, 9)],
+               f_eq[get_node_index(node, 10)], f_eq[get_node_index(node, 11)],
+               f_eq[get_node_index(node, 12)], f_eq[get_node_index(node, 13)],
+               f_eq[get_node_index(node, 14)], f_eq[get_node_index(node, 15)],
+               f_eq[get_node_index(node, 16)], f_eq[get_node_index(node, 17)],
+               f_eq[get_node_index(node, 18)], f_eq[get_node_index(node, 19)],
+               f_eq[get_node_index(node, 20)], f_eq[get_node_index(node, 21)],
+               f_eq[get_node_index(node, 22)], f_eq[get_node_index(node, 23)],
+               f_eq[get_node_index(node, 24)], f_eq[get_node_index(node, 25)],
+               f_eq[get_node_index(node, 26)]);
+    }
 }

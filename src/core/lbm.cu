@@ -10,18 +10,16 @@
 #define PERIODIC_Z
 
 
-#ifdef D2Q9
-    __constant__ float WEIGHTS[quadratures];
-    __constant__ int C[quadratures * dimensions];
-    __constant__ float vis;
-    __constant__ float tau;
-    __constant__ float omega;
-    __constant__ int OPP[quadratures];
+__constant__ float WEIGHTS[quadratures];
+__constant__ int C[quadratures * dimensions];
+__constant__ float vis;
+__constant__ float tau;
+__constant__ float omega;
+__constant__ int OPP[quadratures];
 
-    __constant__ float M[quadratures * quadratures];
-    __constant__ float M_inv[quadratures * quadratures];
-    __constant__ float S[quadratures];
-#endif
+__constant__ float M[quadratures * quadratures];
+__constant__ float M_inv[quadratures * quadratures];
+__constant__ float S[quadratures];
 
 __device__ MomentInfo d_moment_avg = {0.0f, 0.0f, 0.0f};
 

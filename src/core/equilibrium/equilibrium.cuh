@@ -44,9 +44,9 @@ __global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u
 
     LBM<dim>::equilibrium_node(f_eq, node_ux, node_uy, node_uz, node_rho, node);
 
-    if (node == DEBUG_NODE) {
-        DPRINTF("[equilibrium_kernel] f_eq[%d] = %f\n", get_node_index(node, 0), f_eq[get_node_index(node, 0)]);
-    }
+    // if (node == DEBUG_NODE) {
+    //     DPRINTF("[equilibrium_kernel] f_eq[%d] = %f\n", get_node_index(node, 0), f_eq[get_node_index(node, 0)]);
+    // }
 }
 
 template <int dim>
@@ -68,5 +68,8 @@ void LBM<dim>::compute_equilibrium() {
     equilibrium_kernel<dim><<<blocks, threads>>>(d_f_eq, d_rho, d_u);
     checkCudaErrors(cudaDeviceSynchronize());
 }
+
+__device__
+void debug_equilibrium(float* f_eq, int node);
 
 #endif  // ! EQUILIBRIUM_CUH
