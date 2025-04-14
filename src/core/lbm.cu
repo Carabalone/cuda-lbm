@@ -4,14 +4,6 @@
 
 
 // #define DEBUG_KERNEL
-<<<<<<< HEAD
-=======
-#define PERIODIC
-#define PERIODIC_X
-#define PERIODIC_Y
-// #define PERIODIC_Z
->>>>>>> 3D-streaming
-
 
 __constant__ float WEIGHTS[quadratures];
 __constant__ int C[quadratures * dimensions];
