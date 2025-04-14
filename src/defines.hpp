@@ -1,15 +1,15 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define D3Q27
-// #define D2Q9
+// #define D3Q27
+#define D2Q9
 
-// #define USE_TAYLOR_GREEN
+#define USE_TAYLOR_GREEN
 // #define USE_POISEUILLE
 // #define USE_LID_DRIVEN
 // #define USE_TURBULENT_CHANNEL
 // #define USE_FLOW_PAST_CYLINDER
-#define USE_TAYLOR_GREEN_3D
+// #define USE_TAYLOR_GREEN_3D
 
 // simulation parameters
 #ifdef USE_TAYLOR_GREEN

@@ -1,6 +1,11 @@
 #ifndef LBM_STREAMING_H
 #define LBM_STREAMING_H
 
+#define PERIODIC
+#define PERIODIC_X
+#define PERIODIC_Y
+// #define PERIODIC_Z
+
 template <int dim>
 __global__ inline void stream_kernel(float* f, float* f_back) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;

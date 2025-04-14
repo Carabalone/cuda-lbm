@@ -4,10 +4,6 @@
 
 
 // #define DEBUG_KERNEL
-#define PERIODIC
-#define PERIODIC_X
-#define PERIODIC_Y
-#define PERIODIC_Z
 
 
 __constant__ float WEIGHTS[quadratures];
