@@ -80,7 +80,7 @@ void LBM<3>::equilibrium_node(float* f_eq, float ux, float uy, float uz, float r
     f_eq[get_node_index(node, 25)] = inv_cs2_cs4*half_rho*WEIGHTS[25]*(1.0f*cs2*pow(-ux + uy + uz, 2) + two_cs2_cs4 - two_cs4*(-ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
     f_eq[get_node_index(node, 26)] = inv_cs2_cs4*half_rho*WEIGHTS[26]*(1.0f*cs2*pow(ux + uy + uz, 2) + two_cs2_cs4 - two_cs4*(ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
 
-    debug_equilibrium(f_eq, node);
+    // debug_equilibrium(f_eq, node);
 
 }
 

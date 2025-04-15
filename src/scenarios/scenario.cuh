@@ -23,7 +23,7 @@ template <
     typename InitFunctor,
     typename BoundaryFunctor,
     typename ValidationFunctor = void,
-    typename CollisionType = BGK,
+    typename CollisionType = BGK<2>,
     typename AdapterType = NoAdapter
 >
 struct ScenarioTrait {

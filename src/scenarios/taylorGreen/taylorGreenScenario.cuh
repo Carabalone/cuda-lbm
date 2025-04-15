@@ -8,7 +8,7 @@ struct TaylorGreenScenario : public ScenarioTrait <
     TaylorGreenInit,
     TaylorGreenBoundary,
     TaylorGreenValidation,
-    BGK
+    BGK<2>
 > {
     static constexpr float u_max = 0.04f;
     static constexpr float viscosity = 1.0f/6.0f;
