@@ -122,11 +122,11 @@ void LBM<dim>::correct_macroscopics() {
     correct_macroscopics_kernel<dim><<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
     checkCudaErrors(cudaDeviceSynchronize());
 
-    size_t shared_size = 3 * sizeof(float) * BLOCK_SIZE * BLOCK_SIZE;
+    // size_t shared_size = 3 * sizeof(float) * BLOCK_SIZE * BLOCK_SIZE;
 
     // reset moment averages - this part is left unchanged as requested
-    MomentInfo h_moment = {0.0f, 0.0f, 0.0f};
-    checkCudaErrors(cudaMemcpyToSymbol(d_moment_avg, &h_moment, sizeof(MomentInfo)));
+    // MomentInfo h_moment = {0.0f, 0.0f, 0.0f};
+    // checkCudaErrors(cudaMemcpyToSymbol(d_moment_avg, &h_moment, sizeof(MomentInfo)));
 
     // update moment averages
     // MomentInfo* d_moment_avg_ptr;
@@ -137,7 +137,7 @@ void LBM<dim>::correct_macroscopics() {
     // dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
     // update_avg_mag<<<blocks, threads, shared_size>>>(d_rho, d_u, d_pi_mag, d_moment_avg_ptr);
     
-    checkCudaErrors(cudaDeviceSynchronize());
+    // checkCudaErrors(cudaDeviceSynchronize());
 
     // checkCudaErrors(cudaMemcpyFromSymbol(&h_moment, d_moment_avg, sizeof(MomentInfo)));
     // checkCudaErrors(cudaDeviceSynchronize());

@@ -9,7 +9,7 @@ struct PoiseuilleScenario : public ScenarioTrait <
     PoiseuilleInit,
     PoiseuilleBoundary,
     PoiseuilleValidation,
-    BGK
+    BGK<2>
     // CM<NoAdapter>
 > {
     static constexpr float u_max = 0.05f;

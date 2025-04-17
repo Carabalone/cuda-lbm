@@ -89,8 +89,8 @@ private:
     }
 
 public:
-    std::array<float, NX * NY> h_rho;
-    std::array<float, NX * NY * dimensions> h_u;
+    std::vector<float> h_rho;
+    std::vector<float> h_u;
     
     IBMManager IBM;
 
@@ -100,6 +100,10 @@ public:
     void allocate() {
         std::cout << "[LBM]: allocating\n";
         // for 2D, NZ is 1 by default.
+
+        size_t num_nodes = static_cast<size_t>(NX) * NY * NZ;
+        h_rho.resize(num_nodes);
+        h_u.resize(num_nodes * dimensions);
 
         cudaMalloc((void**) &d_f,      NX * NY * NZ * quadratures * sizeof(float));
         cudaMalloc((void**) &d_f_back, NX * NY * NZ * quadratures * sizeof(float));

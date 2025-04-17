@@ -14,6 +14,8 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     static constexpr float viscosity = 1.0f/6.0f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
+
+    static constexpr float S[quadratures] = {0.0f};
     
     static const char* name() { return "TaylorGreen3D"; }
     
