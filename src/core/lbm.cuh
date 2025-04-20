@@ -153,6 +153,13 @@ public:
         checkCudaErrors(cudaMemcpy(h_u.data(), d_u, num_nodes * dimensions * sizeof(float), cudaMemcpyDeviceToHost));
     }
 
+    float* get_rho() {
+        return d_rho;
+    }
+    float* get_u() {
+        return d_u;
+    }
+
     template <typename Scenario>
     float compute_error() {
         if constexpr (Scenario::has_analytical_solution) {

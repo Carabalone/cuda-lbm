@@ -81,6 +81,9 @@ void BGK<3>::apply(float* f, float* f_eq, float* u, float* force, int node) {
 
         float old_val = f[idx];
         float new_val = f[idx] - omega * (f[idx] - f_eq[idx]) + force_term;
+        // if (node == 6403) {
+        //     printf("idx=%d | f[%d] | f_new[%d] = {%.4f, %.4f}\n", idx, q, q, old_val, new_val);
+        // }
         f[idx] = new_val;
 
         if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {

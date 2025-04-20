@@ -32,8 +32,8 @@ struct TaylorGreenInit {
         const float td = 1.0f / (nu * (kx*kx + ky*ky));
         const float t = 0.0f; // I could put this as arg to validate against other cases as well.
         
-        float ux = -u_max * sqrt(ky/kx) * cos(kx * x) * sin(ky * y) * exp(-t / td);
-        float uy =  u_max * sqrt(kx/ky) * sin(kx * x) * cos(ky * y) * exp(-t / td);
+        float ux = -u_max * sqrt(ky/kx) * cosf(kx * x) * sinf(ky * y) * exp(-t / td);
+        float uy =  u_max * sqrt(kx/ky) * sinf(kx * x) * cosf(ky * y) * exp(-t / td);
         
         float P = -0.25f * rho0 * u_max * u_max * 
                   ((ky/kx)*cos(2*kx*x) + (kx/ky)*cos(2*ky*y)) * exp(-2*t/td);
@@ -80,7 +80,6 @@ struct TaylorGreenValidation {
         uy =  u_max * sqrt(kx/ky) * sin(kx * x) * cos(ky * y) * decay;
     }
     
-    // 2D field for Taylor-Green
     std::vector<std::array<float, 2>> getFullField() const {
         std::vector<std::array<float, 2>> field(NX * NY);
         for (int y = 0; y < NY; y++) {

@@ -3,6 +3,7 @@
 
 #include "scenarios/scenario.cuh"
 #include "taylorGreen3DFunctors.cuh"
+#include "postprocessing/kineticEnergy.cuh"
 
 struct TaylorGreen3DScenario : public ScenarioTrait <
     TaylorGreen3DInit,
@@ -10,8 +11,15 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     TaylorGreen3DValidation,
     BGK<3>
 > {
-    static constexpr float u_max = 0.04f;
-    static constexpr float viscosity = 1.0f/6.0f;
+
+    // Re=1600
+    // N = 64
+    // Re = rho0 * u_max * N / vis
+    // 1600 = 1.0 * 0.05 * 64 / vis
+    // vis = 0.05 * 64 / 1600 = 0.002
+    // tau = 0.506 -> really low;
+    static constexpr float u_max = 0.05f;
+    static constexpr float viscosity = 0.002f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 
@@ -20,7 +28,7 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     static const char* name() { return "TaylorGreen3D"; }
     
     static InitType init() { 
-        return InitType(viscosity, u_max); 
+        return InitType(u_max); 
     }
 
     static BoundaryType boundary() {
@@ -33,38 +41,16 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     
     template <typename LBMSolver>
     static float compute_error(LBMSolver& solver) {
-        auto analytical_field = validation().getFullField();
+        // we are computing in GPU arrays so no problems with data freshness here.
+        // if (solver.update_ts < solver.timestep)
+        //     solver.update_macroscopics();
+
+        // auto v = validation();
+
+        float ke = calculate_kinetic_energy(solver.get_rho(), solver.get_u());
+        printf("Timestep %d: Kinetic Energy = %.6e\n", solver.timestep, ke);
         
-        if (solver.update_ts < solver.timestep)
-            solver.update_macroscopics();
-        
-        float error_sum = 0.0f;
-        float velocity_norm_sum = 0.0f;
-        
-        for (int z = 0; z < NZ; z++) {
-            for (int y = 0; y < NY; y++) {
-                for (int x = 0; x < NX; x++) {
-                    int node_index = z * (NX * NY) + y * NX + x;
-                    
-                    float ux_sim = solver.h_u[get_vec_index(node_index, 0)];
-                    float uy_sim = solver.h_u[get_vec_index(node_index, 1)];
-                    float uz_sim = solver.h_u[get_vec_index(node_index, 2)];
-                    
-                    float ux_ana = analytical_field[node_index][0];
-                    float uy_ana = analytical_field[node_index][1];
-                    float uz_ana = analytical_field[node_index][2];
-                    
-                    float diff_x = ux_sim - ux_ana;
-                    float diff_y = uy_sim - uy_ana;
-                    float diff_z = uz_sim - uz_ana;
-                    
-                    error_sum += diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-                    velocity_norm_sum += ux_ana * ux_ana + uy_ana * uy_ana + uz_ana * uz_ana;
-                }
-            }
-        }
-        
-        return std::sqrt(error_sum / velocity_norm_sum) * 100.0f;
+        return -1.0f;
     }
 };
 
