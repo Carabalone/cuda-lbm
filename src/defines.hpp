@@ -33,7 +33,7 @@
     #define NX (256 * SCALE)
     #define NY (128 * SCALE)
 #elif defined(USE_TAYLOR_GREEN_3D)
-    #define SCALE 1
+    #define SCALE 2
     #define NX (64 * SCALE)
     #define NY (64 * SCALE)
     #define NZ (64 * SCALE)

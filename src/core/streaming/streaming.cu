@@ -56,13 +56,14 @@ void LBM<3>::stream_node(float* f, float* f_back, int node) {
         z_neigh = (z_neigh + NZ) % NZ;
 #endif
 
-        if (x_neigh < 0 || x_neigh >= NX || y_neigh < 0 || y_neigh >= NY || z_neigh < 0 || z_neigh >= NZ)
+        if (x_neigh < 0 || x_neigh >= NX || y_neigh < 0 || y_neigh >= NY || z_neigh < 0 || z_neigh >= NZ) {
             continue;
+        }
 
 
         const int node_neigh = get_node_from_coords(x_neigh, y_neigh, z_neigh);
         const int idx_neigh = get_node_index(node_neigh, i);
-        f_back[idx_neigh] = f[baseIdx + i];
+        f_back[idx_neigh] = f[get_node_index(node, i)];
 
     }
 }

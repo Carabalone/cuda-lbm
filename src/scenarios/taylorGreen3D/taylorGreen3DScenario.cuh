@@ -19,7 +19,7 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     // vis = 0.05 * 64 / 1600 = 0.002
     // tau = 0.506 -> really low;
     static constexpr float u_max = 0.05f;
-    static constexpr float viscosity = 0.002f;
+    static constexpr float viscosity = 0.004f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 

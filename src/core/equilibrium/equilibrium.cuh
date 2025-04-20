@@ -22,12 +22,10 @@ __global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;
 
-    // if (x >= NX || y >= NY || z >= NZ) return;
+    if (x >= NX || y >= NY || z >= NZ) return;
 
-    // int node = z * NX * NY + y * NX + x;
-    if (x >= NX || y >= NY) return;
+    int node = z * NX * NY + y * NX + x;
 
-    int node = y * NX + x;
     float node_rho = rho[node];
     float node_ux  = u[get_vec_index(node, 0)];
     float node_uy  = u[get_vec_index(node, 1)];

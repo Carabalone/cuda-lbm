@@ -89,7 +89,7 @@ int main(void) {
         lbm.swap_buffers();
 
         // lbm.apply_boundaries<Scenario>();
-        
+
         lbm.uncorrected_macroscopics();
 
         // -----------IBM stuff-----------------
@@ -136,9 +136,11 @@ int main(void) {
                 // auto start = std::chrono::high_resolution_clock::now();
 
                 lbm.update_macroscopics();
-                printf("%s[%d]: error, %.2f%%\n", 
-                       Scenario::name(), t+1,
-                       lbm.compute_error<Scenario>());
+                printf("Dimensionless Time: %f\n", (t / ((NX / (2*M_PI)) / 0.05f)));
+                lbm.compute_error<Scenario>();
+                // printf("%s[%d]: error, %.2f%%\n", 
+                //        Scenario::name(), t+1,
+                //        lbm.compute_error<Scenario>());
 
                 // auto end = std::chrono::high_resolution_clock::now();
                 // std::chrono::duration<double> duration = end - start;

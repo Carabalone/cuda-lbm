@@ -15,6 +15,8 @@
 #include "assert.cuh"
 #include "IBM/IBMManager.cuh"
 
+#define DEBUG
+#define DEBUG_KERNEL
 #define DEBUG_NODE 5
 #define VALUE_THRESHOLD 5.0f
 
