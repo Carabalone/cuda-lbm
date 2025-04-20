@@ -96,6 +96,7 @@ __global__ void correct_macroscopics_kernel<2>(float* f, float* rho, float* u, f
 
     u[get_vec_index(node, 0)] += 0.5f * force[get_vec_index(node, 0)] / rho[node];
     u[get_vec_index(node, 1)] += 0.5f * force[get_vec_index(node, 1)] / rho[node];
+
 }
 
 template<>
@@ -111,4 +112,7 @@ __global__ void correct_macroscopics_kernel<3>(float* f, float* rho, float* u, f
     u[get_vec_index(node, 0)] += 0.5f * force[get_vec_index(node, 0)] / rho[node];
     u[get_vec_index(node, 1)] += 0.5f * force[get_vec_index(node, 1)] / rho[node];
     u[get_vec_index(node, 2)] += 0.5f * force[get_vec_index(node, 2)] / rho[node];
+
+    // if (node % 200 == 0)
+    //     printf("u={%.4f, %.4f, %.4f}\n", u[get_vec_index(node, 0)], u[get_vec_index(node, 1)], u[get_vec_index(node, 2)]);
 }
