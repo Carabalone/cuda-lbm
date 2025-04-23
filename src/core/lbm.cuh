@@ -205,6 +205,56 @@ public:
         // printf("Saved macroscopics for timestep %d\n", timestep);
     }
 
+    void save_macroscopics_slice(int timestep) {
+        int z_slice = NZ / 2;
+        int slice_size = NX * NY;
+        
+        update_macroscopics();
+        
+        std::ostringstream rho_filename, vel_filename;
+        rho_filename << "output/density/density_slice_" << timestep << ".bin";
+        vel_filename << "output/velocity/velocity_slice_" << timestep << ".bin";
+        
+        if (!fs::is_directory("output/density") || !fs::exists("output/density"))
+            fs::create_directory("output/density");
+        if (!fs::is_directory("output/velocity") || !fs::exists("output/velocity"))
+            fs::create_directory("output/velocity");
+        
+        std::vector<float> rho_slice(slice_size);
+        std::vector<float> u_slice(3 * slice_size);  // 3 components for 3D velocity
+        
+        for (int y = 0; y < NY; y++) {
+            for (int x = 0; x < NX; x++) {
+                int slice_idx = y * NX + x;
+                int volume_idx = z_slice * NX * NY + y * NX + x;
+                
+                rho_slice[slice_idx] = h_rho[volume_idx];
+                
+                u_slice[3 * slice_idx]     = h_u[3 * volume_idx];     // u_x
+                u_slice[3 * slice_idx + 1] = h_u[3 * volume_idx + 1]; // u_y
+                u_slice[3 * slice_idx + 2] = h_u[3 * volume_idx + 2]; // u_z
+            }
+        }
+        
+        std::ofstream rho_file(rho_filename.str(), std::ios::out | std::ios::binary);
+        if (!rho_file) {
+            printf("Error: Could not open file %s for writing.\n", rho_filename.str().c_str());
+            return;
+        }
+        rho_file.write(reinterpret_cast<const char*>(rho_slice.data()), slice_size * sizeof(float));
+        rho_file.close();
+        
+        std::ofstream vel_file(vel_filename.str(), std::ios::out | std::ios::binary);
+        if (!vel_file) {
+            printf("Error: Could not open file %s for writing.\n", vel_filename.str().c_str());
+            return;
+        }
+        vel_file.write(reinterpret_cast<const char*>(u_slice.data()), 3 * slice_size * sizeof(float));
+        vel_file.close();
+        
+        printf("Saved xy-slice (z=%d) for timestep %d\n", z_slice, timestep);
+    }
+
     __host__ void swap_buffers() {
         float* temp;
         temp = d_f;

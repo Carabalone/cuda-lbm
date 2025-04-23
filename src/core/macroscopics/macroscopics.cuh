@@ -164,7 +164,7 @@ void LBM<dim>::correct_macroscopics() {
     checkCudaErrors(cudaDeviceSynchronize());
     checkCudaErrors(cudaMemcpyFromSymbol(&h_moment, d_moment_avg, sizeof(MomentInfo)));
     
-    if (timestep % 500 == 0) {
+    if (timestep % 100 == 0) {
         printf("[macroscopics] Moment Averages: rho_avg_norm=%.6f, momentum_avg_norm=%.6f, pi_avg_norm=%.6f\n",
             h_moment.rho_avg_norm, h_moment.j_avg_norm, h_moment.pi_avg_norm);
     }

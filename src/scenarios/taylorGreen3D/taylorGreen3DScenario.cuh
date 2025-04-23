@@ -9,7 +9,7 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     TaylorGreen3DInit,
     TaylorGreen3DBoundary,
     TaylorGreen3DValidation,
-    BGK<3>
+    MRT<3>
 > {
 
     // Re=1600
@@ -23,9 +23,11 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 
-    static constexpr float S[quadratures] = {0.0f};
+    static constexpr float S[quadratures] = DEFAULT_MRT_S_MATRIX_3D(omega);
     
     static const char* name() { return "TaylorGreen3D"; }
+
+    // dimensionless time = t / ((NX / (2*M_PI)) / u_max)
     
     static InitType init() { 
         return InitType(u_max); 

@@ -34,10 +34,8 @@ public:
         std::chrono::duration<float> elapsed = now - last_checkpoint;
         last_checkpoint = now;
         
-        // Record this timestep duration
         timestep_durations.push_back(elapsed.count());
         if (timestep_durations.size() > 100) {
-            // Keep last 100 measurements for moving median
             timestep_durations.erase(timestep_durations.begin());
         }
         

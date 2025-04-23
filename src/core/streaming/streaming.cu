@@ -23,7 +23,7 @@ void LBM<2>::stream_node(float* f, float* f_back, int node) {
 
         const int node_neigh = get_node_from_coords(x_neigh, y_neigh);
         const int idx_neigh = get_node_index(node_neigh, i);
-        f_back[idx_neigh] = f[baseIdx + i];
+        f_back[idx_neigh] = f[get_node_index(baseIdx, i)];
 
         if (fabsf(f_back[idx_neigh]) > VALUE_THRESHOLD || f_back[idx_neigh] < -0.01f) {
             // printf("[WARNING][stream_node] Pushing negative/large value: "

@@ -50,7 +50,6 @@ void setup_cuda() {
 }
 
 int main(void) {
-    printf("started");
     setup_cuda();
 
 
@@ -78,6 +77,11 @@ int main(void) {
     float last_progress_time = 0.0f;
     simulation_timer.reset();
 
+    // printf("ut = %.4f\n", Scenario::u_tau);
+    printf("um = %.4f\n", Scenario::u_max);
+
+    // printf("Expected max ETT: %.4f\n", total_timesteps * (Scenario::u_tau / (static_cast<float>(NY)/2.0f)));
+
     while (t < total_timesteps) {
         // printf("\n----------------------------------------NEW_TS{%d}----------------------------------------\n",t);
         bool save = (t+1)%save_int == 0;
@@ -88,7 +92,7 @@ int main(void) {
         lbm.stream();
         lbm.swap_buffers();
 
-        // lbm.apply_boundaries<Scenario>();
+        lbm.apply_boundaries<Scenario>();
 
         lbm.uncorrected_macroscopics();
 
@@ -131,12 +135,13 @@ int main(void) {
             std::cout << rem_mins << "m " << rem_secs << "s" << std::endl;
         }
         if (save) {
-            // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
+            // lbm.save_macroscopics_slice(t+1); // save macroscopics updates the data from GPU to CPU.
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 
                 lbm.update_macroscopics();
-                printf("Dimensionless Time: %f\n", (t / ((NX / (2*M_PI)) / 0.05f)));
+                // float dimensionless_time = t * (Scenario::u_tau / (static_cast<float>(NY)/2.0f));
+                // printf("Dimensionless Time: %f\n", dimensionless_time);
                 lbm.compute_error<Scenario>();
                 // printf("%s[%d]: error, %.2f%%\n", 
                 //        Scenario::name(), t+1,

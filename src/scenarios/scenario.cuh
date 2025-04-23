@@ -7,7 +7,7 @@
 #include "core/collision/collision.cuh"
 #include "IBM/IBMBody.cuh"
 
-#define DEFAULT_MRT_S_MATRIX(omega_val) { \
+#define DEFAULT_MRT_S_MATRIX_2D(omega_val) { \
     0.0f,        /* density (conserved) */ \
     omega_val,   /* bulk viscosity */ \
     omega_val,   /* energy flux tensor */ \
@@ -17,6 +17,36 @@
     omega_val,   /* third-order moment */ \
     omega_val,   /* kinematic viscosity */ \
     omega_val    /* kinematic viscosity */ \
+}
+
+#define DEFAULT_MRT_S_MATRIX_3D(omega_val) { \
+    0.0f, \
+    0.0f, \
+    0.0f, \
+    0.0f, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val, \
+    omega_val  \
 }
 
 template <
