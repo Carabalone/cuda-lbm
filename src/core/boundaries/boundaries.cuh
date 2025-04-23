@@ -8,7 +8,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 template <typename Scenario>
-__global__ void boundaries_kernel(float* f, float* f_back, float* u, int* boundary_flags) {
+__global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, int* boundary_flags) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -17,7 +17,7 @@ __global__ void boundaries_kernel(float* f, float* f_back, float* u, int* bounda
     int idx = y * NX + x;
 
     // TODO solve the instantiation issue.
-    BBDomainBoundary domain_boundary(true, true);
+    BounceBack<2> domain_boundary(true, true);
     RegularizedBounceBack rbb(true, true);
 
     static constexpr float r = NY / 12.0f;
@@ -84,27 +84,86 @@ __global__ void boundaries_kernel(float* f, float* f_back, float* u, int* bounda
 
 }
 
+
+template <typename Scenario>
+__global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* boundary_flags) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+    if (x >= NX || y >= NY || z >= NZ) return;
+
+    int idx = z * NX * NY + y * NX + x;
+
+    BounceBack<3> domain_boundary(false, true, false);
+
+    int flag = boundary_flags[idx];
+    switch (flag) {
+        case BC_flag::FLUID:
+            // Interior node;
+            break;
+        case BC_flag::BOUNCE_BACK:
+            domain_boundary.apply(f, f_back, idx);
+            break;
+        default:
+            // Unknown flag; do nothing.
+            printf("Unknown Flag [%d]: %d\n", idx, flag);
+            break;
+    }
+}
+
+// there is a reason for doing two different kernels instead of templates.
+// if I want to partially specialize a dim and scenario template, I need explicit instantiation
+// however, for scenarios this is ridiculous.
+// for CMs, I only have 3 adapters, and it's fine.
+// so no tempaltes here.
 template <int dim>
 template <typename Scenario>
 void LBM<dim>::apply_boundaries() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
-    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 blocks, threads;
+    
+    if constexpr (dim == 2) {
+        threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
+        blocks = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                      (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
+        
+        boundaries_kernel_2D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
+    }
+    else {
+        threads = dim3(8, 8, 4);
+        blocks = dim3((NX + threads.x - 1) / threads.x,
+                      (NY + threads.y - 1) / threads.y,
+                      (NZ + threads.z - 1) / threads.z);
 
-    boundaries_kernel<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
+        boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
+    }
+
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
+// TODO: maybe to this in GPU ? functors can be device funcs, but I guess it is not worth it. This just runs once.
 template <int dim>
 template<typename BoundaryFunctor>
 void LBM<dim>::setup_boundary_flags(BoundaryFunctor boundary_func) {
-    int num_nodes = NX * NY;
+    int num_nodes = NX * NY * NZ; // NZ Defaults as 1 if using 2D.
     std::vector<int> h_boundary_flags(num_nodes, 0);
     
-    for (int y = 0; y < NY; y++) {
-        for (int x = 0; x < NX; x++) {
-            int node = y * NX + x;
-            h_boundary_flags[node] = boundary_func(x, y);
+    if constexpr (dim == 2) {
+        for (int y = 0; y < NY; y++) {
+            for (int x = 0; x < NX; x++) {
+                int node = y * NX + x;
+                h_boundary_flags[node] = boundary_func(x, y);
+            }
+        }
+    }
+    else {
+        for (int z = 0; z < NZ; z++) {
+            for (int y = 0; y < NY; y++) {
+                for (int x = 0; x < NX; x++) {
+                    int node = z * NX * NY + y * NX + x;
+                    h_boundary_flags[node] = boundary_func(x, y, z);
+                }
+            }
         }
     }
     
