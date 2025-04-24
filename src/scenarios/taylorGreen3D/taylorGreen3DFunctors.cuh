@@ -48,7 +48,7 @@ struct TaylorGreen3DInit {
 
 struct TaylorGreen3DBoundary {
     __host__ __device__
-    int operator()(int x, int y) const {
+    int operator()(int x, int y, int z) const {
         return BC_flag::FLUID;
     }
 };

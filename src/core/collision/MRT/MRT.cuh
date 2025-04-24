@@ -8,36 +8,24 @@ template <int dim>
 struct MRT {
     __device__ __forceinline__ static
     void apply(float* f, float* f_eq, float* u, float* force, int node);
+
+    __device__ static
+    void compute_forcing_term(float* F, float* u, float* force, int node);
 };
 
 
-template<>
+template<int dim>
 __device__ __forceinline__
-void MRT<2>::apply(float* f, float* f_eq, float* u, float* force, int node) {
+void MRT<dim>::apply(float* f, float* f_eq, float* u, float* force, int node) {
     int idx = get_node_index(node);
     float m[quadratures];
     float m_eq[quadratures];
     float m_post[quadratures];
     float old_f[quadratures]; // for debug
 
-    float fx = force[get_vec_index(node, 0)];
-    float fy = force[get_vec_index(node, 1)];
-    float ux = u[get_vec_index(node, 0)];
-    float uy = u[get_vec_index(node, 1)];
-
-    // Orthogonalized Guo Forcing scheme for MRT
-    // G. Silva, V. Semiao, J. Fluid Mech. 698, 282 (2012)
-    float F[quadratures] = {
-        0.0f,                          // ρ (density) - conserved, no force contribution
-        6.0f * (fx*ux + fy*uy),        // e (energy)
-        -6.0f * (fx*ux + fy*uy),       // ε (energy squared)
-        fx,                            // jx (x-momentum)
-        fy,                            // jy (y-momentum)
-        -fx,                           // qx (x heat flux)
-        -fy,                           // qy (y heat flux)
-        2.0f * (fx*ux - fy*uy),        // pxx (xx stress)
-        fx*uy + fy*ux                  // pxy (xy stress)
-    };
+    float F[quadratures] = {0.0f};
+    
+    compute_forcing_term(F, u, force, node);
 
     for (int k = 0; k < quadratures; k++) {
         old_f[k] = f[idx + k];
@@ -80,5 +68,6 @@ void MRT<2>::apply(float* f, float* f_eq, float* u, float* force, int node) {
         }
     }
 }
+
 
 #endif // ! LBM_COLLISION_MRT_H

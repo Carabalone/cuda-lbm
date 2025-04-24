@@ -88,7 +88,7 @@ int main(void) {
         lbm.stream();
         lbm.swap_buffers();
 
-        // lbm.apply_boundaries<Scenario>();
+        lbm.apply_boundaries<Scenario>();
 
         lbm.uncorrected_macroscopics();
 
