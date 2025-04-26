@@ -52,6 +52,36 @@ void LBM<3>::equilibrium_node(float* f_eq, float ux, float uy, float uz, float r
     float two_cs2_cs4 = 2.0f * cs2 * cs4;
     float half_rho = 0.5f * rho;
 
+    // Suga (2015)
+    // f_eq[get_node_index(node, 0)] = -half_rho*WEIGHTS[0]*(-2.0f*cs2 + ux2 + uy2 + uz2)*1.0f/cs2;
+    // f_eq[get_node_index(node, 1)] = inv_cs2_cs4*half_rho*WEIGHTS[1]*(1.0f*cs2*ux2 + two_cs2_cs4 + two_cs4*ux - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 2)] = inv_cs2_cs4*half_rho*WEIGHTS[2]*(1.0f*cs2*ux2 + two_cs2_cs4 - two_cs4*ux - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 3)] = inv_cs2_cs4*half_rho*WEIGHTS[3]*(1.0f*cs2*uy2 + two_cs2_cs4 + two_cs4*uy - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 4)] = inv_cs2_cs4*half_rho*WEIGHTS[4]*(1.0f*cs2*uy2 + two_cs2_cs4 - two_cs4*uy - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 5)] = inv_cs2_cs4*half_rho*WEIGHTS[5]*(1.0f*cs2*uz2 + two_cs2_cs4 + two_cs4*uz - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 6)] = inv_cs2_cs4*half_rho*WEIGHTS[6]*(1.0f*cs2*uz2 + two_cs2_cs4 - two_cs4*uz - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 7)] = inv_cs2_cs4*half_rho*WEIGHTS[7]*(1.0f*cs2*pow(ux + uy, 2) + two_cs2_cs4 + two_cs4*(ux + uy) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 8)] = inv_cs2_cs4*half_rho*WEIGHTS[8]*(1.0f*cs2*pow(ux - uy, 2) + two_cs2_cs4 - two_cs4*(ux - uy) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 9)] = inv_cs2_cs4*half_rho*WEIGHTS[9]*(1.0f*cs2*pow(ux + uy, 2) + two_cs2_cs4 - two_cs4*(ux + uy) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 10)] = inv_cs2_cs4*half_rho*WEIGHTS[10]*(1.0f*cs2*pow(ux - uy, 2) + two_cs2_cs4 + two_cs4*(ux - uy) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 11)] = inv_cs2_cs4*half_rho*WEIGHTS[11]*(1.0f*cs2*pow(ux + uz, 2) + two_cs2_cs4 + two_cs4*(ux + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 12)] = inv_cs2_cs4*half_rho*WEIGHTS[12]*(1.0f*cs2*pow(ux - uz, 2) + two_cs2_cs4 - two_cs4*(ux - uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 13)] = inv_cs2_cs4*half_rho*WEIGHTS[13]*(1.0f*cs2*pow(ux + uz, 2) + two_cs2_cs4 - two_cs4*(ux + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 14)] = inv_cs2_cs4*half_rho*WEIGHTS[14]*(1.0f*cs2*pow(ux - uz, 2) + two_cs2_cs4 + two_cs4*(ux - uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 15)] = inv_cs2_cs4*half_rho*WEIGHTS[15]*(1.0f*cs2*pow(uy + uz, 2) + two_cs2_cs4 + two_cs4*(uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 16)] = inv_cs2_cs4*half_rho*WEIGHTS[16]*(1.0f*cs2*pow(uy - uz, 2) + two_cs2_cs4 - two_cs4*(uy - uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 17)] = inv_cs2_cs4*half_rho*WEIGHTS[17]*(1.0f*cs2*pow(uy + uz, 2) + two_cs2_cs4 - two_cs4*(uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 18)] = inv_cs2_cs4*half_rho*WEIGHTS[18]*(1.0f*cs2*pow(uy - uz, 2) + two_cs2_cs4 + two_cs4*(uy - uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 19)] = inv_cs2_cs4*half_rho*WEIGHTS[19]*(1.0f*cs2*pow(ux + uy + uz, 2) + two_cs2_cs4 + two_cs4*(ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 20)] = inv_cs2_cs4*half_rho*WEIGHTS[20]*(1.0f*cs2*pow(-ux + uy + uz, 2) + two_cs2_cs4 + two_cs4*(-ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 21)] = inv_cs2_cs4*half_rho*WEIGHTS[21]*(1.0f*cs2*pow(ux + uy - uz, 2) + two_cs2_cs4 - two_cs4*(ux + uy - uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 22)] = inv_cs2_cs4*half_rho*WEIGHTS[22]*(1.0f*cs2*pow(ux - uy + uz, 2) + two_cs2_cs4 + two_cs4*(ux - uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 23)] = inv_cs2_cs4*half_rho*WEIGHTS[23]*(1.0f*cs2*pow(ux + uy - uz, 2) + two_cs2_cs4 + two_cs4*(ux + uy - uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 24)] = inv_cs2_cs4*half_rho*WEIGHTS[24]*(1.0f*cs2*pow(ux - uy + uz, 2) + two_cs2_cs4 - two_cs4*(ux - uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 25)] = inv_cs2_cs4*half_rho*WEIGHTS[25]*(1.0f*cs2*pow(ux + uy + uz, 2) + two_cs2_cs4 - two_cs4*(ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
+    // f_eq[get_node_index(node, 26)] = inv_cs2_cs4*half_rho*WEIGHTS[26]*(1.0f*cs2*pow(-ux + uy + uz, 2) + two_cs2_cs4 - two_cs4*(-ux + uy + uz) - cs4*(ux2 + uy2 + uz2));
+
+    // De Rosis (2017)
     f_eq[get_node_index(node, 0)]  = half_rho*WEIGHTS[0]*(2.0f*cs2 - ux2 - uy2 - uz2)/cs2;
     f_eq[get_node_index(node, 1)]  = inv_cs2_cs4*half_rho*WEIGHTS[1]*(1.0f*cs2*ux2 + two_cs2_cs4 + two_cs4*ux - cs4*(ux2 + uy2 + uz2));
     f_eq[get_node_index(node, 2)]  = inv_cs2_cs4*half_rho*WEIGHTS[2]*(1.0f*cs2*ux2 + two_cs2_cs4 - two_cs4*ux - cs4*(ux2 + uy2 + uz2));

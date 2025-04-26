@@ -8,10 +8,10 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     TurbulentChannelInit,
     TurbulentChannelBoundary,
     TurbulentChannelValidation,
-    BGK<3>
+    MRT<3>
 > {
-    static constexpr float Re = 1960.0f;
-    static constexpr float Re_tau = 110.0f;
+    static constexpr float Re = 3300.0f;
+    static constexpr float Re_tau = 180.0f;
     static constexpr int N_half = NY / 2;
     
     // static constexpr float u_max = 0.1f;
@@ -23,6 +23,38 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     static constexpr float omega = 1.0f / tau;
 
     static constexpr float perturbation = 0.1f;
+
+    // Suga et. al (2015)
+    // A D3Q27 multiple-relaxation-time lattice Boltzmann method for turbulent flows
+    static constexpr float S[quadratures] = {
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        omega,
+        omega,
+        omega,
+        omega,
+        omega,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f
+    };
     
     // // Lallemand and Luo (2000) magic parameters.
     // static constexpr float S[quadratures] = {
@@ -36,7 +68,7 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     //     omega, // kinematic viscosity (shear viscosity)
     //     omega  // kinematic viscosity (shear viscosity)
     // };
-    static constexpr float S[quadratures] = {0.0f};
+    // static constexpr float S[quadratures] = {0.0f};
     
     static const char* name() { return "TurbulentChannel"; }
     

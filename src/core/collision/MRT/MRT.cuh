@@ -25,7 +25,7 @@ void MRT<dim>::apply(float* f, float* f_eq, float* u, float* force, int node) {
 
     float F[quadratures] = {0.0f};
     
-    compute_forcing_term(F, u, force, node);
+    // compute_forcing_term(F, u, force, node);
 
     for (int k = 0; k < quadratures; k++) {
         old_f[k] = f[idx + k];
