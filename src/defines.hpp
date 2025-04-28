@@ -11,6 +11,8 @@
 // #define USE_FLOW_PAST_CYLINDER
 // #define USE_TAYLOR_GREEN_3D
 
+// #define SOA
+
 // simulation parameters
 #ifdef USE_TAYLOR_GREEN
     #define SCALE 2

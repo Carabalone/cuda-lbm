@@ -21,6 +21,8 @@ struct NoAdapter : public AdapterBase {
     }
 };
 
+// TODO: maybe this isn't working because of De Rosis formulation accounts for 1 in relaxation matrix (so do not use postcollision formulas)
+// TODO: check this out
 struct OptimalAdapter : public AdapterBase {
     __device__ __forceinline__
     static float compute_higher_order_relaxation(float rho, float j_mag, float pi_mag,

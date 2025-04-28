@@ -5,7 +5,6 @@ __device__
 void LBM<2>::stream_node(float* f, float* f_back, int node) {
     const int x = node % NX;
     const int y = node / NX;
-    const int baseIdx = get_node_index(node, 0);
 
     for (int i=1; i < quadratures; i++) {
         int x_neigh = x + C[2*i];
@@ -23,7 +22,7 @@ void LBM<2>::stream_node(float* f, float* f_back, int node) {
 
         const int node_neigh = get_node_from_coords(x_neigh, y_neigh);
         const int idx_neigh = get_node_index(node_neigh, i);
-        f_back[idx_neigh] = f[baseIdx + i];
+        f_back[idx_neigh] = f[get_node_index(node, i)];
 
         if (fabsf(f_back[idx_neigh]) > VALUE_THRESHOLD || f_back[idx_neigh] < -0.01f) {
             // printf("[WARNING][stream_node] Pushing negative/large value: "
@@ -39,8 +38,6 @@ void LBM<3>::stream_node(float* f, float* f_back, int node) {
     int x, y, z;
     get_coords_from_node(node, x, y, z);
     
-    const int baseIdx = get_node_index(node, 0);
-
     for (int i=1; i < quadratures; i++) {
         int x_neigh = x + C[3*i];
         int y_neigh = y + C[3*i+1];

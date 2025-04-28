@@ -42,15 +42,6 @@ private:
 
     float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
 
-    __device__ static __forceinline__ int get_node_index(int node, int quadrature) {
-        return node * quadratures + quadrature;
-    }
-
-   __forceinline__ int get_velocity_index(int node) {
-        //TODO
-        return node;
-    }
-
     template<typename BoundaryFunctor>
     void setup_boundary_flags(BoundaryFunctor boundary_func);
 

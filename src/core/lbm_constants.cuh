@@ -290,11 +290,20 @@ extern __constant__ float M[quadratures*quadratures];
 extern __constant__ float M_inv[quadratures*quadratures];
 extern __constant__ float S[quadratures];
 
+constexpr int num_nodes = NX * NY * NZ;
 
-__device__ __host__ __forceinline__
-int get_node_index(int node, int quadrature=0) {
-    return node * quadratures + quadrature;
-}
+#define SOA
+#ifdef SOA
+    __device__ __host__ __forceinline__
+    int get_node_index(int node, int quadrature=0) {
+        return quadrature * num_nodes + node;
+    }
+#else
+    __device__ __host__ __forceinline__
+    int get_node_index(int node, int quadrature=0) {
+        return node * quadratures + quadrature;
+    }
+#endif
 
 __device__ __host__ __forceinline__
 int get_vec_index(int node, int component) {

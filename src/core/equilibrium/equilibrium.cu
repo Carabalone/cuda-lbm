@@ -8,6 +8,7 @@ void LBM<2>::equilibrium_node(float* f_eq, float ux, float uy, float uz, float r
     float cs2 = cs * cs;
     float cs4 = cs2 * cs2;
 
+
     f_eq[get_node_index(node, 0)] = WEIGHTS[0]*rho*
         (1 + 0.5*pow(C[0]*ux + C[1]*uy, 2)/cs4 - 0.5*u_dot_u/cs2 + 1.0*(C[0]*ux + C[1]*uy)/cs2);
 

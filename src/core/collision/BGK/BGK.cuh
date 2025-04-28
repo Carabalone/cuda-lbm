@@ -42,9 +42,10 @@ void BGK<2>::apply(float* f, float* f_eq, float* u, float* force, int node) {
             int x, y, z;
             get_coords_from_node(node, x, y, z);
 
-            printf("[WARNING][BGK::apply] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) = %f\n\tforces: (%.4f, %.4f)/ft: %.4f\n",
-                   node, x, y, q, idx,
-                   idx, old_val, omega, old_val, f_eq[idx], new_val, fx, fy, force_term);
+            if (node == DEBUG_NODE)
+                printf("[WARNING][BGK::apply] Node %d (x=%d,y=%d), Dir %d, idx=%d: f[%d] = %f - %f*(%f - %f) = %f\n\tforces: (%.4f, %.4f)/ft: %.4f\n",
+                    node, x, y, q, idx,
+                    idx, old_val, omega, old_val, f_eq[idx], new_val, fx, fy, force_term);
         }
     }
 }
