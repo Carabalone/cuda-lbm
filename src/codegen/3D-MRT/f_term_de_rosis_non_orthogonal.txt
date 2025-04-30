@@ -1,0 +1,33 @@
+// Computed substitutions
+
+
+// Force array
+float F[27] = {
+    0.0f,
+    fx,
+    fy,
+    fz,
+    fx*uy + fy*ux,
+    fx*uz + fz*ux,
+    fy*uz + fz*uy,
+    2.0f*fx*ux - 2.0f*fy*uy,
+    2.0f*fx*ux - 2.0f*fz*uz,
+    2.0f*fx*ux + 2.0f*fy*uy + 2.0f*fz*uz,
+    (2.0f/3.0f)*fx,
+    (2.0f/3.0f)*fy,
+    (2.0f/3.0f)*fz,
+    0.0f,
+    0.0f,
+    0.0f,
+    0.0f,
+    (4.0f/3.0f)*fx*ux + (4.0f/3.0f)*fy*uy + (4.0f/3.0f)*fz*uz,
+    (4.0f/3.0f)*fx*ux,
+    (2.0f/3.0f)*fy*uy - 2.0f/3.0f*fz*uz,
+    (1.0f/3.0f)*fy*uz + (1.0f/3.0f)*fz*uy,
+    (1.0f/3.0f)*fx*uz + (1.0f/3.0f)*fz*ux,
+    (1.0f/3.0f)*fx*uy + (1.0f/3.0f)*fy*ux,
+    (1.0f/9.0f)*fx,
+    (1.0f/9.0f)*fy,
+    (1.0f/9.0f)*fz,
+    (2.0f/9.0f)*fx*ux + (2.0f/9.0f)*fy*uy + (2.0f/9.0f)*fz*uz,
+};

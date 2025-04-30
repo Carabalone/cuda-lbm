@@ -1,5 +1,6 @@
 #include "MRT.cuh"
 
+
 template <>
 void MRT<2>::compute_forcing_term(float* F, float* u, float* force, int node) {
 
@@ -22,6 +23,59 @@ void MRT<2>::compute_forcing_term(float* F, float* u, float* force, int node) {
 
 }
 
+template<>
+__device__
+void MRT<2>::apply(float* f, float* f_eq, float* u, float* force, int node) {
+    float m[quadratures];
+    float m_eq[quadratures];
+    float m_post[quadratures];
+    float old_f[quadratures]; // for debug
+    
+    float F[quadratures] = {0.0f};
+    
+    compute_forcing_term(F, u, force, node);
+
+    for (int k = 0; k < quadratures; k++) {
+        old_f[k] = f[get_node_index(node, k)];
+        
+        m[k] = 0.0f;
+        m_eq[k] = 0.0f;
+        for (int i = 0; i < quadratures; i++) {
+            m[k]    += M[k*quadratures + i] * f[get_node_index(node, i)];
+            m_eq[k] += M[k*quadratures + i] * f_eq[get_node_index(node, i)];
+        }
+        
+        float source_term = (1.0f - S[k]/2.0f) * F[k];
+        m_post[k] = m[k] - S[k] * (m[k] - m_eq[k]) + source_term;
+
+        if (node == DEBUG_NODE) {
+            DPRINTF("[MRT::apply] Node %d: Moment %d: m=%f, m_eq=%f, F=%f, post=%f\n", 
+                  node, k, m[k], m_eq[k], F[k], m_post[k]);
+        }
+    }
+
+    for (int k = 0; k < quadratures; k++) {
+        f[get_node_index(node, k)] = 0.0f;
+        for (int i = 0; i < quadratures; i++) {
+            f[get_node_index(node, k)] += M_inv[k*quadratures + i] * m_post[i];
+        }
+
+        if (fabsf(f[get_node_index(node, k)]) > VALUE_THRESHOLD || f[get_node_index(node, k)] < -0.01f) {
+            int x, y, z;
+            get_coords_from_node(node, x, y, z);
+            if (node == DEBUG_NODE)
+                printf("[WARNING][MRT::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f[%d] = %f → %f\n",
+                    node, x, y, z, k, get_node_index(node, k), old_f[k], f[get_node_index(node, k)]);
+        }
+        
+        if (node == DEBUG_NODE) {
+            DPRINTF("[MRT::apply] Node %d: Dir %d: %f → %f\n", 
+                  node, k, old_f[k], f[get_node_index(node, k)]);
+        }
+    }
+}
+
+
 template <>
 void MRT<3>::compute_forcing_term(float* F, float* u, float* force, int node) {
 
@@ -33,40 +87,114 @@ void MRT<3>::compute_forcing_term(float* F, float* u, float* force, int node) {
     float uy = u[get_vec_index(node, 1)];
     float uz = u[get_vec_index(node, 2)];
 
-    // Sympy-generated cse
-    const float x1 = fz*uz;
-    const float x2 = fy*uy;
-    const float x4 = fx*ux;
-    const float x11 = 7.0f*fx;
-    const float x15 = fy*ux;
-    const float x27 = fy*uz;
-    const float x28 = fz*uy;
+    F[0] = 0.0f;
+    F[1] = fx;
+    F[2] = fy;
+    F[3] = fz;
+    F[4] = fx*uy + fy*ux;
+    F[5] = fx*uz + fz*ux;
+    F[6] = fy*uz + fz*uy;
+    F[7] = 2.0f*fx*ux - 2.0f*fy*uy;
+    F[8] = 2.0f*fx*ux - 2.0f*fz*uz;
+    F[9] = 2.0f*fx*ux + 2.0f*fy*uy + 2.0f*fz*uz;
+    F[10] = (2.0f/3.0f)*fx;
+    F[11] = (2.0f/3.0f)*fy;
+    F[12] = (2.0f/3.0f)*fz;
+    F[13] = 0.0f;
+    F[14] = 0.0f;
+    F[15] = 0.0f;
+    F[16] = 0.0f;
+    F[17] = (4.0f/3.0f)*fx*ux + (4.0f/3.0f)*fy*uy + (4.0f/3.0f)*fz*uz;
+    F[18] = (4.0f/3.0f)*fx*ux;
+    F[19] = (2.0f/3.0f)*fy*uy - 2.0f/3.0f*fz*uz;
+    F[20] = (1.0f/3.0f)*fy*uz + (1.0f/3.0f)*fz*uy;
+    F[21] = (1.0f/3.0f)*fx*uz + (1.0f/3.0f)*fz*ux;
+    F[22] = (1.0f/3.0f)*fx*uy + (1.0f/3.0f)*fy*ux;
+    F[23] = (1.0f/9.0f)*fx;
+    F[24] = (1.0f/9.0f)*fy;
+    F[25] = (1.0f/9.0f)*fz;
+    F[26] = (2.0f/9.0f)*fx*ux + (2.0f/9.0f)*fy*uy + (2.0f/9.0f)*fz*uz;
+}
 
-    F[0] = 0.0f,
-    F[1] = -1.0f/24.0f*fx*uy + (17.0f/72.0f)*fx - 23.0f/72.0f*fy + (7.0f/24.0f)*fz*ux - 31.0f/72.0f*fz + (1.0f/24.0f)*uz*x11 - 1.0f/4.0f*x1 - 1.0f/24.0f*x15 - 11.0f/12.0f*x2 + (7.0f/24.0f)*x27 + (7.0f/24.0f)*x28 - 19.0f/12.0f*x4;
-    F[2] = (19.0f/24.0f)*fx*uy - 5.0f/24.0f*fy + (7.0f/24.0f)*fz*ux - 1.0f/24.0f*fz + (1.0f/24.0f)*uz*x11 + (7.0f/12.0f)*x1 + (1.0f/24.0f)*x11 + (19.0f/24.0f)*x15 - 11.0f/12.0f*x2 + (11.0f/24.0f)*x27 + (11.0f/24.0f)*x28 + (1.0f/4.0f)*x4;
-    F[3] = (1.0f/8.0f)*fx*uy - 5.0f/24.0f*fx*uz + (5.0f/72.0f)*fx - 3.0f/8.0f*fy - 5.0f/24.0f*fz*ux - 11.0f/72.0f*fz - 3.0f/4.0f*x1 + (1.0f/8.0f)*x15 + (5.0f/12.0f)*x2 + (11.0f/24.0f)*x27 + (11.0f/24.0f)*x28 + (5.0f/12.0f)*x4;
-    F[4] = -1.0f/8.0f*fx*uy - 1.0f/8.0f*fx*uz + (1.0f/24.0f)*fx - 1.0f/72.0f*fy - 1.0f/8.0f*fz*ux - 17.0f/72.0f*fz + (19.0f/12.0f)*x1 - 1.0f/8.0f*x15 + (11.0f/12.0f)*x2 + (1.0f/24.0f)*x27 + (1.0f/24.0f)*x28 + (3.0f/4.0f)*x4;
-    F[5] = -fx - 5.0f/18.0f*fy - 7.0f/18.0f*fz - 7.0f/3.0f*x1 - 8.0f/3.0f*x2 - 1.0f/6.0f*x27 - 1.0f/6.0f*x28 - 1.0f/2.0f*x4;
-    F[6] = -1.0f/3.0f*fx*uy + (4.0f/9.0f)*fx + (11.0f/18.0f)*fy - 1.0f/2.0f*fz - 2.0f/3.0f*x1 - 1.0f/3.0f*x15 + (1.0f/6.0f)*x27 + (1.0f/6.0f)*x28 + (1.0f/2.0f)*x4;
-    F[7] = -5.0f/24.0f*fx*uy - 1.0f/24.0f*fx*uz - 19.0f/72.0f*fx + (1.0f/72.0f)*fy - 1.0f/24.0f*fz*ux - 19.0f/72.0f*fz + (7.0f/12.0f)*x1 - 5.0f/24.0f*x15 - 1.0f/4.0f*x2 + (1.0f/8.0f)*x27 + (1.0f/8.0f)*x28 - 5.0f/12.0f*x4;
-    F[8] = -1.0f/24.0f*fx*uy + (11.0f/24.0f)*fx*uz + (1.0f/72.0f)*fx - 1.0f/24.0f*fy + (11.0f/24.0f)*fz*ux - 7.0f/72.0f*fz + (1.0f/12.0f)*x1 - 1.0f/24.0f*x15 + (1.0f/12.0f)*x2 - 1.0f/24.0f*x27 - 1.0f/24.0f*x28 - 1.0f/12.0f*x4;
-    F[9] = (1.0f/8.0f)*fx*uy + (1.0f/8.0f)*fx*uz + (5.0f/72.0f)*fx - 11.0f/72.0f*fy + (1.0f/8.0f)*fz*ux - 1.0f/24.0f*fz - 1.0f/12.0f*x1 + (1.0f/8.0f)*x15 + (5.0f/12.0f)*x2 - 5.0f/24.0f*x27 - 5.0f/24.0f*x28 - 1.0f/4.0f*x4;
-    F[10] = -1.0f/12.0f*fx*uy - 5.0f/12.0f*fx*uz - 31.0f/36.0f*fx - 5.0f/36.0f*fy - 5.0f/12.0f*fz*ux + (11.0f/36.0f)*fz + (5.0f/2.0f)*x1 - 1.0f/12.0f*x15 + (19.0f/6.0f)*x2 + (1.0f/12.0f)*x27 + (1.0f/12.0f)*x28 + (16.0f/3.0f)*x4;
-    F[11] = (1.0f/12.0f)*fx*uy - 5.0f/12.0f*fx*uz - 11.0f/12.0f*fx + (3.0f/4.0f)*fy - 5.0f/12.0f*fz*ux - 1.0f/12.0f*fz - 1.0f/3.0f*x1 + (1.0f/12.0f)*x15 + (19.0f/6.0f)*x2 - 1.0f/12.0f*x27 - 1.0f/12.0f*x28 - 5.0f/2.0f*x4;
-    F[12] = -1.0f/4.0f*fx*uy - 1.0f/36.0f*fx + (11.0f/12.0f)*fy + (7.0f/12.0f)*fz*ux + (31.0f/36.0f)*fz + (1.0f/12.0f)*uz*x11 + 3.0f*x1 - 1.0f/4.0f*x15 - 13.0f/6.0f*x2 + (5.0f/12.0f)*x27 + (5.0f/12.0f)*x28 - 2.0f/3.0f*x4;
-    F[13] = -1.0f/24.0f*fx*uy - 17.0f/24.0f*fx*uz + (65.0f/72.0f)*fx + (13.0f/72.0f)*fy - 17.0f/24.0f*fz*ux + (53.0f/72.0f)*fz - 13.0f/4.0f*x1 - 1.0f/24.0f*x15 - 23.0f/12.0f*x2 - 5.0f/24.0f*x27 - 5.0f/24.0f*x28 - 61.0f/12.0f*x4;
-    F[14] = -17.0f/24.0f*fx*uy - 17.0f/24.0f*fx*uz + (19.0f/24.0f)*fx - 25.0f/24.0f*fy - 17.0f/24.0f*fz*ux - 1.0f/24.0f*fz - 11.0f/12.0f*x1 - 17.0f/24.0f*x15 - 23.0f/12.0f*x2 - 13.0f/24.0f*x27 - 13.0f/24.0f*x28 + (13.0f/4.0f)*x4;
-    F[15] = -3.0f/8.0f*fx*uy + (19.0f/24.0f)*fx*uz - 17.0f/24.0f*fy + (19.0f/24.0f)*fz*ux - 71.0f/72.0f*fz - 9.0f/4.0f*x1 - 1.0f/72.0f*x11 - 3.0f/8.0f*x15 + (41.0f/12.0f)*x2 - 1.0f/24.0f*x27 - 1.0f/24.0f*x28 - 13.0f/12.0f*x4;
-    F[16] = (1.0f/8.0f)*fx*uy + (1.0f/8.0f)*fx*uz - 1.0f/24.0f*fx - 11.0f/72.0f*fy + (1.0f/8.0f)*fz*ux + (5.0f/72.0f)*fz - 7.0f/12.0f*x1 + (1.0f/8.0f)*x15 + (1.0f/12.0f)*x2 + (11.0f/24.0f)*x27 + (11.0f/24.0f)*x28 - 1.0f/4.0f*x4;
-    F[17] = -3.0f/8.0f*fx*uy - 3.0f/8.0f*fx*uz + (1.0f/8.0f)*fx - 1.0f/24.0f*fy - 3.0f/8.0f*fz*ux + (31.0f/24.0f)*fz - 29.0f/4.0f*x1 - 3.0f/8.0f*x15 - 13.0f/4.0f*x2 + (1.0f/8.0f)*x27 + (1.0f/8.0f)*x28 - 15.0f/4.0f*x4;
-    F[18] = fx - 5.0f/18.0f*fy + (5.0f/18.0f)*fz + (11.0f/3.0f)*x1 + (16.0f/3.0f)*x2 - 1.0f/6.0f*x27 - 1.0f/6.0f*x28 + (3.0f/2.0f)*x4;
-    F[19] = -1.0f/3.0f*fx*uy - 2.0f/9.0f*fx - 13.0f/18.0f*fy + (1.0f/6.0f)*fz + (4.0f/3.0f)*x1 - 1.0f/3.0f*x15 + (1.0f/6.0f)*x27 + (1.0f/6.0f)*x28 - 3.0f/2.0f*x4;
-    F[20] = -1.0f/24.0f*fx*uz + (17.0f/72.0f)*fx - 11.0f/72.0f*fy - 1.0f/24.0f*fz*ux + (29.0f/72.0f)*fz + (1.0f/24.0f)*uy*x11 - 11.0f/12.0f*x1 + (7.0f/24.0f)*x15 + (3.0f/4.0f)*x2 + (1.0f/8.0f)*x27 + (1.0f/8.0f)*x28 + (7.0f/12.0f)*x4;
-    F[21] = -1.0f/24.0f*fx*uy - 13.0f/24.0f*fx*uz + (1.0f/72.0f)*fx - 1.0f/24.0f*fy - 13.0f/24.0f*fz*ux - 7.0f/72.0f*fz + (1.0f/12.0f)*x1 - 1.0f/24.0f*x15 + (1.0f/12.0f)*x2 + (23.0f/24.0f)*x27 + (23.0f/24.0f)*x28 - 1.0f/12.0f*x4;
-    F[22] = -3.0f/8.0f*fx*uy + (1.0f/8.0f)*fx*uz + (13.0f/72.0f)*fy + (1.0f/8.0f)*fz*ux - 5.0f/24.0f*fz + (5.0f/12.0f)*x1 - 1.0f/72.0f*x11 - 3.0f/8.0f*x15 - 7.0f/12.0f*x2 + (7.0f/24.0f)*x27 + (7.0f/24.0f)*x28 + (1.0f/4.0f)*x4;
-    F[23] = -1.0f/3.0f*fx*uy - 1.0f/3.0f*fx*uz + (1.0f/9.0f)*fx - 1.0f/6.0f*fy - 1.0f/3.0f*fz*ux - 1.0f/18.0f*fz + (2.0f/3.0f)*x1 - 1.0f/3.0f*x15 - 1.0f/3.0f*x2 - 1.0f/6.0f*x27 - 1.0f/6.0f*x28 - 1.0f/2.0f*x4;
-    F[24] = -1.0f/2.0f*fx*uy + (1.0f/3.0f)*fx*uz - 1.0f/18.0f*fx - 1.0f/18.0f*fy + (1.0f/3.0f)*fz*ux + (4.0f/9.0f)*fz - 1.0f/2.0f*x1 - 1.0f/2.0f*x15 + (1.0f/3.0f)*x2 + (1.0f/3.0f)*x27 + (1.0f/3.0f)*x28 + (1.0f/3.0f)*x4;
-    F[25] = (1.0f/6.0f)*fx*uy - 1.0f/3.0f*fx*uz - 1.0f/6.0f*fx + (1.0f/9.0f)*fy - 1.0f/3.0f*fz*ux + (1.0f/18.0f)*fz - 1.0f/6.0f*x1 + (1.0f/6.0f)*x15 + (1.0f/3.0f)*x2 + (1.0f/6.0f)*x27 + (1.0f/6.0f)*x28 - 1.0f/6.0f*x4;
-    F[26] = -1.0f/24.0f*fx*uy - 5.0f/24.0f*fx*uz + (1.0f/72.0f)*fx - 1.0f/24.0f*fy - 5.0f/24.0f*fz*ux - 7.0f/72.0f*fz + (1.0f/12.0f)*x1 - 1.0f/24.0f*x15 + (1.0f/12.0f)*x2 + (7.0f/24.0f)*x27 + (7.0f/24.0f)*x28 - 1.0f/12.0f*x4;
+
+// De Rosis Universal Formulation of Central Moments (2019) Appendix E.
+template<>
+__device__
+void MRT<3>::apply(float* f, float* f_eq, float* u, float* force, int node) {
+    float m_post[quadratures];
+    
+    float F[quadratures] = {0.0f};
+    
+    compute_forcing_term(F, u, force, node);
+
+    float cs2 = 1.0f/3.0f;
+    float ux = u[get_vec_index(node, 0)];
+    float uy = u[get_vec_index(node, 1)];
+    float uz = u[get_vec_index(node, 2)];
+    float ux2 = ux * ux;
+    float uy2 = uy * uy;
+    float uz2 = uz * uz;
+    float rho = 0.0f;
+    float m4 = 0.0f, m5 = 0.0f, m6 = 0.0f, m7 = 0.0f, m8 = 0.0f;
+    
+    for (int i = 0; i < quadratures; i++) {
+        float f_i = f[get_node_index(node, i)];
+        rho += f_i; // we can pass in as arg, but I don't want to change the apply signature for all Collision Ops.
+
+        float cix = C[3*i];
+        float ciy = C[3*i+1];
+        float ciz = C[3*i+2];
+        
+        m4 += f_i * cix * ciy;
+        m5 += f_i * cix * ciz;
+        m6 += f_i * ciy * ciz;
+        m7 += f_i * (cix*cix - ciy*ciy);
+        m8 += f_i * (cix*cix - ciz*ciz);
+    }
+    
+    m_post[0] = rho;
+    m_post[1] = rho * ux;
+    m_post[2] = rho * uy;
+    m_post[3] = rho * uz;
+
+    m_post[4] = (1.0f - S[4]) * m4 + S[4] * rho * ux * uy + (1.0f - S[4]/2.0f) * F[4];
+    m_post[5] = (1.0f - S[5]) * m5 + S[5] * rho * ux * uz + (1.0f - S[5]/2.0f) * F[5];
+    m_post[6] = (1.0f - S[6]) * m6 + S[6] * rho * uy * uz + (1.0f - S[6]/2.0f) * F[6];
+    m_post[7] = (1.0f - S[7]) * m7 + S[7] * rho * (ux2 - uy2) + (1.0f - S[7]/2.0f) * F[7];
+    m_post[8] = (1.0f - S[8]) * m8 + S[8] * rho * (ux2 - uz2) + (1.0f - S[8]/2.0f) * F[8];
+    
+    m_post[9] = rho * (ux2 + uy2 + uz2 + 1.0f) + (1.0f - S[9]/2.0f) * F[9];
+    m_post[10] = rho * cs2 * ux * (3.0f*uy2 + 3.0f*uz2 + 2.0f) + (1.0f - S[10]/2.0f) * F[10];
+    m_post[11] = rho * cs2 * uy * (3.0f*ux2 + 3.0f*uz2 + 2.0f) + (1.0f - S[11]/2.0f) * F[11];
+    m_post[12] = rho * cs2 * uz * (3.0f*ux2 + 3.0f*uy2 + 2.0f) + (1.0f - S[12]/2.0f) * F[12];
+    m_post[13] = rho * ux * (uy2 - uz2) + (1.0f - S[13]/2.0f) * F[13];
+    m_post[14] = rho * uy * (ux2 - uz2) + (1.0f - S[14]/2.0f) * F[14];
+    m_post[15] = rho * uz * (ux2 - uy2) + (1.0f - S[15]/2.0f) * F[15];
+    m_post[16] = rho * ux * uy * uz + (1.0f - S[16]/2.0f) * F[16];
+    m_post[17] = rho * cs2 * (3.0f*(ux2*uy2 + ux2*uz2 + uy2*uz2) + 2.0f*(ux2 + uy2 + uz2) + 1.0f) + (1.0f - S[17]/2.0f) * F[17];
+    m_post[18] = rho * cs2 * cs2 * (9.0f*(ux2*uy2 + ux2*uz2 - uy2*uz2) + 6.0f*ux2 + 1.0f) + (1.0f - S[18]/2.0f) * F[18];
+    m_post[19] = rho * cs2 * (uy2 - uz2) * (2.0f*ux2 + 1.0f) + (1.0f - S[19]/2.0f) * F[19];
+    m_post[20] = rho * cs2 * uy * uz * (3.0f*ux2 + 1.0f) + (1.0f - S[20]/2.0f) * F[20];
+    m_post[21] = rho * cs2 * ux * uz * (3.0f*uy2 + 1.0f) + (1.0f - S[21]/2.0f) * F[21];
+    m_post[22] = rho * cs2 * ux * uy * (3.0f*uz2 + 1.0f) + (1.0f - S[22]/2.0f) * F[22];
+    m_post[23] = rho * cs2 * cs2 * ux * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + (1.0f - S[23]/2.0f) * F[23];
+    m_post[24] = rho * cs2 * cs2 * uy * (3.0f*ux2 + 1.0f) * (3.0f*uz2 + 1.0f) + (1.0f - S[24]/2.0f) * F[24];
+    m_post[25] = rho * cs2 * cs2 * uz * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) + (1.0f - S[25]/2.0f) * F[25];
+    m_post[26] = rho * cs2 * cs2 * cs2 * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + (1.0f - S[26]/2.0f) * F[26];
+    
+    for (int k = 0; k < quadratures; k++) {
+        int f_idx = get_node_index(node, k);
+        f[f_idx] = 0.0f;
+        for (int i = 0; i < quadratures; i++) {
+            f[f_idx] += M_inv[k*quadratures + i] * m_post[i];
+        }
+        
+        if (fabsf(f[f_idx]) > VALUE_THRESHOLD || f[f_idx] < -0.01f) {
+            int x, y, z;
+            get_coords_from_node(node, x, y, z);
+            if (node == DEBUG_NODE)
+                printf("[WARNING][MRT::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f[%d] = %f → %f\n",
+                    node, x, y, z, k, f_idx, -1.0f, f[f_idx]);
+        }
+    }
 }

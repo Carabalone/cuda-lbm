@@ -52,15 +52,14 @@ for j in range(27):
 # raw_rows = [M.row(i) for i in range(27)]
 # orth_rows = sp.matrices.GramSchmidt(raw_rows)
 # M = sp.Matrix(orth_rows)
-for k in range(4, 27):
-    for i in range(k):
-        proj = (M[k,:].dot(M[i,:])) / (M[i,:].dot(M[i,:]))
-        M[k,:] = sp.simplify(M[k,:] - proj * M[i,:])
+# for k in range(4, 27):
+#     for i in range(k):
+#         proj = (M[k,:].dot(M[i,:])) / (M[i,:].dot(M[i,:]))
+#         M[k,:] = sp.simplify(M[k,:] - proj * M[i,:])
 
 M_inv = M.inv()
 
-
-M_inv = M.inv()
+print(M)
 
 # sp.pprint(M)
 # sp.pprint(M_inv)
