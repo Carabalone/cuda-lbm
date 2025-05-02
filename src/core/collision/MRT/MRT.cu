@@ -152,35 +152,38 @@ void MRT<3>::apply(float* f, float* f_eq, float* u, float* force, int node) {
         m8 += f_i * (cix*cix - ciz*ciz);
     }
     
+    // conserved moments (F=0)
     m_post[0] = rho;
     m_post[1] = rho * ux;
     m_post[2] = rho * uy;
     m_post[3] = rho * uz;
 
+    // affected by relaxation rate
     m_post[4] = (1.0f - S[4]) * m4 + S[4] * rho * ux * uy + (1.0f - S[4]/2.0f) * F[4];
     m_post[5] = (1.0f - S[5]) * m5 + S[5] * rho * ux * uz + (1.0f - S[5]/2.0f) * F[5];
     m_post[6] = (1.0f - S[6]) * m6 + S[6] * rho * uy * uz + (1.0f - S[6]/2.0f) * F[6];
     m_post[7] = (1.0f - S[7]) * m7 + S[7] * rho * (ux2 - uy2) + (1.0f - S[7]/2.0f) * F[7];
     m_post[8] = (1.0f - S[8]) * m8 + S[8] * rho * (ux2 - uz2) + (1.0f - S[8]/2.0f) * F[8];
     
-    m_post[9] = rho * (ux2 + uy2 + uz2 + 1.0f) + (1.0f - S[9]/2.0f) * F[9];
-    m_post[10] = rho * cs2 * ux * (3.0f*uy2 + 3.0f*uz2 + 2.0f) + (1.0f - S[10]/2.0f) * F[10];
-    m_post[11] = rho * cs2 * uy * (3.0f*ux2 + 3.0f*uz2 + 2.0f) + (1.0f - S[11]/2.0f) * F[11];
-    m_post[12] = rho * cs2 * uz * (3.0f*ux2 + 3.0f*uy2 + 2.0f) + (1.0f - S[12]/2.0f) * F[12];
-    m_post[13] = rho * ux * (uy2 - uz2) + (1.0f - S[13]/2.0f) * F[13];
-    m_post[14] = rho * uy * (ux2 - uz2) + (1.0f - S[14]/2.0f) * F[14];
-    m_post[15] = rho * uz * (ux2 - uy2) + (1.0f - S[15]/2.0f) * F[15];
-    m_post[16] = rho * ux * uy * uz + (1.0f - S[16]/2.0f) * F[16];
-    m_post[17] = rho * cs2 * (3.0f*(ux2*uy2 + ux2*uz2 + uy2*uz2) + 2.0f*(ux2 + uy2 + uz2) + 1.0f) + (1.0f - S[17]/2.0f) * F[17];
-    m_post[18] = rho * cs2 * cs2 * (9.0f*(ux2*uy2 + ux2*uz2 - uy2*uz2) + 6.0f*ux2 + 1.0f) + (1.0f - S[18]/2.0f) * F[18];
-    m_post[19] = rho * cs2 * (uy2 - uz2) * (2.0f*ux2 + 1.0f) + (1.0f - S[19]/2.0f) * F[19];
-    m_post[20] = rho * cs2 * uy * uz * (3.0f*ux2 + 1.0f) + (1.0f - S[20]/2.0f) * F[20];
-    m_post[21] = rho * cs2 * ux * uz * (3.0f*uy2 + 1.0f) + (1.0f - S[21]/2.0f) * F[21];
-    m_post[22] = rho * cs2 * ux * uy * (3.0f*uz2 + 1.0f) + (1.0f - S[22]/2.0f) * F[22];
-    m_post[23] = rho * cs2 * cs2 * ux * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + (1.0f - S[23]/2.0f) * F[23];
-    m_post[24] = rho * cs2 * cs2 * uy * (3.0f*ux2 + 1.0f) * (3.0f*uz2 + 1.0f) + (1.0f - S[24]/2.0f) * F[24];
-    m_post[25] = rho * cs2 * cs2 * uz * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) + (1.0f - S[25]/2.0f) * F[25];
-    m_post[26] = rho * cs2 * cs2 * cs2 * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + (1.0f - S[26]/2.0f) * F[26];
+    // relaxation rate = 1 -> (1 - S[i]/2) = (1-1/2) = 0.5
+    m_post[9] = rho * (ux2 + uy2 + uz2 + 1.0f) + 0.5f* F[9];
+    m_post[10] = rho * cs2 * ux * (3.0f*uy2 + 3.0f*uz2 + 2.0f) + 0.5f * F[10];
+    m_post[11] = rho * cs2 * uy * (3.0f*ux2 + 3.0f*uz2 + 2.0f) + 0.5f * F[11];
+    m_post[12] = rho * cs2 * uz * (3.0f*ux2 + 3.0f*uy2 + 2.0f) + 0.5f * F[12];
+    m_post[13] = rho * ux * (uy2 - uz2) + 0.5f * F[13];
+    m_post[14] = rho * uy * (ux2 - uz2) + 0.5f * F[14];
+    m_post[15] = rho * uz * (ux2 - uy2) + 0.5f * F[15];
+    m_post[16] = rho * ux * uy * uz + 0.5f * F[16];
+    m_post[17] = rho * cs2 * (3.0f*(ux2*uy2 + ux2*uz2 + uy2*uz2) + 2.0f*(ux2 + uy2 + uz2) + 1.0f) + 0.5f * F[17];
+    m_post[18] = rho * cs2 * cs2 * (9.0f*(ux2*uy2 + ux2*uz2 - uy2*uz2) + 6.0f*ux2 + 1.0f) + 0.5f * F[18];
+    m_post[19] = rho * cs2 * (uy2 - uz2) * (2.0f*ux2 + 1.0f) + 0.5f * F[19];
+    m_post[20] = rho * cs2 * uy * uz * (3.0f*ux2 + 1.0f) + 0.5f * F[20];
+    m_post[21] = rho * cs2 * ux * uz * (3.0f*uy2 + 1.0f) + 0.5f * F[21];
+    m_post[22] = rho * cs2 * ux * uy * (3.0f*uz2 + 1.0f) + 0.5f * F[22];
+    m_post[23] = rho * cs2 * cs2 * ux * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[23];
+    m_post[24] = rho * cs2 * cs2 * uy * (3.0f*ux2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[24];
+    m_post[25] = rho * cs2 * cs2 * uz * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) + 0.5f * F[25];
+    m_post[26] = rho * cs2 * cs2 * cs2 * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[26];
     
     for (int k = 0; k < quadratures; k++) {
         int f_idx = get_node_index(node, k);

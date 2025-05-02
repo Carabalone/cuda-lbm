@@ -93,14 +93,21 @@ public:
     void allocate() {
         std::cout << "[LBM]: allocating\n";
         // for 2D, NZ is 1 by default.
+        constexpr int num_nodes = NX * NY * NZ;
 
-        size_t num_nodes = static_cast<size_t>(NX) * NY * NZ;
         h_rho.resize(num_nodes);
         h_u.resize(num_nodes * dimensions);
 
-        cudaMalloc((void**) &d_f,      NX * NY * NZ * quadratures * sizeof(float));
-        cudaMalloc((void**) &d_f_back, NX * NY * NZ * quadratures * sizeof(float));
-        cudaMalloc((void**) &d_f_eq,   NX * NY * NZ * quadratures * sizeof(float));
+    #ifdef CSOA
+        constexpr int num_clusters = (num_nodes + cluster_size - 1) / cluster_size;
+        constexpr int alloc_nodes = num_clusters * cluster_size;
+    #else
+        constexpr int alloc_nodes = num_nodes;
+    #endif
+
+        cudaMalloc((void**) &d_f,      alloc_nodes * quadratures * sizeof(float));
+        cudaMalloc((void**) &d_f_back, alloc_nodes * quadratures * sizeof(float));
+        cudaMalloc((void**) &d_f_eq,   alloc_nodes * quadratures * sizeof(float));
 
         cudaMalloc((void**) &d_rho,    NX * NY * NZ * sizeof(float));
         cudaMalloc((void**) &d_u,      NX * NY * NZ * dimensions * sizeof(float));

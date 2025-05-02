@@ -293,22 +293,27 @@ extern __constant__ float M_inv[quadratures*quadratures];
 extern __constant__ float S[quadratures];
 
 constexpr int num_nodes = NX * NY * NZ;
-constexpr int cluster_size = 32;
 
-#define SOA
-// #define CSOA
+// #define SOA
+#define CSOA
 #ifdef CSOA
+    constexpr int cluster_size = 32;
+
     __device__ __host__ __forceinline__
     int get_node_index(int node, int quadrature=0) {
         return (((node / cluster_size) * quadratures + quadrature) * cluster_size) + 
            (node % cluster_size);
     }
 #elif defined(SOA)
+    constexpr int alloc_nodes = num_nodes;
+
     __device__ __host__ __forceinline__
     int get_node_index(int node, int quadrature=0) {
         return quadrature * num_nodes + node;
     }
 #else
+    constexpr int alloc_nodes = num_nodes;
+
     __device__ __host__ __forceinline__
     int get_node_index(int node, int quadrature=0) {
         return node * quadratures + quadrature;
