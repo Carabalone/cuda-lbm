@@ -5,10 +5,10 @@
 #include "core/lbm_constants.cuh"
 #include "functors/includes.cuh"
 
-#define PERIODIC
-#define PERIODIC_X
+// #define PERIODIC
+// #define PERIODIC_X
 // #define PERIODIC_Y
-#define PERIODIC_Z
+// #define PERIODIC_Z
 
 template <int dim>
 __global__ inline void stream_kernel(float* f, float* f_back) {
@@ -53,7 +53,7 @@ void LBM<dim>::stream() {
                       (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
     }
     else {
-        threads = dim3(8, 8, 4);
+        threads = dim3(32, 4, 2);
         blocks  = dim3((NX + threads.x - 1) / threads.x,
                       (NY + threads.y - 1) / threads.y,
                       (NZ + threads.z - 1) / threads.z);

@@ -13,12 +13,11 @@
 struct RegularizedInlet {
     __device__
     static void apply_top(float* f, float* f_back, float u_lid, int node) {
-        int idx = get_node_index(node);
         const float ux = u_lid;
         const float uy = 0.0f;
         
-        float rho = (f[idx + 0] + f[idx + 1] + f[idx + 3] + 
-                    2.0f * (f[idx + 2] + f[idx + 5] + f[idx + 6])) / (1.0f + uy);
+        float rho = (f[get_node_index(node, 0)] + f[get_node_index(node, 1)] + f[get_node_index(node, 3)] + 
+                    2.0f * (f[get_node_index(node, 2)] + f[get_node_index(node, 5)] + f[get_node_index(node, 6)])) / (1.0f + uy);
         
 
         // equilibrium using imposed velocity
@@ -35,7 +34,7 @@ struct RegularizedInlet {
         for (int q = 0; q < quadratures; q++) {
             if (C[2*q+1] < 0) {
                 int opp = OPP[q];
-                f[idx + q] = f_eq[q] + (f[idx + opp] - f_eq[opp]);
+                f[get_node_index(node, q)] = f_eq[q] + (f[get_node_index(node, opp)] - f_eq[opp]);
             }
         }
 
@@ -44,9 +43,10 @@ struct RegularizedInlet {
         
         for (int q = 0; q < quadratures; q++) {
             float cx = C[2*q], cy = C[2*q+1];
-            Pi_xx += cx * cx * f[idx + q];
-            Pi_yy += cy * cy * f[idx + q];
-            Pi_xy += cx * cy * f[idx + q];
+            int idx = get_node_index(node, q);
+            Pi_xx += cx * cx * f[idx];
+            Pi_yy += cy * cy * f[idx];
+            Pi_xy += cx * cy * f[idx];
         }
 
         Pi_xx -= cs2 * rho + rho * ux * ux;
@@ -63,7 +63,7 @@ struct RegularizedInlet {
             float f_neq = (WEIGHTS[q]/(2.0f*cs2*cs2)) * 
                         (Q_xx*Pi_xx + Q_yy*Pi_yy + 2.0f*Q_xy*Pi_xy);
             
-            f[idx + q] = f_eq[q] + f_neq;
+            f[get_node_index(node, q)] = f_eq[q] + f_neq;
         }
                     
     }

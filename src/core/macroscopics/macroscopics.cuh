@@ -136,7 +136,7 @@ void LBM<dim>::correct_macroscopics() {
         threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
     }
     else {
-        threads = dim3(8, 8, 4);
+        threads = dim3(32, 4, 2);
         blocks = dim3((NX + threads.x - 1) / threads.x,
                     (NY + threads.y - 1) / threads.y,
                     (NZ + threads.z - 1) / threads.z);

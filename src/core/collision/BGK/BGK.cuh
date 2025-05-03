@@ -15,8 +15,8 @@ __device__ __forceinline__
 void BGK<2>::apply(float* f, float* f_eq, float* u, float* force, int node) {
     for (int q = 0; q < quadratures; q++) {
         int idx = get_node_index(node, q);
-        float cx  = C[dimensions*q];
-        float cy  = C[dimensions*q+1];
+        float cx  = C[2*q];
+        float cy  = C[2*q+1];
         float fx  = force[get_vec_index(node, 0)];
         float fy  = force[get_vec_index(node, 1)];
         float ux  = u[get_vec_index(node, 0)];

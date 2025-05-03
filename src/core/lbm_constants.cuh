@@ -294,10 +294,10 @@ extern __constant__ float S[quadratures];
 
 constexpr int num_nodes = NX * NY * NZ;
 
-// #define SOA
-#define CSOA
+#define SOA
+// #define CSOA
 #ifdef CSOA
-    constexpr int cluster_size = 32;
+    constexpr int cluster_size = 64;
 
     __device__ __host__ __forceinline__
     int get_node_index(int node, int quadrature=0) {

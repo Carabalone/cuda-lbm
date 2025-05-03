@@ -11,7 +11,6 @@ struct RegularizedBounceBack {
     
     __device__
     inline void apply(float* f, float* f_back, float ux_node, float uy_node, int node) {
-        int idx = get_node_index(node);
         const int node_x = node % NX;
         const int node_y = node / NX;
         
@@ -39,7 +38,7 @@ struct RegularizedBounceBack {
         for (int i = 0; i < quadratures; i++) {
             if (!is_unknown[i]) {
                 int w = is_unknown[OPP[i]] ? 2 : 1;
-                rho += w * f[idx + i]; // doesnt need to divide by 1 - or 1 + uy or ux because u = (0,0)
+                rho += w * f[get_node_index(node, i)]; // doesnt need to divide by 1 - or 1 + uy or ux because u = (0,0)
                 // if(node_x == 100)
                     // printf("(node: %d, w: %d)", i, w);
             }
@@ -61,7 +60,7 @@ struct RegularizedBounceBack {
         for (int q = 0; q < quadratures; q++) {
             if (is_unknown[q]) {
                 int opp = OPP[q];
-                f[idx + q] = f_eq[q] + (f[idx + opp] - f_eq[opp]);
+                f[get_node_index(node, q)] = f_eq[q] + (f[get_node_index(node, opp)] - f_eq[opp]);
             }
         }
         
@@ -70,51 +69,15 @@ struct RegularizedBounceBack {
         
         for (int q = 0; q < quadratures; q++) {
             float cx = C[2*q], cy = C[2*q+1];
-            Pi_xx += cx * cx * f[idx + q];
-            Pi_yy += cy * cy * f[idx + q];
-            Pi_xy += cx * cy * f[idx + q];
+            int idx = get_node_index(node, q);
+            Pi_xx += cx * cx * f[idx];
+            Pi_yy += cy * cy * f[idx];
+            Pi_xy += cx * cy * f[idx];
         }
         
         Pi_xx -= cs2 * rho + rho * ux * ux;
         Pi_yy -= cs2 * rho + rho * uy * uy;
         Pi_xy -= rho * ux * uy;
-        
-        // if (node_x == 0 && node_y == 64) {
-        //     printf("LEFT NODE(%d,%d): Wall=[x:%d,y:%d] | rho=%.5f | u=(%.5f,%.5f) | KNOWN:[%s%s%s%s%s%s%s%s%s] | UNKNOWN:[%s%s%s%s%s%s%s%s%s] | f_eq[1]=%.5f | f_eq[3]=%.5f | Pi=(%.5f,%.5f,%.5f)\n", 
-        //         node_x, node_y, this->x, this->y, rho, ux, uy, 
-        //         !is_unknown[0] ? "0," : "", !is_unknown[1] ? "1," : "", !is_unknown[2] ? "2," : "", 
-        //         !is_unknown[3] ? "3," : "", !is_unknown[4] ? "4," : "", !is_unknown[5] ? "5," : "", 
-        //         !is_unknown[6] ? "6," : "", !is_unknown[7] ? "7," : "", !is_unknown[8] ? "8," : "",
-        //         is_unknown[0] ? "0," : "", is_unknown[1] ? "1," : "", is_unknown[2] ? "2," : "", 
-        //         is_unknown[3] ? "3," : "", is_unknown[4] ? "4," : "", is_unknown[5] ? "5," : "", 
-        //         is_unknown[6] ? "6," : "", is_unknown[7] ? "7," : "", is_unknown[8] ? "8," : "",
-        //         f_eq[1], f_eq[3], Pi_xx, Pi_yy, Pi_xy);
-        // }
-        // // Right wall
-        // else if (node_x == 128 && node_y == 64) {
-        //     printf("RIGHT NODE(%d,%d): Wall=[x:%d,y:%d] | rho=%.5f | u=(%.5f,%.5f) | KNOWN:[%s%s%s%s%s%s%s%s%s] | UNKNOWN:[%s%s%s%s%s%s%s%s%s] | f_eq[3]=%.5f | f_eq[1]=%.5f | Pi=(%.5f,%.5f,%.5f)\n", 
-        //         node_x, node_y, this->x, this->y, rho, ux, uy, 
-        //         !is_unknown[0] ? "0," : "", !is_unknown[1] ? "1," : "", !is_unknown[2] ? "2," : "", 
-        //         !is_unknown[3] ? "3," : "", !is_unknown[4] ? "4," : "", !is_unknown[5] ? "5," : "", 
-        //         !is_unknown[6] ? "6," : "", !is_unknown[7] ? "7," : "", !is_unknown[8] ? "8," : "",
-        //         is_unknown[0] ? "0," : "", is_unknown[1] ? "1," : "", is_unknown[2] ? "2," : "", 
-        //         is_unknown[3] ? "3," : "", is_unknown[4] ? "4," : "", is_unknown[5] ? "5," : "", 
-        //         is_unknown[6] ? "6," : "", is_unknown[7] ? "7," : "", is_unknown[8] ? "8," : "",
-        //         f_eq[3], f_eq[1], Pi_xx, Pi_yy, Pi_xy);
-        // }
-        // // Bottom wall
-        // else if (node_x == 64 && node_y == 0) {
-        //     printf("BOTTOM NODE(%d,%d): Wall=[x:%d,y:%d] | rho=%.5f | u=(%.5f,%.5f) | KNOWN:[%s%s%s%s%s%s%s%s%s] | UNKNOWN:[%s%s%s%s%s%s%s%s%s] | f_eq[2]=%.5f | f_eq[4]=%.5f | Pi=(%.5f,%.5f,%.5f)\n", 
-        //         node_x, node_y, this->x, this->y, rho, ux, uy, 
-        //         !is_unknown[0] ? "0," : "", !is_unknown[1] ? "1," : "", !is_unknown[2] ? "2," : "", 
-        //         !is_unknown[3] ? "3," : "", !is_unknown[4] ? "4," : "", !is_unknown[5] ? "5," : "", 
-        //         !is_unknown[6] ? "6," : "", !is_unknown[7] ? "7," : "", !is_unknown[8] ? "8," : "",
-        //         is_unknown[0] ? "0," : "", is_unknown[1] ? "1," : "", is_unknown[2] ? "2," : "", 
-        //         is_unknown[3] ? "3," : "", is_unknown[4] ? "4," : "", is_unknown[5] ? "5," : "", 
-        //         is_unknown[6] ? "6," : "", is_unknown[7] ? "7," : "", is_unknown[8] ? "8," : "",
-        //         f_eq[2], f_eq[4], Pi_xx, Pi_yy, Pi_xy);
-        // }
-        
         
         // regularize all populations
         float new_rho = 0.0f;
@@ -127,8 +90,9 @@ struct RegularizedBounceBack {
             float f_neq = (WEIGHTS[q]/(2.0f*cs2*cs2)) * 
                         (Q_xx*Pi_xx + Q_yy*Pi_yy + 2.0f*Q_xy*Pi_xy);
             
-            f[idx + q] = f_eq[q] + f_neq;
-            new_rho += f[idx + q];
+            int idx = get_node_index(node, q);
+            f[idx] = f_eq[q] + f_neq;
+            new_rho += f[idx];
         }
         // if (new_rho > 1.2f || new_rho < 0.9f)
         //     printf("new_rho at node(%d, %d): %.4f\n", (node % NX), (node / NX), new_rho);
@@ -191,17 +155,17 @@ struct RegularizedCornerBounceBack {
         
         for (int i = 0; i < quadratures; i++) {
             if (is_unknown[i]) {
-                float f_eq_i = computeEquilibrium(i, rho, ux, uy);
+                float f_eq_i = compute_equilibrium(i, rho, ux, uy);
                 
                 int opp_i = OPP[i];
                 
-                float f_eq_opp = computeEquilibrium(opp_i, rho, ux, uy);
+                float f_eq_opp = compute_equilibrium(opp_i, rho, ux, uy);
                 
-                f[idx + i] = f_eq_i - (f[idx + opp_i] - f_eq_opp);
+                f[get_node_index(node, i)] = f_eq_i - (f[get_node_index(node, opp_i)] - f_eq_opp);
             }
         }
         
-        regularizeDistributions(f, idx, rho, ux, uy);
+        regularize_distributions(f, node, rho, ux, uy);
 
 
         // printf("LEFT NODE(%d,%d): Wall=[x:%d,y:%d] | rho=%.5f | u=(%.5f,%.5f) | KNOWN:[%s%s%s%s%s%s%s%s%s] | UNKNOWN:[%s%s%s%s%s%s%s%s%s]\n" /* | f_eq[1]=%.5f | f_eq[3]=%.5f | Pi=(%.5f,%.5f,%.5f)\n"*/, 
@@ -216,7 +180,7 @@ struct RegularizedCornerBounceBack {
     }
     
     __device__ static
-    inline float computeEquilibrium(int i, float rho, float ux, float uy) {
+    inline float compute_equilibrium(int i, float rho, float ux, float uy) {
         float cs2 = 1.0f / 3.0f;
         float c_dot_u = C[2*i] * ux + C[2*i+1] * uy;
         float u_dot_u = ux*ux + uy*uy;
@@ -226,14 +190,14 @@ struct RegularizedCornerBounceBack {
     }
     
     __device__ static
-    inline void regularizeDistributions(float* f, int idx, float rho, float ux, float uy) {
+    inline void regularize_distributions(float* f, int node, float rho, float ux, float uy) {
         float cs2 = 1.0f / 3.0f;
         
         float Pi_xx = 0.0f, Pi_yy = 0.0f, Pi_xy = 0.0f;
         
         for (int q = 0; q < quadratures; q++) {
-            float f_eq = computeEquilibrium(q, rho, ux, uy);
-            float f_neq = f[idx + q] - f_eq;
+            float f_eq = compute_equilibrium(q, rho, ux, uy);
+            float f_neq = f[get_node_index(node, q)] - f_eq;
             
             float cx = C[2*q], cy = C[2*q+1];
             Pi_xx += cx * cx * f_neq;
@@ -242,7 +206,7 @@ struct RegularizedCornerBounceBack {
         }
         
         for (int q = 0; q < quadratures; q++) {
-            float f_eq = computeEquilibrium(q, rho, ux, uy);
+            float f_eq = compute_equilibrium(q, rho, ux, uy);
             
             float cx = C[2*q], cy = C[2*q+1];
             float Q_xx = cx*cx - cs2;
@@ -252,7 +216,7 @@ struct RegularizedCornerBounceBack {
             float f_neq = (WEIGHTS[q]/(2.0f*cs2*cs2)) * 
                         (Q_xx*Pi_xx + Q_yy*Pi_yy + 2.0f*Q_xy*Pi_xy);
             
-            f[idx + q] = f_eq + f_neq;
+            f[get_node_index(node, q)] = f_eq + f_neq;
         }
     }
 };

@@ -27,7 +27,6 @@ struct CM<2, AdapterType> {
 template <typename AdapterType>
 __device__ __forceinline__
 void CM<2, AdapterType>::apply(float* f, float* f_eq, float* u, float* force, int node) {
-    int idx = get_node_index(node);
     float ux = u[get_vec_index(node, 0)];
     float uy = u[get_vec_index(node, 1)];
 
@@ -35,38 +34,28 @@ void CM<2, AdapterType>::apply(float* f, float* f_eq, float* u, float* force, in
     float Fy = force[get_vec_index(node, 1)];
 
     float rho = 0.0f;
+    float old_f[quadratures]; // for debug
+
     for (int i = 0; i < quadratures; i++) {
-        rho += f[idx + i];
+        rho += f[get_node_index(node, i)];
+        old_f[i] = f[get_node_index(node, i)];
     }
     
-    float k[quadratures];
-    float k_eq[quadratures];
-    float k_post[quadratures];
-    float old_f[quadratures]; // for debug
+    float k[quadratures]      = {0.0f};
+    float k_eq[quadratures]   = {0.0f};
+    float k_post[quadratures] = {0.0f};
     float pi[3] = {0.0f}; // pi_xx, pi_xy, pi_yy
 
     float T_inv[quadratures * quadratures] = {0};
     
-    for (int i = 0; i < quadratures; i++) {
-        old_f[i] = f[idx + i];
-    }
-    
     k[0] = rho;    
-    k[1] = 0.0f;   
-    k[2] = 0.0f;   
-    k[3] = 0.0f;   
-    k[4] = 0.0f;   
-    k[5] = 0.0f;   
-    k[6] = 0.0f;   
-    k[7] = 0.0f;   
-    k[8] = 0.0f;   
     
     for (int i = 0; i < quadratures; i++) {
         float c_cx = C[2*i] - ux;
         float c_cy = C[2*i+1] - uy;
         float c_cx2 = c_cx * c_cx;
         float c_cy2 = c_cy * c_cy;
-        float f_i = f[idx + i];
+        float f_i = f[get_node_index(node, i)];
         
         k[1] += f_i * (c_cx);
         k[2] += f_i * (c_cy);
@@ -132,17 +121,18 @@ void CM<2, AdapterType>::apply(float* f, float* f_eq, float* u, float* force, in
     cm_matrix_inverse(T_inv, ux, uy);
 
     for (int i = 0; i < quadratures; i++) {
-        f[idx + i] = 0.0f;
+        int idx = get_node_index(node, i);
+        f[idx] = 0.0f;
         for (int j = 0; j < quadratures; j++) {
-            f[idx + i] += T_inv[i*quadratures + j] * k_post[j];
+            f[idx] += T_inv[i*quadratures + j] * k_post[j];
         }
 
-        if (fabsf(f[idx + i]) > VALUE_THRESHOLD || f[idx + i] < -0.01f) {
+        if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
             int x, y, z;
             get_coords_from_node(node, x, y, z);
             
             printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
-                  node, x, y, i, idx + i, old_f[i], f[idx + i]);
+                  node, x, y, i, idx, old_f[i], f[idx]);
         }
     }
 }

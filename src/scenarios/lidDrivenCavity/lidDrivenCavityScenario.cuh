@@ -10,11 +10,12 @@ struct LidDrivenScenario : public ScenarioTrait <
     LidDrivenInit,
     LidDrivenBoundary,
     LidDrivenValidation,
-    CM<2, NoAdapter>
+    // CM<2, NoAdapter>
+    BGK<2>
 > {
     // Re=100
-    // static constexpr float u_max =  0.0517f;
-    // static constexpr float viscosity = 0.0667f; 
+    static constexpr float u_max =  0.0517f;
+    static constexpr float viscosity = 0.0667f; 
 
     // Re=1000
     // static constexpr float u_max =  0.1f;
@@ -29,8 +30,8 @@ struct LidDrivenScenario : public ScenarioTrait <
 
 
     // Re=5000 (stable & accurate @ 3.72% error)
-    static constexpr float u_max =  0.1f;
-    static constexpr float viscosity = 0.00258f;
+    // static constexpr float u_max =  0.1f;
+    // static constexpr float viscosity = 0.00258f;
 
     // Re=7500
     // static constexpr float u_max =  0.1f;
