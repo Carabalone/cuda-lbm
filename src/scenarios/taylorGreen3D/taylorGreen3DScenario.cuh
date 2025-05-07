@@ -9,7 +9,7 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     TaylorGreen3DInit,
     TaylorGreen3DBoundary,
     TaylorGreen3DValidation,
-    MRT<3>
+    CM<3, NoAdapter>
 > {
 
     // Re=1600

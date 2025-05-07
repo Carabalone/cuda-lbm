@@ -9,13 +9,15 @@ min_usage_cse = 16
 expand_powers = create_expand_pow_optimization(3) # Expand powers up to 3
 output_dir = "generated_collision_code"
 os.makedirs(output_dir, exist_ok=True)
+inv_test = False # test T * T_inv * (k + collision + forcing) to check against De Rosis universal formulations.
 
 ux, uy, uz = sp.symbols('ux uy uz')
 rho = sp.symbols('rho')
 omega, lambda_ = sp.symbols('omega lambda_')
 k_syms = sp.symbols(f'k[0:{27}]')
 k = sp.Matrix(k_syms)
-cs_sq = sp.Rational(1, 3)
+cs2 = sp.Rational(1, 3)
+Fx, Fy, Fz = sp.symbols('Fx Fy Fz')
 
 c_ix = np.array([0,  1, -1,  0,  0,  0,  0,  1, -1,  1, -1,  1, -1,  1, -1,  0,  0,  0,  0,  1, -1,  1, -1,  1, -1,  1, -1], dtype=int)
 c_iy = np.array([0,  0,  0,  1, -1,  0,  0,  1,  1, -1, -1,  0,  0,  0,  0,  1, -1,  1, -1,  1,  1, -1, -1,  1,  1, -1, -1], dtype=int)
@@ -23,73 +25,87 @@ c_iz = np.array([0,  0,  0,  0,  0,  1, -1,  0,  0,  0,  0,  1,  1, -1, -1,  1, 
 
 k_eq = sp.zeros(27, 1)
 k_eq[0]  = rho
-k_eq[9]  = rho * cs_sq**2  # k9 = rho * cs^4
-k_eq[17] = rho * cs_sq**3  # k17 = rho * cs^6
-k_eq[18] = rho * cs_sq**3  # k18 = rho * cs^6
-k_eq[26] = rho * cs_sq**4  # k26 = rho * cs^8
-print("Defined k_eq.")
+k_eq[9]  = 3 * rho * cs2
+k_eq[17] = rho * cs2
+k_eq[18] = rho * cs2**2
+k_eq[26] = rho * cs2**3
 
-diag_A_acm = ([1] * 4) + ([omega] * 5) + ([lambda_] * (27 - 9))
-A_acm = sp.diag(*diag_A_acm)
+R = sp.zeros(27, 1)
+R[1]  = Fx
+R[2]  = Fy
+R[3]  = Fz
+R[10] = 2 * Fx * cs2
+R[11] = 2 * Fy * cs2
+R[12] = 2 * Fz * cs2
+R[23] = Fx * cs2**2
+R[24] = Fy * cs2**2
+R[25] = Fz * cs2**2
+
+S_ACM = sp.diag(*(([1] * 4) + ([omega] * 5) + ([lambda_] * (27 - 9))))
 # CM: lambda_ = 1
-diag_A_cm = ([1] * 4) + ([omega] * 5) + ([1] * (27 - 9))
-A_cm = sp.diag(*diag_A_cm)
-print("Defined Relaxation Matrices A_acm and A_cm.")
-delta_k_coll_acm = -A_acm * (k - k_eq)
-delta_k_coll_cm  = -A_cm  * (k - k_eq)
-print("Calculated delta_k_coll = -A * (k - k_eq).")
+S_CM = sp.diag(*(([1] * 4) + ([omega] * 5) + ([1] * (27 - 9))))
+collision_ACM = -S_ACM * (k - k_eq)
+collision_CM  = -S_CM  * (k - k_eq)
 
 print("Constructing Central Moment Matrix T...")
 start_time = time.time()
 T = sp.zeros(27, 27)
 for j in range(27):
-    cjx, cjy, cjz = c_ix[j], c_iy[j], c_iz[j]
-    Cjx, Cjy, Cjz = cjx - ux, cjy - uy, cjz - uz
-    Cjx2, Cjy2, Cjz2 = Cjx*Cjx, Cjy*Cjy, Cjz*Cjz
-    # eq 11 simplified
+    cx, cy, cz = c_ix[j] - ux, c_iy[j] - uy, c_iz[j] - uz
+    cx2, cy2, cz2 = cx**2, cy**2, cz**2
+    # eq 11
     T[0, j]  = 1
-    T[1, j]  = Cjx
-    T[2, j]  = Cjy
-    T[3, j]  = Cjz
-    T[4, j]  = Cjx * Cjy
-    T[5, j]  = Cjx * Cjz
-    T[6, j]  = Cjy * Cjz
-    T[7, j]  = Cjx2 - cs_sq
-    T[8, j]  = Cjy2 - cs_sq
-    T[9, j]  = Cjz2 - cs_sq
-    T[10, j] = Cjx * (Cjy2 + Cjz2)
-    T[11, j] = Cjy * (Cjx2 + Cjz2)
-    T[12, j] = Cjz * (Cjx2 + Cjy2)
-    T[13, j] = Cjx * (Cjy2 - Cjz2)
-    T[14, j] = Cjy * (Cjx2 - Cjz2)
-    T[15, j] = Cjz * (Cjx2 - Cjy2)
-    T[16, j] = Cjx * Cjy * Cjz
-    T[17, j] = Cjx2*Cjy2 + Cjx2*Cjz2 + Cjy2*Cjz2
-    T[18, j] = Cjx2*Cjy2 + Cjx2*Cjz2 - Cjy2*Cjz2
-    T[19, j] = Cjx2*Cjy2 - Cjx2*Cjz2
-    T[20, j] = Cjx2 * Cjy * Cjz
-    T[21, j] = Cjy2 * Cjx * Cjz
-    T[22, j] = Cjz2 * Cjx * Cjy
-    T[23, j] = Cjx * Cjy2 * Cjz2
-    T[24, j] = Cjy * Cjx2 * Cjz2
-    T[25, j] = Cjz * Cjx2 * Cjy2
-    T[26, j] = Cjx2 * Cjy2 * Cjz2
+    T[1, j]  = cx
+    T[2, j]  = cy
+    T[3, j]  = cz
+    T[4, j]  = cx * cy
+    T[5, j]  = cx * cz
+    T[6, j]  = cy * cz
+    T[7, j]  = cx2 - cy2
+    T[8, j]  = cx2 - cz2
+    T[9, j]  = cx2 + cy2 + cz2
+    T[10, j] = cx * cy2 + cx * cz2
+    T[11, j] = cx2 * cy + cy * cz2
+    T[12, j] = cx2 * cz + cy2 * cz
+    T[13, j] = cx * cy2 - cx * cz2
+    T[14, j] = cx2 * cy - cy * cz2
+    T[15, j] = cx2 * cz - cy2 * cz
+    T[16, j] = cx * cy * cz
+    T[17, j] = cx2 * cy2 + cx2 * cz2 + cy2 * cz2
+    T[18, j] = cx2 * cy2 + cx2 * cz2 - cy2 * cz2
+    T[19, j] = cx2 * cy2 - cx2 * cz2
+    T[20, j] = cx2 * cy * cz
+    T[21, j] = cx * cy2 * cz
+    T[22, j] = cx * cy * cz2
+    T[23, j] = cx * cy2 * cz2
+    T[24, j] = cx2 * cy * cz2
+    T[25, j] = cx2 * cy2 * cz
+    T[26, j] = cx2 * cy2 * cz2
 print(f"Matrix T constructed in {time.time() - start_time:.2f} seconds.")
 
 print("Inverting T ")
 T_inv = T.inv()
 print(f"Matrix T inverted")
 
+I = sp.eye(27)
+forcing_term_ACM = (I - S_ACM / 2) * R
+forcing_term_CM  = (I - S_CM  / 2) * R
 
-print("Calculating Omega_acm = T_inv * delta_k_coll_acm...")
 start_time = time.time()
-Omega_acm = T_inv * delta_k_coll_acm
-print(f"Omega_acm calculated in {time.time() - start_time:.2f} seconds.")
+f_post_acm = T_inv * (k + collision_ACM + forcing_term_ACM)
+print(f"ACM formulations calculated in {time.time() - start_time:.2f} seconds.")
 
-print("Calculating Omega_cm = T_inv * delta_k_coll_cm...")
 start_time = time.time()
-Omega_cm = T_inv * delta_k_coll_cm
-print(f"Omega_cm calculated in {time.time() - start_time:.2f} seconds.")
+f_post_cm = T_inv * (k + collision_CM + forcing_term_CM)
+if (inv_test):
+    test = T * f_post_acm
+    test_2 = T * f_post_cm
+    for i in range(27):
+        print(f"ACM_{i}: {sp.simplify(test[i])}")
+    for i in range(27):
+        print(f"CM_{i}: {sp.simplify(test_2[i])}")
+    exit(0)
+print(f"CM formulations calculated in {time.time() - start_time:.2f} seconds.")
 
 def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is_acm=True):
     print(f"\n--- Generating code for {func_name} ---")
@@ -99,7 +115,6 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
     def get_priority_exprs_3d():
         ux2, uy2, uz2 = ux*ux, uy*uy, uz*uz
         uxuy, uxuz, uyuz = ux*uy, ux*uz, uy*uz
-        ux3, uy3, uz3 = ux2*ux, uy2*uy, uz2*uz
         ux2uy, uxuy2 = ux2*uy, ux*uy2
         ux2uz, uxuz2 = ux2*uz, ux*uz2
         uy2uz, uyuz2 = uy2*uz, uy*uz2
@@ -117,7 +132,6 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
         return [
             (ux2, 'ux2'), (uy2, 'uy2'), (uz2, 'uz2'),
             (uxuy, 'uxuy'), (uxuz, 'uxuz'), (uyuz, 'uyuz'),
-            (ux3, 'ux3'), (uy3, 'uy3'), (uz3, 'uz3'),
             (ux2uy, 'ux2uy'), (uxuy2, 'uxuy2'),
             (ux2uz, 'ux2uz'), (uxuz2, 'uxuz2'),
             (uy2uz, 'uy2uz'), (uyuz2, 'uyuz2'),
@@ -195,20 +209,15 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
             print(f"ERROR: C code generation failed for: {expr} ({e})")
             return f"/* ERROR generating code for: {expr} */"
 
-    # Generate the C++ function string
     code = []
     code.append(f"// SymPy-Generated CUDA code for 3D {'ACM' if is_acm else 'CM'} Collision Operator Omega")
-    code.append(f"// Omega = -T_inv * A * (k - k_eq)")
-    code.append(f"// Input moments: k0..k26")
     code.append("__device__ __forceinline__ static")
-    # Function signature
     func_sig = f"void {func_name}("
-    func_sig += "float* Omega_out, " # Output array
-    func_sig += "const float* k_in, " # Input moments k0..k26
+    func_sig += "float* f_post, "
     func_sig += "const float rho, const float ux, const float uy, const float uz, "
     func_sig += "const float omega"
     if is_acm:
-        func_sig += ", const float lambda_"
+        func_sig += ", const float lambda"
     func_sig += ") {"
     code.append(func_sig)
 
@@ -228,7 +237,7 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
     code.append("\n    // --- Collision Operator Omega elements ---")
     for i in range(27):
         final_expr_str = format_ccode(final_exprs_flat[i])
-        code.append(f"    Omega_out[{i}] = {final_expr_str};")
+        code.append(f"    f_post[{i}] = {final_expr_str};")
 
     code.append("}")
 
@@ -237,22 +246,18 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
         f.write("\n".join(code))
     print(f"Generated C++ code written to {filepath}")
 
-# --- Generate Code for ACM ---
 generate_collision_code(
-    Omega_acm,
-    "acm_collision_operator_3d",
-    "acm_collision_operator_3d.cu",
+    f_post_acm,
+    "apply",
+    "D3Q27_ACM.gen",
     k_syms + (rho, ux, uy, uz, omega, lambda_),
     is_acm=True
 )
 
-# --- Generate Code for CM ---
 generate_collision_code(
-    Omega_cm,
-    "cm_collision_operator_3d",
-    "cm_collision_operator_3d.cu",
+    f_post_cm,
+    "apply",
+    "D3Q27_CM.gen",
     k_syms + (rho, ux, uy, uz, omega),
     is_acm=False
 )
-
-print("\nScript finished.")
