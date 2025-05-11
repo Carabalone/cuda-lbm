@@ -304,12 +304,24 @@ constexpr int num_nodes = NX * NY * NZ;
         return (((node / cluster_size) * quadratures + quadrature) * cluster_size) + 
            (node % cluster_size);
     }
+
+
+    // TODO
+    __device__ __host__ __forceinline__
+    int get_vec_index(int node, int component) {
+        return node * dimensions + component;
+    }
 #elif defined(SOA)
     constexpr int alloc_nodes = num_nodes;
 
     __device__ __host__ __forceinline__
     int get_node_index(int node, int quadrature=0) {
         return quadrature * num_nodes + node;
+    }
+
+    __device__ __host__ __forceinline__
+    int get_vec_index(int node, int component) {
+        return component * num_nodes + node;
     }
 #else
     constexpr int alloc_nodes = num_nodes;
@@ -318,12 +330,12 @@ constexpr int num_nodes = NX * NY * NZ;
     int get_node_index(int node, int quadrature=0) {
         return node * quadratures + quadrature;
     }
+    __device__ __host__ __forceinline__
+    int get_vec_index(int node, int component) {
+        return node * dimensions + component;
+    }
 #endif
 
-__device__ __host__ __forceinline__
-int get_vec_index(int node, int component) {
-    return node * dimensions + component;
-}
 
 __device__ __host__ __forceinline__
 int get_node_from_coords(int x, int y, int z=0) {

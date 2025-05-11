@@ -116,24 +116,102 @@ void MRT<3>::compute_forcing_term(float* F, float* u, float* force, int node) {
     F[26] = (2.0f/9.0f)*fx*ux + (2.0f/9.0f)*fy*uy + (2.0f/9.0f)*fz*uz;
 }
 
+__device__ static
+float compute_forcing_term_component(int moment_index, float ux, float uy,
+                                float uz, float fx, float fy, float fz) {
+    switch (moment_index) {
+        case 0: return 0.0f;
+        case 1: return fx;
+        case 2: return fy;
+        case 3: return fz;
+        case 4: return fx * uy + fy * ux;
+        case 5: return fx * uz + fz * ux;
+        case 6: return fy * uz + fz * uy;
+        case 7: return 2.0f * fx * ux - 2.0f * fy * uy;
+        case 8: return 2.0f * fx * ux - 2.0f * fz * uz;
+        case 9: return 2.0f * fx * ux + 2.0f * fy * uy + 2.0f * fz * uz;
+        case 10: return (2.0f / 3.0f) * fx;
+        case 11: return (2.0f / 3.0f) * fy;
+        case 12: return (2.0f / 3.0f) * fz;
+        case 13: return 0.0f;
+        case 14: return 0.0f;
+        case 15: return 0.0f;
+        case 16: return 0.0f;
+        case 17: return (4.0f/3.0f)*fx*ux + (4.0f/3.0f)*fy*uy + (4.0f/3.0f)*fz*uz;
+        case 18: return (4.0f/3.0f)*fx*ux;
+        case 19: return (2.0f/3.0f)*fy*uy - (2.0f/3.0f)*fz*uz;
+        case 20: return (1.0f/3.0f)*fy*uz + (1.0f/3.0f)*fz*uy;
+        case 21: return (1.0f/3.0f)*fx*uz + (1.0f/3.0f)*fz*ux;
+        case 22: return (1.0f/3.0f)*fx*uy + (1.0f/3.0f)*fy*ux;
+        case 23: return (1.0f/9.0f)*fx;
+        case 24: return (1.0f/9.0f)*fy;
+        case 25: return (1.0f/9.0f)*fz;
+        case 26: return (2.0f/9.0f)*fx*ux + (2.0f/9.0f)*fy*uy + (2.0f/9.0f)*fz*uz;
+        default:
+            return -99.0f; // should not happen
+    }
+}
+
+__device__ static
+float compute_m_post_component(
+        int moment_index, float rho, float ux, float uy, float uz,
+        float m4, float m5, float m6, float m7, float m8,
+        float F_i
+    ) {
+    float m_post_val;
+    float ux2 = ux * ux;
+    float uy2 = uy * uy;
+    float uz2 = uz * uz;
+    float cs2 = 1.0f / 3.0f;
+
+    switch (moment_index) {
+    case 0: m_post_val = rho; break;
+    case 1: m_post_val = rho * ux; break;
+    case 2: m_post_val = rho * uy; break;
+    case 3: m_post_val = rho * uz; break;
+    case 4: m_post_val = (1.0f - S[4]) * m4 + S[4] * rho * ux * uy + (1.0f - 0.5f * S[4]) * F_i; break;
+    case 5: m_post_val = (1.0f - S[5]) * m5 + S[5] * rho * ux * uz + (1.0f - 0.5f * S[5]) * F_i; break;
+    case 6: m_post_val = (1.0f - S[6]) * m6 + S[6] * rho * uy * uz + (1.0f - 0.5f * S[6]) * F_i; break;
+    case 7: m_post_val = (1.0f - S[7]) * m7 + S[7] * rho * (ux2 - uy2) + (1.0f - 0.5f * S[7]) * F_i; break;
+    case 8: m_post_val = (1.0f - S[8]) * m8 + S[8] * rho * (ux2 - uz2) + (1.0f - 0.5f * S[8]) * F_i; break;
+    
+    case 9:  m_post_val = rho * (ux2 + uy2 + uz2 + 1.0f) + 0.5f * F_i; break;
+    case 10: m_post_val = rho * cs2 * ux * (3.0f*uy2 + 3.0f*uz2 + 2.0f) + 0.5f * F_i; break;
+    case 11: m_post_val = rho * cs2 * uy * (3.0f*ux2 + 3.0f*uz2 + 2.0f) + 0.5f * F_i; break;
+    case 12: m_post_val = rho * cs2 * uz * (3.0f*ux2 + 3.0f*uy2 + 2.0f) + 0.5f * F_i; break;
+    case 13: m_post_val = rho * ux * (uy2 - uz2) + 0.5f * F_i; break;
+    case 14: m_post_val = rho * uy * (ux2 - uz2) + 0.5f * F_i; break;
+    case 15: m_post_val = rho * uz * (ux2 - uy2) + 0.5f * F_i; break;
+    case 16: m_post_val = rho * ux * uy * uz + 0.5f * F_i; break;
+    case 17: m_post_val = rho * cs2 * (3.0f*(ux2*uy2 + ux2*uz2 + uy2*uz2) + 2.0f*(ux2 + uy2 + uz2) + 1.0f) + 0.5f * F_i; break;
+    case 18: m_post_val = rho * cs2 * cs2 * (9.0f*(ux2*uy2 + ux2*uz2 - uy2*uz2) + 6.0f*ux2 + 1.0f) + 0.5f * F_i; break;
+    case 19: m_post_val = rho * cs2 * (uy2 - uz2) * (2.0f*ux2 + 1.0f) + 0.5f * F_i; break;
+    case 20: m_post_val = rho * cs2 * uy * uz * (3.0f*ux2 + 1.0f) + 0.5f * F_i; break;
+    case 21: m_post_val = rho * cs2 * ux * uz * (3.0f*uy2 + 1.0f) + 0.5f * F_i; break;
+    case 22: m_post_val = rho * cs2 * ux * uy * (3.0f*uz2 + 1.0f) + 0.5f * F_i; break;
+    case 23: m_post_val = rho * cs2 * cs2 * ux * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F_i; break;
+    case 24: m_post_val = rho * cs2 * cs2 * uy * (3.0f*ux2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F_i; break;
+    case 25: m_post_val = rho * cs2 * cs2 * uz * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) + 0.5f * F_i; break;
+    case 26: m_post_val = rho * cs2 * cs2 * cs2 * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F_i; break;
+    default:
+        m_post_val = -99.0f; // should not happen
+        break;
+    }
+    return m_post_val;
+}
 
 // De Rosis Universal Formulation of Central Moments (2019) Appendix E.
 template<>
 __device__
 void MRT<3>::apply(float* f, float* f_eq, float* u, float* force, int node) {
-    float m_post[quadratures];
-    
-    float F[quadratures] = {0.0f};
-    
-    compute_forcing_term(F, u, force, node);
-
-    float cs2 = 1.0f/3.0f;
     float ux = u[get_vec_index(node, 0)];
     float uy = u[get_vec_index(node, 1)];
     float uz = u[get_vec_index(node, 2)];
-    float ux2 = ux * ux;
-    float uy2 = uy * uy;
-    float uz2 = uz * uz;
+
+    float fx = force[get_vec_index(node, 0)];
+    float fy = force[get_vec_index(node, 1)];
+    float fz = force[get_vec_index(node, 2)];
+    
     float rho = 0.0f;
     float m4 = 0.0f, m5 = 0.0f, m6 = 0.0f, m7 = 0.0f, m8 = 0.0f;
     
@@ -152,52 +230,32 @@ void MRT<3>::apply(float* f, float* f_eq, float* u, float* force, int node) {
         m8 += f_i * (cix*cix - ciz*ciz);
     }
     
-    // conserved moments (F=0)
-    m_post[0] = rho;
-    m_post[1] = rho * ux;
-    m_post[2] = rho * uy;
-    m_post[3] = rho * uz;
+    for (int k_init = 0; k_init < quadratures; k_init++) {
+        f[get_node_index(node, k_init)] = 0.0f;
+    }
 
-    // affected by relaxation rate
-    m_post[4] = (1.0f - S[4]) * m4 + S[4] * rho * ux * uy + (1.0f - S[4]/2.0f) * F[4];
-    m_post[5] = (1.0f - S[5]) * m5 + S[5] * rho * ux * uz + (1.0f - S[5]/2.0f) * F[5];
-    m_post[6] = (1.0f - S[6]) * m6 + S[6] * rho * uy * uz + (1.0f - S[6]/2.0f) * F[6];
-    m_post[7] = (1.0f - S[7]) * m7 + S[7] * rho * (ux2 - uy2) + (1.0f - S[7]/2.0f) * F[7];
-    m_post[8] = (1.0f - S[8]) * m8 + S[8] * rho * (ux2 - uz2) + (1.0f - S[8]/2.0f) * F[8];
-    
-    // relaxation rate = 1 -> (1 - S[i]/2) = (1-1/2) = 0.5
-    m_post[9] = rho * (ux2 + uy2 + uz2 + 1.0f) + 0.5f* F[9];
-    m_post[10] = rho * cs2 * ux * (3.0f*uy2 + 3.0f*uz2 + 2.0f) + 0.5f * F[10];
-    m_post[11] = rho * cs2 * uy * (3.0f*ux2 + 3.0f*uz2 + 2.0f) + 0.5f * F[11];
-    m_post[12] = rho * cs2 * uz * (3.0f*ux2 + 3.0f*uy2 + 2.0f) + 0.5f * F[12];
-    m_post[13] = rho * ux * (uy2 - uz2) + 0.5f * F[13];
-    m_post[14] = rho * uy * (ux2 - uz2) + 0.5f * F[14];
-    m_post[15] = rho * uz * (ux2 - uy2) + 0.5f * F[15];
-    m_post[16] = rho * ux * uy * uz + 0.5f * F[16];
-    m_post[17] = rho * cs2 * (3.0f*(ux2*uy2 + ux2*uz2 + uy2*uz2) + 2.0f*(ux2 + uy2 + uz2) + 1.0f) + 0.5f * F[17];
-    m_post[18] = rho * cs2 * cs2 * (9.0f*(ux2*uy2 + ux2*uz2 - uy2*uz2) + 6.0f*ux2 + 1.0f) + 0.5f * F[18];
-    m_post[19] = rho * cs2 * (uy2 - uz2) * (2.0f*ux2 + 1.0f) + 0.5f * F[19];
-    m_post[20] = rho * cs2 * uy * uz * (3.0f*ux2 + 1.0f) + 0.5f * F[20];
-    m_post[21] = rho * cs2 * ux * uz * (3.0f*uy2 + 1.0f) + 0.5f * F[21];
-    m_post[22] = rho * cs2 * ux * uy * (3.0f*uz2 + 1.0f) + 0.5f * F[22];
-    m_post[23] = rho * cs2 * cs2 * ux * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[23];
-    m_post[24] = rho * cs2 * cs2 * uy * (3.0f*ux2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[24];
-    m_post[25] = rho * cs2 * cs2 * uz * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) + 0.5f * F[25];
-    m_post[26] = rho * cs2 * cs2 * cs2 * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[26];
-    
-    for (int k = 0; k < quadratures; k++) {
-        int f_idx = get_node_index(node, k);
-        f[f_idx] = 0.0f;
-        for (int i = 0; i < quadratures; i++) {
-            f[f_idx] += M_inv[k*quadratures + i] * m_post[i];
-        }
-        
-        if (fabsf(f[f_idx]) > VALUE_THRESHOLD || f[f_idx] < -0.01f) {
-            int x, y, z;
-            get_coords_from_node(node, x, y, z);
-            if (node == DEBUG_NODE)
-                printf("[WARNING][MRT::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f[%d] = %f → %f\n",
-                    node, x, y, z, k, f_idx, -1.0f, f[f_idx]);
+    for (int i = 0; i < quadratures; i++) {
+
+        float F_i = compute_forcing_term_component(
+                i, ux, uy, uz, fx, fy, fz);
+        float m_post_i = compute_m_post_component(
+                i, rho, ux, uy, uz, m4, m5, m6, m7,
+                m8, F_i);
+
+        for (int k = 0; k < quadratures; k++) {
+            f[get_node_index(node, k)] += M_inv[k * quadratures + i] * m_post_i;
         }
     }
+
+    // for (int k_final = 0; k_final < quadratures; ++k_final) {
+    //     int f_idx_final = get_node_index(node, k_final);
+    //     if (fabsf(f[f_idx_final]) > VALUE_THRESHOLD || f[f_idx_final] < -0.01f) {
+    //         int x, y, z_coord;
+    //         get_coords_from_node(node, x, y, z_coord);
+    //         if (node == DEBUG_NODE) {
+    //             printf("[WARNING][MRT<3>::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f_final[%d] = %f\n",
+    //                    node, x, y, z_coord, k_final, f_idx_final, f[f_idx_final]);
+    //         }
+    //     }
+    // }
 }

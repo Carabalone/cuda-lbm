@@ -1,0 +1,90 @@
+Why ?
+This function uses 70 registers per thread. I made a new way to do it using contribution based sum instead of regular matmul +
+computing the F term and m_post as needed instead of in advance. I got a total of 62 registers but only marginal actual performance
+gains. I guess I could try to make a complete formulation f_post = M_inv * m_post ahead of time like in CMs, but this is for later.
+As I don't know what will be better. I leave this here.
+
+// De Rosis Universal Formulation of Central Moments (2019) Appendix E.
+template<>
+__device__
+void MRT<3>::apply(float* f, float* f_eq, float* u, float* force, int node) {
+    float m_post[quadratures];
+    
+    float F[quadratures] = {0.0f};
+    
+    compute_forcing_term(F, u, force, node);
+
+    float cs2 = 1.0f/3.0f;
+    float ux = u[get_vec_index(node, 0)];
+    float uy = u[get_vec_index(node, 1)];
+    float uz = u[get_vec_index(node, 2)];
+    float ux2 = ux * ux;
+    float uy2 = uy * uy;
+    float uz2 = uz * uz;
+    float rho = 0.0f;
+    float m4 = 0.0f, m5 = 0.0f, m6 = 0.0f, m7 = 0.0f, m8 = 0.0f;
+    
+    for (int i = 0; i < quadratures; i++) {
+        float f_i = f[get_node_index(node, i)];
+        rho += f_i; // we can pass in as arg, but I don't want to change the apply signature for all Collision Ops.
+
+        float cix = C[3*i];
+        float ciy = C[3*i+1];
+        float ciz = C[3*i+2];
+        
+        m4 += f_i * cix * ciy;
+        m5 += f_i * cix * ciz;
+        m6 += f_i * ciy * ciz;
+        m7 += f_i * (cix*cix - ciy*ciy);
+        m8 += f_i * (cix*cix - ciz*ciz);
+    }
+    
+    // conserved moments (F=0)
+    m_post[0] = rho;
+    m_post[1] = rho * ux;
+    m_post[2] = rho * uy;
+    m_post[3] = rho * uz;
+
+    // affected by relaxation rate
+    m_post[4] = (1.0f - S[4]) * m4 + S[4] * rho * ux * uy + (1.0f - S[4]/2.0f) * F[4];
+    m_post[5] = (1.0f - S[5]) * m5 + S[5] * rho * ux * uz + (1.0f - S[5]/2.0f) * F[5];
+    m_post[6] = (1.0f - S[6]) * m6 + S[6] * rho * uy * uz + (1.0f - S[6]/2.0f) * F[6];
+    m_post[7] = (1.0f - S[7]) * m7 + S[7] * rho * (ux2 - uy2) + (1.0f - S[7]/2.0f) * F[7];
+    m_post[8] = (1.0f - S[8]) * m8 + S[8] * rho * (ux2 - uz2) + (1.0f - S[8]/2.0f) * F[8];
+    
+    // relaxation rate = 1 -> (1 - S[i]/2) = (1-1/2) = 0.5
+    m_post[9] = rho * (ux2 + uy2 + uz2 + 1.0f) + 0.5f* F[9];
+    m_post[10] = rho * cs2 * ux * (3.0f*uy2 + 3.0f*uz2 + 2.0f) + 0.5f * F[10];
+    m_post[11] = rho * cs2 * uy * (3.0f*ux2 + 3.0f*uz2 + 2.0f) + 0.5f * F[11];
+    m_post[12] = rho * cs2 * uz * (3.0f*ux2 + 3.0f*uy2 + 2.0f) + 0.5f * F[12];
+    m_post[13] = rho * ux * (uy2 - uz2) + 0.5f * F[13];
+    m_post[14] = rho * uy * (ux2 - uz2) + 0.5f * F[14];
+    m_post[15] = rho * uz * (ux2 - uy2) + 0.5f * F[15];
+    m_post[16] = rho * ux * uy * uz + 0.5f * F[16];
+    m_post[17] = rho * cs2 * (3.0f*(ux2*uy2 + ux2*uz2 + uy2*uz2) + 2.0f*(ux2 + uy2 + uz2) + 1.0f) + 0.5f * F[17];
+    m_post[18] = rho * cs2 * cs2 * (9.0f*(ux2*uy2 + ux2*uz2 - uy2*uz2) + 6.0f*ux2 + 1.0f) + 0.5f * F[18];
+    m_post[19] = rho * cs2 * (uy2 - uz2) * (2.0f*ux2 + 1.0f) + 0.5f * F[19];
+    m_post[20] = rho * cs2 * uy * uz * (3.0f*ux2 + 1.0f) + 0.5f * F[20];
+    m_post[21] = rho * cs2 * ux * uz * (3.0f*uy2 + 1.0f) + 0.5f * F[21];
+    m_post[22] = rho * cs2 * ux * uy * (3.0f*uz2 + 1.0f) + 0.5f * F[22];
+    m_post[23] = rho * cs2 * cs2 * ux * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[23];
+    m_post[24] = rho * cs2 * cs2 * uy * (3.0f*ux2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[24];
+    m_post[25] = rho * cs2 * cs2 * uz * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) + 0.5f * F[25];
+    m_post[26] = rho * cs2 * cs2 * cs2 * (3.0f*ux2 + 1.0f) * (3.0f*uy2 + 1.0f) * (3.0f*uz2 + 1.0f) + 0.5f * F[26];
+    
+    for (int k = 0; k < quadratures; k++) {
+        int f_idx = get_node_index(node, k);
+        f[f_idx] = 0.0f;
+        for (int i = 0; i < quadratures; i++) {
+            f[f_idx] += M_inv[k*quadratures + i] * m_post[i];
+        }
+        
+        if (fabsf(f[f_idx]) > VALUE_THRESHOLD || f[f_idx] < -0.01f) {
+            int x, y, z;
+            get_coords_from_node(node, x, y, z);
+            if (node == DEBUG_NODE)
+                printf("[WARNING][MRT::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f[%d] = %f → %f\n",
+                    node, x, y, z, k, f_idx, -1.0f, f[f_idx]);
+        }
+    }
+}

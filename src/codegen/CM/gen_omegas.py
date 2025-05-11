@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 min_usage_cse = 16
-expand_powers = create_expand_pow_optimization(3) # Expand powers up to 3
+expand_powers = create_expand_pow_optimization(3) 
 output_dir = "generated_collision_code"
 os.makedirs(output_dir, exist_ok=True)
 inv_test = False # test T * T_inv * (k + collision + forcing) to check against De Rosis universal formulations.
@@ -210,7 +210,7 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
             return f"/* ERROR generating code for: {expr} */"
 
     code = []
-    code.append(f"// SymPy-Generated CUDA code for 3D {'ACM' if is_acm else 'CM'} Collision Operator Omega")
+    code.append(f"// SymPy-Generated CUDA code for 3D {'ACM' if is_acm else 'CM'}")
     code.append("__device__ __forceinline__ static")
     func_sig = f"void {func_name}("
     func_sig += "float* f_post, "
@@ -221,7 +221,7 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
     func_sig += ") {"
     code.append(func_sig)
 
-    code.append("\n    // --- Priority velocity monomials ---")
+    code.append("\n    // velocity monomials ")
     priority_names_added = set()
     for expr, name in priority_exprs:
         if name not in priority_names_added:
@@ -229,12 +229,12 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
             code.append(f"    const float {name} = {c_expr};")
             priority_names_added.add(name)
 
-    code.append("\n    // --- Common subexpressions (CSE) ---")
+    code.append("\n    // CSE")
     for sym, subexpr in filtered_replacements_list:
         cse_expr_str = format_ccode(subexpr)
         code.append(f"    const float {sym} = {cse_expr_str};")
 
-    code.append("\n    // --- Collision Operator Omega elements ---")
+    code.append("\n    // f_post ")
     for i in range(27):
         final_expr_str = format_ccode(final_exprs_flat[i])
         code.append(f"    f_post[{i}] = {final_expr_str};")
