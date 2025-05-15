@@ -7,7 +7,7 @@
 
 #define PERIODIC
 #define PERIODIC_X
-#define PERIODIC_Y
+// #define PERIODIC_Y
 #define PERIODIC_Z
 
 template <int dim>

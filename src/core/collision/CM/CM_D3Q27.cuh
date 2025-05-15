@@ -94,12 +94,12 @@ void CM<3, NoAdapter>::apply(float* f, float* f_eq, float* u, float* force, int 
         int idx = get_node_index(node, i);
         float test = f[idx];
 
-        // if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
-        //     int x, y, z;
-        //     get_coords_from_node(node, x, y, z);
+        if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
+            int x, y, z;
+            get_coords_from_node(node, x, y, z);
             
-        //     printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
-        //           node, x, y, i, idx, old_f[i], f[idx]);
-        // }
+            // printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
+            //       node, x, y, i, idx, old_f[i], f[idx]);
+        }
     }
 }

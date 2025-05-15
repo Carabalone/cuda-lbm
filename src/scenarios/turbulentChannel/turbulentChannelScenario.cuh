@@ -8,7 +8,7 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     TurbulentChannelInit,
     TurbulentChannelBoundary,
     TurbulentChannelValidation,
-    MRT<3>
+    CM<3, NoAdapter>
 > {
     static constexpr float Re = 3300.0f;
     static constexpr float Re_tau = 180.0f;
