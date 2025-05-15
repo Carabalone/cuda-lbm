@@ -14,6 +14,7 @@ inv_test = False # test T * T_inv * (k + collision + forcing) to check against D
 ux, uy, uz = sp.symbols('ux uy uz')
 rho = sp.symbols('rho')
 omega, lambda_ = sp.symbols('omega lambda_')
+lambdas = sp.symbols(f'lambda[0:{4}]')
 k_syms = sp.symbols(f'k[0:{27}]')
 k = sp.Matrix(k_syms)
 cs2 = sp.Rational(1, 3)
@@ -42,8 +43,11 @@ R[24] = Fy * cs2**2
 R[25] = Fz * cs2**2
 
 S_ACM = sp.diag(*(([1] * 4) + ([omega] * 5) + ([lambda_] * (27 - 9))))
+S_E_ACM = sp.diag(*(([1] * 4) + ([omega] * 5) + ([lambdas[0]] * 8) + ([lambdas[1]] * 6) + ([lambdas[2]] * 3) + ([lambdas[3]] * 1)))
+print(S_E_ACM)
 # CM: lambda_ = 1
 S_CM = sp.diag(*(([1] * 4) + ([omega] * 5) + ([1] * (27 - 9))))
+collision_E_ACM = -S_E_ACM * (k - k_eq)
 collision_ACM = -S_ACM * (k - k_eq)
 collision_CM  = -S_CM  * (k - k_eq)
 
@@ -88,6 +92,7 @@ T_inv = T.inv()
 print(f"Matrix T inverted")
 
 I = sp.eye(27)
+forcing_term_E_ACM = (I - S_E_ACM / 2) * R
 forcing_term_ACM = (I - S_ACM / 2) * R
 forcing_term_CM  = (I - S_CM  / 2) * R
 
@@ -97,13 +102,18 @@ print(f"ACM formulations calculated in {time.time() - start_time:.2f} seconds.")
 
 start_time = time.time()
 f_post_cm = T_inv * (k + collision_CM + forcing_term_CM)
+
+f_post_e_acm = T_inv * (k + collision_E_ACM + forcing_term_E_ACM)
 if (inv_test):
     test = T * f_post_acm
     test_2 = T * f_post_cm
+    test_3 = T * f_post_e_acm
     for i in range(27):
         print(f"ACM_{i}: {sp.simplify(test[i])}")
     for i in range(27):
         print(f"CM_{i}: {sp.simplify(test_2[i])}")
+    for i in range(27):
+        print(f"E_ACM_{i}: {sp.simplify(test_3[i])}")
     exit(0)
 print(f"CM formulations calculated in {time.time() - start_time:.2f} seconds.")
 
@@ -246,18 +256,26 @@ def generate_collision_code(Omega_matrix, func_name, filename, input_symbols, is
         f.write("\n".join(code))
     print(f"Generated C++ code written to {filepath}")
 
-generate_collision_code(
-    f_post_acm,
-    "apply",
-    "D3Q27_ACM.gen",
-    k_syms + (rho, ux, uy, uz, omega, lambda_),
-    is_acm=True
-)
+# generate_collision_code(
+#     f_post_acm,
+#     "apply",
+#     "D3Q27_ACM.gen",
+#     k_syms + (rho, ux, uy, uz, omega, lambda_),
+#     is_acm=True
+# )
+
+# generate_collision_code(
+#     f_post_cm,
+#     "apply",
+#     "D3Q27_CM.gen",
+#     k_syms + (rho, ux, uy, uz, omega),
+#     is_acm=False
+# )
 
 generate_collision_code(
-    f_post_cm,
+    f_post_e_acm,
     "apply",
-    "D3Q27_CM.gen",
-    k_syms + (rho, ux, uy, uz, omega),
-    is_acm=False
+    "D3Q27_EMPIRICAL_ACM.gen",
+    k_syms + (rho, ux, uy, uz, omega) + lambdas,
+    is_acm=True
 )

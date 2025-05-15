@@ -250,5 +250,7 @@ void CM<2, AdapterType>::cm_matrix_inverse(float* M_inv, float ux, float uy) {
 }
 
 #include "CM_D3Q27.cuh"
+#include "ACM_D3Q27.cuh"
+#include "E_ACM_D3Q27.cuh"
 
 #endif // ! LBM_COLLISION_CM_H

@@ -21,6 +21,28 @@ struct NoAdapter : public AdapterBase {
     }
 };
 
+// since all implementations of CMs are separated, I will use a different signature.
+// if in the future one wish to join them together, you can get u_mag = j_mag / rho, keep the lambdas as out params and
+// return a default float value (probably 1.0f)
+struct EmpiricalAdapter : public AdapterBase {
+    __device__ __forceinline__
+    static void compute_higher_order_relaxation(float rho, float u_mag, float* lambdas,
+                                                MomentInfo avg_mag) {
+
+                    
+        float a = -4.0f; float b = 5.0f;
+        float g_max = 0.1f; // theoretically this is just u_max. So it should be adapted according to the use case. This is JUST FOR TESTING.
+
+        // art_v = (a * u_max / g_max + b) empirical_v
+        // relaxation rate = 1/(3v + 1/2) (just like kinematic viscosity)
+        // given that we use omega = 1/tau = 1 /relaxation rate we use 3v + 1/2
+        lambdas[0] = (3.0f * ((a * u_mag / g_max + b) * 0.005f) + 0.5f);
+        lambdas[1] = (3.0f * ((a * u_mag / g_max + b) * 0.007f) + 0.5f);
+        lambdas[2] = (3.0f * ((a * u_mag / g_max + b) * 0.009f) + 0.5f);
+        lambdas[3] = (3.0f * ((a * u_mag / g_max + b) * 0.01f) + 0.5f);
+    }
+};
+
 // TODO: maybe this isn't working because of De Rosis formulation accounts for 1 in relaxation matrix (so do not use postcollision formulas)
 // TODO: check this out
 struct OptimalAdapter : public AdapterBase {
@@ -73,10 +95,10 @@ struct OptimalAdapter : public AdapterBase {
         // clamp tau_star from 0.0f to 1.5f and monitor the values for now
         
         float tau_star_old = tau_star;
-        tau_star = tau_star > 0.0f ? tau_star : 0.5f;
+        tau_star = tau_star > 0.0f ? tau_star : 0.005f;
         tau_star = fminf(tau_star, 1.5f);
 
-        if (fabsf(tau_star_old) > 0.5){
+        if (fabsf(tau_star_old) > 0.5f || fabsf(tau_star_old) < 0.1f){
             printf("{\n\trho: %.4f\n" "\ts_p[0]: %.4f\n" "\ts_p[1]: %.4f\n"
                    "\ts_p[2]: %.8f\n" "\ts_p[3]: %.4f\n" "\ttau_star: %.4f\n"
                    "\tpi_mag/pi_mag_norm: %.6f/%.6f\n\tnew_tau_star: %.8f\n}\n",
@@ -84,7 +106,7 @@ struct OptimalAdapter : public AdapterBase {
                     pi_mag, avg_mag.pi_avg_norm, tau_star);
         }
 
-        return 1.0f / (tau_star + 0.5f);
+        return 1.0f / (3.0f*tau_star + 0.5f);
     }
 };
 

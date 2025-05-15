@@ -89,15 +89,17 @@ void CM<3, NoAdapter>::apply(float* f, float* f_eq, float* u, float* force, int 
     f[get_node_index(node, 26)] = (1.0f/144.0f)*Fx*(2.0f*ux - 1.0f) - 1.0f/48.0f*Fx*(2.0f*uxuy - 2.0f*uxuy2 + 2.0f*uxuz - 2.0f*uxuz2 - uy + uy2 - uz + uz2) + (1.0f/16.0f)*Fx*(2.0f*uxuyuz - 2.0f*uy2uxuz + uy2uz - uy2uz2 + 2.0f*uy2uz2ux - uyuz + uyuz2 - 2.0f*uz2uxuy) + (1.0f/144.0f)*Fy*(2.0f*uy - 1.0f) + (1.0f/48.0f)*Fy*(ux - ux2 + 2.0f*ux2uy - 2.0f*uxuy - 2.0f*uyuz + 2.0f*uyuz2 + uz - uz2) - 1.0f/16.0f*Fy*(2.0f*ux2uyuz - ux2uz + ux2uz2 - 2.0f*ux2uz2uy - 2.0f*uxuyuz + uxuz - uxuz2 + 2.0f*uz2uxuy) + (1.0f/144.0f)*Fz*(2.0f*uz - 1.0f) + (1.0f/48.0f)*Fz*(ux - ux2 + 2.0f*ux2uz - 2.0f*uxuz + uy - uy2 + 2.0f*uy2uz - 2.0f*uyuz) + (1.0f/16.0f)*Fz*(ux2uy - ux2uy2 + 2.0f*ux2uy2uz - 2.0f*ux2uyuz - uxuy + uxuy2 + 2.0f*uxuyuz - 2.0f*uy2uxuz) + (1.0f/8.0f)*k4*(omega - 1.0f)*(4.0f*uxuyuz - 2.0f*uxuz + 2.0f*uxuz2 - 2.0f*uyuz + 2.0f*uyuz2 + uz - uz2 - 4.0f*uz2uxuy) - 1.0f/8.0f*k5*(omega - 1.0f)*(2.0f*uxuy - 2.0f*uxuy2 - 4.0f*uxuyuz - uy + uy2 + 4.0f*uy2uxuz - 2.0f*uy2uz + 2.0f*uyuz) + (1.0f/8.0f)*k6*(omega - 1.0f)*(ux - ux2 + 2.0f*ux2uy - 4.0f*ux2uyuz + 2.0f*ux2uz - 2.0f*uxuy + 4.0f*uxuyuz - 2.0f*uxuz) + (1.0f/24.0f)*k7*(omega - 1.0f)*(ux2uy - ux2uy2 - 2.0f*ux2uz + 2.0f*ux2uz2 - uxuy + uxuy2 + 2.0f*uxuz - 2.0f*uxuz2 + uy2uz - uy2uz2 - uyuz + uyuz2) - 1.0f/24.0f*k8*(omega - 1.0f)*(2.0f*ux2uy - 2.0f*ux2uy2 - ux2uz + ux2uz2 - 2.0f*uxuy + 2.0f*uxuy2 + uxuz - uxuz2 - uy2uz + uy2uz2 + uyuz - uyuz2) + (1.0f/288.0f)*rho*(2.0f*ux - 2.0f*ux2 - uy + uy2 - uz + uz2) - 1.0f/96.0f*rho*(2.0f*ux - 2.0f*ux2 + uy - uy2 + uz - uz2) + (1.0f/8.0f)*rho*(ux2uy2uz*uz - ux2uy2uz + ux2uyuz - ux2uz2uy - uxuyuz + uy2uxuz - uy2uz2ux + uz2uxuy) - 1.0f/24.0f*rho*(ux2uy - ux2uy2 + ux2uz - ux2uz2 - uxuy + uxuy2 - uxuz + uxuz2 + uy2uz - uy2uz2 - uyuz + uyuz2) + (1.0f/216.0f)*rho;
 
     // left for debug.
-    // for (int i = 0; i < quadratures; i++) {
-    //     int idx = get_node_index(node, i);
+    // TODO: for some reason the compiler ignores f calculations if I remove this dummy variable.
+    for (int i = 0; i < quadratures; i++) {
+        int idx = get_node_index(node, i);
+        float test = f[idx];
 
-    //     if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
-    //         int x, y, z;
-    //         get_coords_from_node(node, x, y, z);
+        // if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
+        //     int x, y, z;
+        //     get_coords_from_node(node, x, y, z);
             
-    //         printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
-    //               node, x, y, i, idx, old_f[i], f[idx]);
-    //     }
-    // }
+        //     printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
+        //           node, x, y, i, idx, old_f[i], f[idx]);
+        // }
+    }
 }
