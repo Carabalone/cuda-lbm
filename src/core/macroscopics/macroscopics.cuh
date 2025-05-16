@@ -11,7 +11,7 @@ template<int dim>
 __global__ void correct_macroscopics_kernel(float* f, float* rho, float* u, float* force, float* pi_mag);
 
 template <typename InitCond>
-__global__ inline
+__global__
 void reset_forces_kernel(float* d_rho, float* d_u, float* d_force, InitCond init) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;

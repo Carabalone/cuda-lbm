@@ -10,15 +10,18 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     TurbulentChannelValidation,
     CM<3, NoAdapter>
 > {
-    static constexpr float Re = 3300.0f;
-    static constexpr float Re_tau = 180.0f;
+    // static constexpr float Re = 3300.0f;
+    // static constexpr float Re_tau = 180.0f;
     static constexpr int N_half = NY / 2;
     
     // static constexpr float u_max = 0.1f;
     static constexpr float u_tau = 0.00579f; // Mach number of 0.01
-    static constexpr float viscosity = u_tau * N_half / Re_tau;
-    static constexpr float u_max = viscosity * Re / N_half;
+    // static constexpr float viscosity = u_tau * N_half / Re_tau;
+    // static constexpr float u_max = viscosity * Re / N_half;
     // static constexpr float u_tau = viscosity * Re_tau / N_half;
+    static constexpr float Re = 10000;
+    static constexpr float u_max = 0.1f;
+    static constexpr float viscosity = u_max * N_half / Re;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 

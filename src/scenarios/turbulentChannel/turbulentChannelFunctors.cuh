@@ -17,8 +17,9 @@ struct TurbulentChannelInit {
     void inline apply_forces(float* rho, float* u, float* force, int node) {
         // F_x = (u_tau)²/δ
         constexpr int half_y = NY / 2;
-        float f_x = (u_tau * u_tau) / half_y;
+        // float f_x = (u_tau * u_tau) / half_y;
         // float f_x = 8.0f * vis * u_tau / (NY*NY);
+        float f_x = 8.0f * vis * u_init / (NY*NY);
         
         force[get_vec_index(node, 0)] = f_x;
         force[get_vec_index(node, 1)] = 0.0f;

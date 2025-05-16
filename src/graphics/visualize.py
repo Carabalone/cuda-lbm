@@ -6,7 +6,7 @@ steps = 30000
 NX, NY = 256, 128
 
 fig, ax = plt.subplots(figsize=(10, 8))
-cax = ax.imshow(np.zeros((NY, NX)), origin='lower', extent=[0, NX, 0, NY], cmap='jet', vmin=0, vmax=1)
+cax = ax.imshow(np.zeros((NY, NX)), origin='lower', extent=[0, NX, 0, NY], cmap='', vmin=0, vmax=1)
 plt.colorbar(cax)
 ax.set_title('Velocity Magnitude Over Time')
 

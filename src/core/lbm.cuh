@@ -203,6 +203,69 @@ public:
         // printf("Saved macroscopics for timestep %d\n", timestep);
     }
 
+    void save_midplane_slice(int timestep) {
+        // Mid-plane index
+        constexpr int z_mid = NZ / 2;
+        constexpr int num_nodes_2d = NX * NY;
+
+        // Host buffers for the slice
+        std::vector<float> h_rho_slice(num_nodes_2d);
+        std::vector<float> h_u_slice(num_nodes_2d * 3); // 3 for ux, uy, uz
+
+        // Download full arrays from device
+        std::vector<float> h_rho_full(NX * NY * NZ);
+        std::vector<float> h_u_full(NX * NY * NZ * 3);
+
+        checkCudaErrors(cudaMemcpy(
+            h_rho_full.data(), d_rho, NX * NY * NZ * sizeof(float), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(
+            h_u_full.data(), d_u, NX * NY * NZ * 3 * sizeof(float), cudaMemcpyDeviceToHost));
+
+        // SoA offsets
+        size_t u_stride = NX * NY * NZ;
+
+        // Extract the mid-plane
+        for (int y = 0; y < NY; ++y) {
+            for (int x = 0; x < NX; ++x) {
+                int idx_2d = y * NX + x;
+                int idx_3d = z_mid * NX * NY + y * NX + x;
+
+                h_rho_slice[idx_2d] = h_rho_full[idx_3d];
+
+                h_u_slice[3 * idx_2d + 0] = h_u_full[0 * u_stride + idx_3d]; // ux
+                h_u_slice[3 * idx_2d + 1] = h_u_full[1 * u_stride + idx_3d]; // uy
+                h_u_slice[3 * idx_2d + 2] = h_u_full[2 * u_stride + idx_3d]; // uz
+            }
+        }
+
+        // Save to file
+        namespace fs = std::filesystem;
+        if (!fs::is_directory("output/midplane_density") || !fs::exists("output/midplane_density"))
+            fs::create_directory("output/midplane_density");
+        if (!fs::is_directory("output/midplane_velocity") || !fs::exists("output/midplane_velocity"))
+            fs::create_directory("output/midplane_velocity");
+
+        std::ostringstream rho_filename, vel_filename;
+        rho_filename << "output/midplane_density/density_" << timestep << ".bin";
+        vel_filename << "output/midplane_velocity/velocity_" << timestep << ".bin";
+
+        std::ofstream rho_file(rho_filename.str(), std::ios::out | std::ios::binary);
+        if (!rho_file) {
+            printf("Error: Could not open file %s for writing.\n", rho_filename.str().c_str());
+            return;
+        }
+        rho_file.write(reinterpret_cast<const char*>(h_rho_slice.data()), num_nodes_2d * sizeof(float));
+        rho_file.close();
+
+        std::ofstream vel_file(vel_filename.str(), std::ios::out | std::ios::binary);
+        if (!vel_file) {
+            printf("Error: Could not open file %s for writing.\n", vel_filename.str().c_str());
+            return;
+        }
+        vel_file.write(reinterpret_cast<const char*>(h_u_slice.data()), num_nodes_2d * 3 * sizeof(float));
+        vel_file.close();
+    }
+
     __host__ void swap_buffers() {
         float* temp;
         temp = d_f;
