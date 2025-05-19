@@ -137,7 +137,7 @@ struct IBMManager {
         dim3 threads(256);
         dim3 blocks(ceil(num_points / 256.0f) + 1);
 
-        interpolate_velocities_kernel<<<threads, blocks>>>(
+        interpolate_velocities_kernel<<<blocks, threads>>>(
             d_lag_points, d_lag_u, d_lag_rho, num_points, d_eul_u, d_eul_rho);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -146,7 +146,7 @@ struct IBMManager {
         dim3 threads(256);
         dim3 blocks(ceil(num_points / 256.0f) + 1);
 
-        spread_forces_kernel<<<threads, blocks>>>(
+        spread_forces_kernel<<<blocks, threads>>>(
             d_lag_points, d_lag_force, num_points, d_eul_force_out);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -155,7 +155,7 @@ struct IBMManager {
         dim3 threads(256);
         dim3 blocks(ceil(num_points / 256.0f) + 1);
 
-        compute_lagrangian_kernel<<<threads, blocks>>>(
+        compute_lagrangian_kernel<<<blocks, threads>>>(
             d_lag_points, d_lag_u, d_lag_force, num_points, d_lag_rho);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -165,7 +165,7 @@ struct IBMManager {
                     (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
         dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-        correct_velocities_kernel<<<threads, blocks>>>(
+        correct_velocities_kernel<<<blocks, threads>>>(
             d_eul_u, d_eul_force_iter, d_eul_rho);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -175,7 +175,7 @@ struct IBMManager {
                     (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
         dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-        accumulate_forces_kernel<<<threads, blocks>>>(
+        accumulate_forces_kernel<<<blocks, threads>>>(
             d_eul_force_total, d_eul_force_iter);
         checkCudaErrors(cudaDeviceSynchronize());
     }
