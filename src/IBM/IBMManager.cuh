@@ -1,26 +1,35 @@
 #ifndef IBMMANAGER_H
 #define IBMMANAGER_H
 #include "IBM/IBMBody.cuh"
+#include "IBM/IBMUtils.cuh"
 
 #include <vector>
 #define ITER_MAX 3
 
 // Forward declarations of kernels
+template <int dim>
 __global__
 void interpolate_velocities_kernel(float* lag_points, float* lag_u, float* lag_rho, int num_points, float* eul_u, float* eul_rho);
 
+template <int dim>
 __global__
 void spread_forces_kernel(float* lag_points, float* lag_force, int num_points, float* eul_force);
 
+template <int dim>
 __global__
 void accumulate_forces_kernel(float* eul_force_total, float* eul_force_iter);
 
+template <int dim>
 __global__
 void correct_velocities_kernel(float* eul_u, float* eul_force_iter, float* eul_rho);
 
+template <int dim>
 __global__
 void compute_lagrangian_kernel(float* lag_points, float* lag_u, float* lag_force, int num_points, float* lag_rho);
 
+// __device__ int num_ibm_points;
+
+template <int dim>
 struct IBMManager {
     float* d_lag_points;        // Boundary point coordinates [2*num_points]
     float* d_lag_u;             // Velocities at boundary points [2*num_points]
@@ -61,28 +70,66 @@ struct IBMManager {
             return;
         }
 
-        checkCudaErrors(cudaMalloc(&d_lag_points, 2 * num_points * sizeof(float)));
-        checkCudaErrors(cudaMalloc(&d_lag_u, 2 * num_points * sizeof(float)));
+        // NZ defaults as 1 if D2Q9
+        checkCudaErrors(cudaMalloc(&d_lag_points, dim * num_points * sizeof(float)));
+        checkCudaErrors(cudaMalloc(&d_lag_u, dim * num_points * sizeof(float)));
         checkCudaErrors(cudaMalloc(&d_lag_rho, num_points * sizeof(float)));
-        checkCudaErrors(cudaMalloc(&d_lag_force, 2 * num_points * sizeof(float))); 
+        checkCudaErrors(cudaMalloc(&d_lag_force, dim * num_points * sizeof(float))); 
         
-        checkCudaErrors(cudaMalloc(&d_eul_force_acc, 2 * NX * NY * sizeof(float)));
+        checkCudaErrors(cudaMalloc(&d_eul_force_acc, dim * NX * NY * NZ * sizeof(float)));
 
-        checkCudaErrors(cudaMalloc(&d_eul_u_prev, 2 * NX * NY * sizeof(float)));
-        checkCudaErrors(cudaMalloc(&d_eul_force_iter, 2 * NX * NY * sizeof(float)));
+        checkCudaErrors(cudaMalloc(&d_eul_u_prev, dim * NX * NY * NZ * sizeof(float)));
+        checkCudaErrors(cudaMalloc(&d_eul_force_iter, dim * NX * NY * NZ * sizeof(float)));
 
-        int offset = 0;
-        for (const auto& body : h_bodies) {
-            int num = body.num_points;
-            checkCudaErrors(cudaMemcpy(d_lag_points + 2 * offset, body.points, 
-                            2 * num * sizeof(float), cudaMemcpyHostToDevice));
-            checkCudaErrors(cudaMemcpy(d_lag_u + 2 * offset, body.velocities, 
-                            2 * num * sizeof(float), cudaMemcpyHostToDevice));
-            offset += num;
-        }
+        #ifdef IBM_SOA
+            printf("\n\nSOA\n\n");
+            int offset = 0;
+            for (const auto& body : h_bodies) {
+                int num_pts = body.num_points;
+                checkCudaErrors(cudaMemcpy(d_lag_points + dim * offset, body.points, 
+                                dim * num_pts * sizeof(float), cudaMemcpyHostToDevice));
+                offset += num_pts;
+            }
+
+            float* h_soa_velocities = new float[dim * this->num_points];
+
+            printf("[SENDING] IBM points: %d\n", this->num_points);
+            int curr_point_offset = 0;
+            for (const auto& body : h_bodies) {
+                // for now points stay in AoS (will make morton code optimizatino later.)
+
+                for (int body_point = 0; body_point < body.num_points; body_point++) {
+                    for (int component = 0; component < dim; component++) {
+                        h_soa_velocities[component * this->num_points + curr_point_offset] =
+                            body.velocities[body_point * dim + component];
+                    }
+                    curr_point_offset++;
+                }
+            }
+
+            checkCudaErrors(cudaMemcpy(d_lag_u,
+                                       h_soa_velocities,
+                                       dim * this->num_points * sizeof(float),
+                                       cudaMemcpyHostToDevice));
+
+            delete[] h_soa_velocities;
+        #elif defined(IBM_CSOA)
+            LBM_ASSERT(false, "SUPPORT FOR CSOA NOT AVAILABLE YET");
+        #else
+            printf("\n\nNORMAL\n\n");
+            int offset = 0;
+            for (const auto& body : h_bodies) {
+                int num_pts = body.num_points;
+                checkCudaErrors(cudaMemcpy(d_lag_points + dim * offset, body.points, 
+                                dim * num_pts * sizeof(float), cudaMemcpyHostToDevice));
+                checkCudaErrors(cudaMemcpy(d_lag_u + dim * offset, body.velocities, 
+                                dim * num_pts * sizeof(float), cudaMemcpyHostToDevice));
+                offset += num_pts;
+            }
+        #endif
         
-        checkCudaErrors(cudaMemset(d_lag_force, 0.0f, 2 * num_points * sizeof(float)));
-        checkCudaErrors(cudaMemset(d_eul_force_acc, 0.0f, 2 * NX * NY * sizeof(float)));
+        checkCudaErrors(cudaMemset(d_lag_force, 0.0f, dim * num_points * sizeof(float)));
+        checkCudaErrors(cudaMemset(d_eul_force_acc, 0.0f, dim * NX * NY * NZ * sizeof(float)));
 
         printf("Transferred %d bodies with %d total points to GPU\n", num_bodies, num_points);
     }
@@ -137,7 +184,7 @@ struct IBMManager {
         dim3 threads(256);
         dim3 blocks(ceil(num_points / 256.0f) + 1);
 
-        interpolate_velocities_kernel<<<threads, blocks>>>(
+        interpolate_velocities_kernel<dim><<<blocks, threads>>>(
             d_lag_points, d_lag_u, d_lag_rho, num_points, d_eul_u, d_eul_rho);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -146,7 +193,7 @@ struct IBMManager {
         dim3 threads(256);
         dim3 blocks(ceil(num_points / 256.0f) + 1);
 
-        spread_forces_kernel<<<threads, blocks>>>(
+        spread_forces_kernel<dim><<<blocks, threads>>>(
             d_lag_points, d_lag_force, num_points, d_eul_force_out);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -155,7 +202,7 @@ struct IBMManager {
         dim3 threads(256);
         dim3 blocks(ceil(num_points / 256.0f) + 1);
 
-        compute_lagrangian_kernel<<<threads, blocks>>>(
+        compute_lagrangian_kernel<dim><<<blocks, threads>>>(
             d_lag_points, d_lag_u, d_lag_force, num_points, d_lag_rho);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -165,7 +212,7 @@ struct IBMManager {
                     (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
         dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-        correct_velocities_kernel<<<threads, blocks>>>(
+        correct_velocities_kernel<dim><<<blocks, threads>>>(
             d_eul_u, d_eul_force_iter, d_eul_rho);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -175,7 +222,7 @@ struct IBMManager {
                     (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
         dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 
-        accumulate_forces_kernel<<<threads, blocks>>>(
+        accumulate_forces_kernel<dim><<<blocks, threads>>>(
             d_eul_force_total, d_eul_force_iter);
         checkCudaErrors(cudaDeviceSynchronize());
     }
@@ -185,13 +232,14 @@ struct IBMManager {
         if (num_bodies == 0)
             return;
         
-        checkCudaErrors(cudaMemcpy(d_eul_u_prev, d_u_lbm, 2 * NX * NY * sizeof(float), 
+        // NZ defaults as 1 if D2Q9
+        checkCudaErrors(cudaMemcpy(d_eul_u_prev, d_u_lbm, dim * NX * NY * NZ * sizeof(float), 
                                   cudaMemcpyDeviceToDevice));
         
-        checkCudaErrors(cudaMemset(d_eul_force_acc, 0, 2 * NX * NY * sizeof(float)));
+        checkCudaErrors(cudaMemset(d_eul_force_acc, 0, dim * NX * NY * NZ * sizeof(float)));
         
         for (int iter = 0; iter < ITER_MAX; iter++) {
-            checkCudaErrors(cudaMemset(d_eul_force_iter, 0, 2 * NX * NY * sizeof(float)));
+            checkCudaErrors(cudaMemset(d_eul_force_iter, 0, dim * NX * NY  * NZ * sizeof(float)));
             
             interpolate_velocity(d_eul_u_prev, d_rho_lbm);
             
@@ -215,5 +263,7 @@ struct IBMManager {
         checkCudaErrors(cudaDeviceSynchronize());
     }
 };
+
+#include "IBM_impl.cuh"
 
 #endif // ! IBMMANAGER_H

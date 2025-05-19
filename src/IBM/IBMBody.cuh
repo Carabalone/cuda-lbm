@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include "util/utility.cuh"
+#include "core/lbm_constants.cuh"
 
 struct IBMBody {
     int num_points;
@@ -21,14 +22,14 @@ struct IBMBody {
         checkCudaErrors(cudaMemcpy(d_body, &temp, sizeof(IBMBody), cudaMemcpyHostToDevice));
 
         float* d_points;
-        checkCudaErrors(cudaMalloc(&d_points, 2 * h_body.num_points * sizeof(float)));
+        checkCudaErrors(cudaMalloc(&d_points, dimensions * h_body.num_points * sizeof(float)));
         checkCudaErrors(cudaMemcpy(d_points, h_body.points, 
-                      2 * h_body.num_points * sizeof(float), cudaMemcpyHostToDevice));
+                      dimensions * h_body.num_points * sizeof(float), cudaMemcpyHostToDevice));
 
         float* d_velocities;
-        checkCudaErrors(cudaMalloc(&d_velocities, 2 * h_body.num_points * sizeof(float)));
+        checkCudaErrors(cudaMalloc(&d_velocities, dimensions * h_body.num_points * sizeof(float)));
         checkCudaErrors(cudaMemcpy(d_velocities, h_body.velocities, 
-                      2 * h_body.num_points * sizeof(float), cudaMemcpyHostToDevice));
+                      dimensions * h_body.num_points * sizeof(float), cudaMemcpyHostToDevice));
 
         checkCudaErrors(cudaMemcpy(&(d_body->points), &d_points, sizeof(float*),
                         cudaMemcpyHostToDevice));

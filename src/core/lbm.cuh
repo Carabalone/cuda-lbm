@@ -85,7 +85,7 @@ public:
     std::vector<float> h_rho;
     std::vector<float> h_u;
     
-    IBMManager IBM;
+    IBMManager<dim> IBM;
 
     int timestep = 0, update_ts = 0;
 

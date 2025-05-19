@@ -2,20 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-steps = 30000
-NX, NY = 256, 128
+steps = 10000
+NX, NY = 150, 100
 
 fig, ax = plt.subplots(figsize=(10, 8))
-cax = ax.imshow(np.zeros((NY, NX)), origin='lower', extent=[0, NX, 0, NY], cmap='', vmin=0, vmax=1)
+cax = ax.imshow(np.zeros((NY, NX)), origin='lower', extent=[0, NX, 0, NY], cmap='jet', vmin=0, vmax=1)
 plt.colorbar(cax)
 ax.set_title('Velocity Magnitude Over Time')
 
 def update(frame):
-    print("updating")
     filename = f'output/velocity/velocity_{frame}.bin'
     try:
         u = np.fromfile(filename, dtype=np.float32)
-        print(f"loaded {filename}")
+        print(f"loaded {filename}", end="\r")
     except Exception as e:
         print(f"Error loading file {filename}: {e}")
         return cax,
@@ -36,7 +35,7 @@ def update(frame):
     velocity_magnitude = np.sqrt(U**2 + V**2)
 
     vmin = np.min(velocity_magnitude)
-    vmin = -0.001
+    vmin = 0.0
     vmax = np.max(velocity_magnitude)
     vmax = 0.05
 

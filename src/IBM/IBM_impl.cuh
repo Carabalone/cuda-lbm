@@ -1,28 +1,11 @@
+// #ifndef IBM_IMPL
+// #define IBM_IMPL
 #include "IBM/IBMBody.cuh"
 #include "IBM/IBMUtils.cuh"
 
-IBMBody create_cylinder(float cx, float cy, float r, int num_pts) {
+//TODO: get vec index counts all nodes, not points.
 
-    IBMBody body = {num_pts, nullptr, nullptr};
-    body.points = new float[2*num_pts];
-    body.velocities = new float[2*num_pts];
-
-    float angle = 2*M_PI / num_pts; float coord[2];
-    for (int i=0; i < num_pts; i++) {
-        coord[0] = cx + r*cos(i*angle);
-        coord[1] = cy + r*sin(i*angle);
-
-        body.points[2*i]   = coord[0];
-        body.points[2*i+1] = coord[1];
-        
-        body.velocities[2*i]   = 0.0f;
-        body.velocities[2*i+1] = 0.0f;
-    }
-
-
-    return body;
-}
-
+template <int dim>
 __global__
 void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, int num_points,
                                    float* u_lbm, float* rho_lbm) {
@@ -57,34 +40,37 @@ void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, 
             // }
 
             rho += k * rho_lbm[u_idx];
-            ux  += k * u_lbm[2*u_idx];
-            uy  += k * u_lbm[2*u_idx + 1];
+            ux  += k * u_lbm[get_vec_index(u_idx, 0)];
+            uy  += k * u_lbm[get_vec_index(u_idx, 1)];
         }
     }
 
-    u_ibm[2*idx] = ux;
-    u_ibm[2*idx + 1] = uy;
+    u_ibm[get_lag_vec_index(idx, 0, num_points)] = ux;
+    u_ibm[get_lag_vec_index(idx, 1, num_points)] = uy;
     rho_ibm[idx] = rho;
 
     if (fabsf(ux) > 0.1f || fabsf(uy) > 0.1f)
         printf("  Interpolated velocity for point %d (%.4f, %.4f): (%.4f, %.4f)\n\trho=%.4f\n", idx, px, py, ux, uy, rho);
 }
 
+template <int dim>
 __global__
 void compute_lagrangian_kernel(float* points, float* u_ibm, float* forces_lagrangian, int num_points, float* rho_ibm) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (idx >= num_points) return;
 
-    float ux = u_ibm[2*idx]; float uy = u_ibm[2*idx + 1] ;
+    float ux = u_ibm[get_lag_vec_index(idx, 0, num_points)]; float uy = u_ibm[get_lag_vec_index(idx, 1, num_points)] ;
     float px = points[2*idx]; float py = points[2*idx + 1] ;
 
     constexpr float u_target = 0.0f; // noslip boundaries for now
     //TODO: make this customizable if needed
 
-    forces_lagrangian[2*idx]   = 2.0f * rho_ibm[idx] * (u_target - ux);
-    forces_lagrangian[2*idx+1] = 2.0f * rho_ibm[idx] * (u_target - uy);
+    forces_lagrangian[get_lag_vec_index(idx, 0, num_points)] = 2.0f * rho_ibm[idx] * (u_target - ux);
+    forces_lagrangian[get_lag_vec_index(idx, 1, num_points)] = 2.0f * rho_ibm[idx] * (u_target - uy);
 }
+
+template <int dim>
 
 __global__
 void spread_forces_kernel(float* points, float* forces_lagrangian, int num_points, float* forces_eulerian) {
@@ -108,19 +94,36 @@ void spread_forces_kernel(float* points, float* forces_lagrangian, int num_point
             float dx = px - (gx + i); float dy = py - (gy + j);
             float k = kernel2D(dx, dy);
 
-            fx = k * forces_lagrangian[2*idx];
-            fy = k * forces_lagrangian[2*idx + 1];
+            fx = k * forces_lagrangian[get_lag_vec_index(idx, 0, num_points)];
+            fy = k * forces_lagrangian[get_lag_vec_index(idx, 1, num_points)];
 
             // if (fabsf(fx) > 0.5f || fabsf(fy) > 0.5f)
             //     printf("forces in IBM (adding): (%.4f, %.4f)\n", fx, fy);
 
             int node_idx = ny * NX + nx;
-            atomicAdd(&forces_eulerian[2*node_idx], fx);
-            atomicAdd(&forces_eulerian[2*node_idx+1], fy);
+            atomicAdd(&forces_eulerian[get_vec_index(node_idx, 0)], fx);
+            atomicAdd(&forces_eulerian[get_vec_index(node_idx, 1)], fy);
+
+            // if (idx % 2 == 0) {
+            //     printf( "IBM {\n"
+            //             "\tnum_pts: %d\n"
+            //             "\t(x, y) = (%.4f, %.4f)\n"
+            //             "\t(fx, fy) = (%.8f, %.8f) @ (%d, %d)\n"
+            //             "\t(eul_fx, eul_fy) w (%d, %d) @ (%d, %d)\n"
+            //             "}\n",
+            //             num_points,
+            //             points[2*idx], points[2*idx+1],
+            //             fx, fy, get_lag_vec_index(idx, 0, num_points), get_lag_vec_index(idx, 1, num_points),
+            //             nx, ny, get_vec_index(node_idx, 0), get_vec_index(node_idx, 1)
+            //     );
+            // }
+
         }
     }
 }
 
+
+template <int dim>
 __global__
 void correct_velocities_kernel(float* u, float* f_iter, float* rho) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -130,10 +133,12 @@ void correct_velocities_kernel(float* u, float* f_iter, float* rho) {
     
     int node = y * NX + x;
     
-    u[2*node]   = u[2*node]   + f_iter[2*node]   / (2.0f * rho[node]);
-    u[2*node+1] = u[2*node+1] + f_iter[2*node+1] / (2.0f * rho[node]);
+    u[get_vec_index(node, 0)] = u[get_vec_index(node, 0)] + f_iter[get_vec_index(node, 0)] / (2.0f * rho[node]);
+    u[get_vec_index(node, 1)] = u[get_vec_index(node, 1)] + f_iter[get_vec_index(node, 1)] / (2.0f * rho[node]);
 }
 
+
+template <int dim>
 __global__
 void accumulate_forces_kernel(float* forces_total, float* iter_force) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -142,11 +147,13 @@ void accumulate_forces_kernel(float* forces_total, float* iter_force) {
     if (x >= NX || y >= NY) return;
 
     int node = y * NX + x;
-    forces_total[2 * node]   += iter_force[2 * node];
-    forces_total[2 * node + 1] += iter_force[2 * node + 1];
+    forces_total[get_vec_index(node, 0)] += iter_force[get_vec_index(node, 0)];
+    forces_total[get_vec_index(node, 1)] += iter_force[get_vec_index(node, 1)];
 
     if (fabsf(forces_total[2 * node]) > 0.001f) {
             // printf("Node (%d, %d) | Force X: %.6f | Force Y: %.6f\n", 
             //     x, y, forces_total[2 * node], forces_total[2 * node + 1]);
     }
 }
+
+// #endif //! IBM_IMPL
