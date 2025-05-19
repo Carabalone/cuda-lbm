@@ -24,11 +24,11 @@ IBMBody create_cylinder(float cx, float cy, float r, int num_pts) {
 }
 
 __global__
-void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, int num_points,
+void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, int num_pts,
                                    float* u_lbm, float* rho_lbm) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (idx >= num_points) return;
+    if (idx >= num_pts) return;
 
     float px = points[2*idx]; float py = points[2*idx + 1];
     float gx = floorf(px); float gy = floorf(py);
@@ -46,7 +46,7 @@ void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, 
 
             float dx = px - nx; float dy = py - ny;
             float k = kernel2D(dx, dy);
-            int u_idx = ny * NX + nx;
+            int u_idx = nx + ny * NX;
 
             // if (idx==8) {
             //     printf("  Node %d: (%d, %d)\n", i*2+j, nx, ny);
@@ -57,13 +57,13 @@ void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, 
             // }
 
             rho += k * rho_lbm[u_idx];
-            ux  += k * u_lbm[2*u_idx];
-            uy  += k * u_lbm[2*u_idx + 1];
+            ux  += k * u_lbm[get_vec_index(u_idx, 0)];
+            uy  += k * u_lbm[get_vec_index(u_idx, 1)];
         }
     }
 
-    u_ibm[2*idx] = ux;
-    u_ibm[2*idx + 1] = uy;
+    u_ibm[get_lag_vec_index(idx, 0, num_pts)] = ux;
+    u_ibm[get_lag_vec_index(idx, 1, num_pts)] = uy;
     rho_ibm[idx] = rho;
 
     if (fabsf(ux) > 0.1f || fabsf(uy) > 0.1f)
@@ -71,26 +71,26 @@ void interpolate_velocities_kernel(float* points, float* u_ibm, float* rho_ibm, 
 }
 
 __global__
-void compute_lagrangian_kernel(float* points, float* u_ibm, float* forces_lagrangian, int num_points, float* rho_ibm) {
+void compute_lagrangian_kernel(float* points, float* u_ibm, float* forces_lagrangian, int num_pts, float* rho_ibm) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (idx >= num_points) return;
+    if (idx >= num_pts) return;
 
-    float ux = u_ibm[2*idx]; float uy = u_ibm[2*idx + 1] ;
+    float ux = u_ibm[get_lag_vec_index(idx, 0, num_pts)]; float uy = u_ibm[get_lag_vec_index(idx, 1, num_pts)] ;
     float px = points[2*idx]; float py = points[2*idx + 1] ;
 
     constexpr float u_target = 0.0f; // noslip boundaries for now
     //TODO: make this customizable if needed
 
-    forces_lagrangian[2*idx]   = 2.0f * rho_ibm[idx] * (u_target - ux);
-    forces_lagrangian[2*idx+1] = 2.0f * rho_ibm[idx] * (u_target - uy);
+    forces_lagrangian[get_lag_vec_index(idx, 0, num_pts)] = 2.0f * rho_ibm[idx] * (u_target - ux);
+    forces_lagrangian[get_lag_vec_index(idx, 1, num_pts)] = 2.0f * rho_ibm[idx] * (u_target - uy);
 }
 
 __global__
-void spread_forces_kernel(float* points, float* forces_lagrangian, int num_points, float* forces_eulerian) {
+void spread_forces_kernel(float* points, float* forces_lagrangian, int num_pts, float* forces_eulerian) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (idx >= num_points) return;
+    if (idx >= num_pts) return;
 
     float px = points[2*idx]; float py = points[2*idx + 1];
     float gx = floorf(px); float gy = floorf(py);
@@ -108,15 +108,15 @@ void spread_forces_kernel(float* points, float* forces_lagrangian, int num_point
             float dx = px - (gx + i); float dy = py - (gy + j);
             float k = kernel2D(dx, dy);
 
-            fx = k * forces_lagrangian[2*idx];
-            fy = k * forces_lagrangian[2*idx + 1];
+            fx = k * forces_lagrangian[get_lag_vec_index(idx, 0, num_pts)];
+            fy = k * forces_lagrangian[get_lag_vec_index(idx, 1, num_pts)];
 
             // if (fabsf(fx) > 0.5f || fabsf(fy) > 0.5f)
             //     printf("forces in IBM (adding): (%.4f, %.4f)\n", fx, fy);
 
             int node_idx = ny * NX + nx;
-            atomicAdd(&forces_eulerian[2*node_idx], fx);
-            atomicAdd(&forces_eulerian[2*node_idx+1], fy);
+            atomicAdd(&forces_eulerian[get_vec_index(node_idx, 0)], fx);
+            atomicAdd(&forces_eulerian[get_vec_index(node_idx, 1)], fy);
         }
     }
 }
@@ -130,8 +130,8 @@ void correct_velocities_kernel(float* u, float* f_iter, float* rho) {
     
     int node = y * NX + x;
     
-    u[2*node]   = u[2*node]   + f_iter[2*node]   / (2.0f * rho[node]);
-    u[2*node+1] = u[2*node+1] + f_iter[2*node+1] / (2.0f * rho[node]);
+    u[get_vec_index(node, 0)] = u[get_vec_index(node, 0)] + f_iter[get_vec_index(node, 0)]   / (2.0f * rho[node]);
+    u[get_vec_index(node, 1)] = u[get_vec_index(node, 1)] + f_iter[get_vec_index(node, 1)] / (2.0f * rho[node]);
 }
 
 __global__
@@ -142,8 +142,8 @@ void accumulate_forces_kernel(float* forces_total, float* iter_force) {
     if (x >= NX || y >= NY) return;
 
     int node = y * NX + x;
-    forces_total[2 * node]   += iter_force[2 * node];
-    forces_total[2 * node + 1] += iter_force[2 * node + 1];
+    forces_total[get_vec_index(node, 0)] += iter_force[get_vec_index(node, 0)];
+    forces_total[get_vec_index(node, 1)] += iter_force[get_vec_index(node, 1)];
 
     if (fabsf(forces_total[2 * node]) > 0.001f) {
             // printf("Node (%d, %d) | Force X: %.6f | Force Y: %.6f\n", 

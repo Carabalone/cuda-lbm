@@ -34,15 +34,15 @@ struct PoiseuilleInit {
         //     return;
         // }
 
-        force[2 * node]     = 8.0f * vis * u_max / (NY*NY);
-        force[2 * node + 1] = 0.0f;
+        force[get_vec_index(node, 0)]     = 8.0f * vis * u_max / (NY*NY);
+        force[get_vec_index(node, 1)] = 0.0f;
     }
 
      __device__
     inline void operator()(float* rho, float* u, float* force, int node) {
         rho[node]       = 1.0f;
-        u[2 * node]     = 0.0f;
-        u[2 * node + 1] = 0.0f;
+        u[get_vec_index(node, 0)]     = 0.0f;
+        u[get_vec_index(node, 1)] = 0.0f;
 
         apply_forces(rho, u, force, node);
     }
