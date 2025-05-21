@@ -27,8 +27,16 @@ struct TurbulentChannelScenario : public ScenarioTrait <
 
     static constexpr float perturbation = 0.1f;
 
-    // Suga et. al (2015)
-    // A D3Q27 multiple-relaxation-time lattice Boltzmann method for turbulent flows
+    static void add_bodies() {
+        float cx = NX / 4.0f;
+        float cy = NY / 2.0f;
+        float cz = NZ / 2.0f;
+        float r  = NY / 4.0f;
+
+        IBMBody sphere = create_sphere(cx, cy, cz, r, 20, 20);
+        IBM_bodies.emplace_back(sphere);
+    }
+
     static constexpr float S[quadratures] = {
         1.0f,
         1.0f,

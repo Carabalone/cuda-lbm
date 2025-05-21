@@ -10,15 +10,16 @@ __global__ void uncorrected_macroscopics_kernel(float* f, float* rho, float* u, 
 template<int dim>
 __global__ void correct_macroscopics_kernel(float* f, float* rho, float* u, float* force, float* pi_mag);
 
-template <typename InitCond>
+template <int dim, typename InitCond>
 __global__
 void reset_forces_kernel(float* d_rho, float* d_u, float* d_force, InitCond init) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
 
-    if (x >= NX || y >= NY) return;
+    if (x >= NX || y >= NY || z >= NZ) return;
 
-    int node = y * NX + x;
+    int node = z * NY * NZ + y * NX + x;
 
     init.apply_forces(d_rho, d_u, d_force, node);
 }
@@ -26,12 +27,23 @@ void reset_forces_kernel(float* d_rho, float* d_u, float* d_force, InitCond init
 template <int dim>
 template <typename Scenario>
 void LBM<dim>::reset_forces() {
-    dim3 blocks((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                (NY+BLOCK_SIZE - 1) / BLOCK_SIZE);
-    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 blocks, threads;
+    if constexpr (dim == 2) {
+        blocks = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
+                      (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
+        threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
+    }
+    else {
+        threads = dim3(8, 8, 4);
+        blocks = dim3(
+            (NX + threads.x - 1) / threads.x,
+            (NY + threads.y - 1) / threads.y,
+            (NZ + threads.z - 1) / threads.z
+        );
+    }
 
     auto init = Scenario::init();
-    reset_forces_kernel<<<blocks, threads>>>(d_rho, d_u, d_force, init);
+    reset_forces_kernel<dim><<<blocks, threads>>>(d_rho, d_u, d_force, init);
     checkCudaErrors(cudaDeviceSynchronize());
 }
 
@@ -112,14 +124,14 @@ void LBM<dim>::uncorrected_macroscopics() {
     dim3 blocks, threads;
     if constexpr (dim == 2) {
         blocks = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                    (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
+                      (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
         threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
     }
     else {
         threads = dim3(8, 8, 4);
         blocks = dim3((NX + threads.x - 1) / threads.x,
-                    (NY + threads.y - 1) / threads.y,
-                    (NZ + threads.z - 1) / threads.z);
+                      (NY + threads.y - 1) / threads.y,
+                      (NZ + threads.z - 1) / threads.z);
     }
 
     uncorrected_macroscopics_kernel<dim><<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
@@ -132,7 +144,7 @@ void LBM<dim>::correct_macroscopics() {
 
     if constexpr (dim == 2) {
         blocks = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
-                    (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
+                      (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
         threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
     }
     else {
@@ -156,7 +168,7 @@ void LBM<dim>::correct_macroscopics() {
     if constexpr (dim == 2)
         shared_size = 3 * sizeof(float) * BLOCK_SIZE * BLOCK_SIZE;
     else
-        shared_size = 3 * sizeof(float) * 8 * 8 * 4;
+        shared_size = 3 * sizeof(float) * threads.x * threads.y * threads.z;
 
 
     update_avg_mag<dim><<<blocks, threads, shared_size>>>(d_rho, d_u, d_pi_mag, d_moment_avg_ptr);

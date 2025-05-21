@@ -4,6 +4,7 @@
 #include "IBM/IBMBody.cuh"
 
 IBMBody create_cylinder(float cx, float cy, float r, int num_pts);
+IBMBody create_sphere(float cx, float cy, float cz, float r, int n_theta, int n_phi);
 
 __host__ __device__ __forceinline__
 float delta(float r) {
@@ -58,5 +59,10 @@ float distance3D(float x1, float y1, float z1, float x2, float y2, float z2) {
         return node * dimensions + component;
     }
 #endif // ! SOA
+
+__host__ __device__ __forceinline__
+int get_pt_index(int idx, int component) {
+    return idx * dimensions + component;
+}
 
 #endif // ! IBMUTILS_H

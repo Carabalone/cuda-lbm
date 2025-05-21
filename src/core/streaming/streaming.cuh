@@ -8,7 +8,7 @@
 #define PERIODIC
 #define PERIODIC_X
 // #define PERIODIC_Y
-// #define PERIODIC_Z
+#define PERIODIC_Z
 
 template <int dim>
 __global__ inline void stream_kernel(float* f, float* f_back) {
