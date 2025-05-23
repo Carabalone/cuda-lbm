@@ -1,0 +1,2 @@
+src/
+g++ -std=c++17 -o IBM/model_sampling/sample_test IBM/model_sampling/main.cpp -I . -I .. -Wall -Wextra -g -pthread

@@ -117,3 +117,7 @@ Lets add a new simulation scenario (let's call it `MyNewScenario`):
 host varibles will have name ``h_var``
 
 device variables will have name ``d_var``
+
+# Third-Party libraries
+
+We vendored nanoflann (BSD-licensed) under third_party/nanoflann. See third_party/nanoflann/LICENSE for the full copyright and disclaimer as required by condition (1) and (2) of the BSD license.
