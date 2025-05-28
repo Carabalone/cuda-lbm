@@ -1,85 +1,76 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <string>
+// #include <iostream>
+// #include <fstream>
+// #include <sstream>
+// #include <vector>
+// #include <string>
+// #include <cstdlib>
 
-#include "third_party/nanoflann/nanoflann.hpp"
-#include "IBM/model_sampling/points.hpp"
-#include "utils.hpp"
-#include "sampler.hpp"
-#include <iomanip>
+// #include "third_party/nanoflann/nanoflann.hpp"
+// #include "IBM/model_sampling/points.hpp"
+// #include "utils.hpp"
+// #include "sampler.hpp"
+// #include <iomanip>
 
-std::vector<Point3> load_points_from_obj(const std::string& filename) {
-    std::vector<Point3> vertices;
-    std::ifstream file(filename);
+// namespace sm = sampler;
 
-    if (!file.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << std::endl;
-        return vertices;
-    }
+// int main(int argc, char** argv) {
+//     const int num_initial_points = 10000;
+//     const float sphere_radius = 10.0f;
+//     const int target_samples = 5000;
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string keyword;
-        ss >> keyword;
+//     float area = 4.0f * static_cast<float>(M_PI) * sphere_radius * sphere_radius;
+//     float r_max = std::sqrt(area / (2.0f * std::sqrt(3.0f) * static_cast<float>(target_samples)));
 
-        if (keyword == "v") {
-            Point3 p;
-            if (ss >> p.x >> p.y >> p.z) {
-                vertices.push_back(p);
-            } else {
-                std::cerr << "[WARNING] Could not parse vertex line: " << line
-                          << std::endl;
-            }
-        }
-    }
+//     std::cout << std::fixed << std::setprecision(4);
+//     std::cout << "--- Configuration ---" << std::endl;
+//     std::cout << "Initial points: " << num_initial_points << std::endl;
+//     std::cout << "Sphere radius: " << sphere_radius << std::endl;
+//     std::cout << "Target final samples: " << target_samples << std::endl;
+//     std::cout << "Calculated r_max for sampler: " << r_max << std::endl;
+//     std::cout << "---------------------" << std::endl;
 
-    file.close();
-    return vertices;
-}
+//     // std::vector<Point3> vertices = generate_sphere_points(num_initial_points, sphere_radius);
+//     std::vector<sm::Point3> vertices;
+//     if (argc == 2) {
+//         std::cout << "Loading mesh from: " << argv[1] << std::endl;
+//         sm::MeshData mesh = sm::load_mesh_from_obj(argv[1]);
+    
+//         if (mesh.vertices.empty()) {
+//             std::cerr << "Failed to load mesh or mesh is empty. Aborting."
+//                       << std::endl;
+//             return EXIT_FAILURE;
+//         }
+//         vertices = mesh.vertices;
+//         if (mesh.faces.empty()) {
+//             std::cerr << "No faces in mesh. Aborting. " << std::endl;
+//             return EXIT_FAILURE;
+//         }
 
-void save_points_to_csv(const std::vector<Point3>& points, const std::string& filename) {
-    std::ofstream outfile(filename);
-    if (!outfile.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
-        return;
-    }
-    outfile << "x,y,z\n"; // CSV Header
-    for (const auto& p : points) {
-        outfile << p.x << "," << p.y << "," << p.z << "\n";
-    }
-    outfile.close();
-    std::cout << "[INFO] Saved " << points.size() << " points to " << filename << std::endl;
-}
+//         double volume = calculate_mesh_volume(mesh.vertices, mesh.faces);
+//         std::cout << "Calculated Mesh Volume (A3): " << volume
+//                     << std::endl;
+//         r_max = sm::calculate_r_max_3d(volume, target_samples);
+//     }
+//     else if (argc == 1) {
+//         vertices = sm::generate_sphere_points(
+//             num_initial_points, sphere_radius
+//         );
+//     }
+//     else {
+//         std::cerr << "Usage: " << argv[0]
+//                   << " [optional_input.obj]\n";
+//         return EXIT_FAILURE;
+//     }
 
 
-int main(void) {
-    const int num_initial_points = 5000;
-    const float sphere_radius = 10.0f;
-    const int target_samples = 500;
+//     save_points_to_csv(vertices, "init_vertices.csv");
 
-    float area = 4.0f * static_cast<float>(M_PI) * sphere_radius * sphere_radius;
-    float r_max = std::sqrt(area / (2.0f * std::sqrt(3.0f) * static_cast<float>(target_samples)));
+//     std::vector<sm::Sample3> samples = sm::Sample3::from_points(vertices);
+//     sm::Sampler sampler(target_samples, r_max, samples);
 
-    std::cout << std::fixed << std::setprecision(4);
-    std::cout << "--- Configuration ---" << std::endl;
-    std::cout << "Initial points: " << num_initial_points << std::endl;
-    std::cout << "Sphere radius: " << sphere_radius << std::endl;
-    std::cout << "Target final samples: " << target_samples << std::endl;
-    std::cout << "Calculated r_max for sampler: " << r_max << std::endl;
-    std::cout << "---------------------" << std::endl;
+//     std::vector<sm::Point3> sampled = sampler.eliminate_samples();
 
-    std::vector<Point3> vertices = generate_sphere_points(num_initial_points, sphere_radius);
-    save_points_to_csv(vertices, "init_vertices.csv");
+//     save_points_to_csv(sampled, "sampled_vertices.csv");
 
-    std::vector<Sample3> samples = Sample3::from_points(vertices);
-    Sampler sampler(target_samples, r_max, samples);
-
-    std::vector<Point3> sampled = sampler.eliminate_samples();
-
-    save_points_to_csv(sampled, "sampled_vertices.csv");
-
-    return 0;
-}
+//     return 0;
+// }
