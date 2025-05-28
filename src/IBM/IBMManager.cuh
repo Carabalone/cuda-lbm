@@ -2,6 +2,7 @@
 #define IBMMANAGER_H
 #include "IBM/IBMBody.cuh"
 #include "IBM/IBM_impl.cuh"
+#include "IBM/IBM_sorting.cuh"
 
 #include <vector>
 #define ITER_MAX 3
@@ -53,6 +54,19 @@ struct IBMManager {
     void init_and_dispatch(std::vector<IBMBody> bodies) {
         num_points = 0;
         for (auto& b : bodies) {
+            if constexpr (dim == 3) {
+                int block_size = 4; 
+                int morton_bits = 10;
+                
+                printf("Sorting body with %d points for manager dim=%d...\n", b.num_points, dim);
+                block_morton_sort<dim>(
+                    b.points,
+                    b.velocities,
+                    b.num_points,
+                    block_size,
+                    morton_bits
+                );
+            }
             h_bodies.push_back(b);
             num_points += b.num_points;
             printf("adding body\n");

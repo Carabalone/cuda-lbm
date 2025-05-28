@@ -10,36 +10,6 @@ struct IBMBody {
     float* velocities;
 
     __host__
-    static IBMBody* copy_to_gpu(IBMBody h_body) {
-        IBMBody* d_body;
-
-        checkCudaErrors(cudaMalloc((void**) &d_body, sizeof(IBMBody)));
-        IBMBody temp = h_body;
-        temp.points = nullptr;
-        temp.velocities = nullptr;
-
-        checkCudaErrors(cudaMemcpy(d_body, &temp, sizeof(IBMBody), cudaMemcpyHostToDevice));
-
-        float* d_points;
-        checkCudaErrors(cudaMalloc(&d_points, 2 * h_body.num_points * sizeof(float)));
-        checkCudaErrors(cudaMemcpy(d_points, h_body.points, 
-                      2 * h_body.num_points * sizeof(float), cudaMemcpyHostToDevice));
-
-        float* d_velocities;
-        checkCudaErrors(cudaMalloc(&d_velocities, 2 * h_body.num_points * sizeof(float)));
-        checkCudaErrors(cudaMemcpy(d_velocities, h_body.velocities, 
-                      2 * h_body.num_points * sizeof(float), cudaMemcpyHostToDevice));
-
-        checkCudaErrors(cudaMemcpy(&(d_body->points), &d_points, sizeof(float*),
-                        cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpy(&(d_body->velocities), &d_velocities, sizeof(float*),
-                        cudaMemcpyHostToDevice));
-        
-        return d_body;
-
-    }
-
-    __host__
     static void gpu_free(IBMBody* d_body) {
         if (d_body == nullptr) return;
         
@@ -59,8 +29,6 @@ struct IBMBody {
     }
 };
 
-// assumes grid coordinates (system, but doesn't need to be aligned)
-IBMBody create_cylinder(float cx, float cy, float r, int num_pts=16);
 
 inline void h_ibm_free(IBMBody body) {
     if (body.points != nullptr) {
