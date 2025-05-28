@@ -2,6 +2,7 @@
 #define LBM_CONSTANTS_H
 
 #include "defines.hpp"
+#include <stdint.h>
 
 #ifdef D2Q9
     constexpr uint8_t dimensions = 2;
