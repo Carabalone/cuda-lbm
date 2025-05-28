@@ -10,6 +10,9 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 include_directories(src)
 
+include_directories(third_party)
+
+
 file(GLOB_RECURSE CXX_SOURCES "src/*.cpp" "src/*.hpp")
 file(GLOB_RECURSE CUDA_SOURCES "src/*.cu" "src/*.cuh")
 
@@ -27,6 +30,7 @@ include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
 find_library(CUDART_LIB cudart PATHS ${CUDA_TOOLKIT_ROOT_DIR} PATH_SUFFIXES lib lib/x64 lib64)
 find_library(CUDADEVRT_LIB cudadevrt PATHS ${CUDA_TOOLKIT_ROOT_DIR} PATH_SUFFIXES lib lib/x64 lib64)
 
+# No extra linking needed for header-only nanoflann
 target_link_libraries(lbm_solver ${CUDART_LIB} ${CUDADEVRT_LIB})
 
 set(CMAKE_CUDA_FLAGS "-Wno-deprecated-gpu-targets")

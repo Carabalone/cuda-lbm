@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = nvcc
-CFLAGS = -arch=sm_61 -O3 -rdc=true -g -G -Isrc/ --std=c++17 --compiler-options -Wall,-Wextra,-std=c++17
+CFLAGS = -arch=sm_61 -O3 -rdc=true -g -G -Isrc/ -Ithird_party/ --std=c++17 --compiler-options -Wall,-Wextra,-std=c++17
 LDFLAGS = $(CFLAGS) -lcudart
 
 # Directories
