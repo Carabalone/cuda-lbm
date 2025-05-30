@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <iostream>
 #include <filesystem>
-#include "IBM/model_sampling/points.hpp"
+#include "IBM/model_sampling/sample.hpp"
 #include "IBM/model_sampling/sampler.hpp"
 #include "IBM/model_sampling/utils.hpp"
 
@@ -40,7 +40,7 @@ IBMBody load_from_obj(const std::string& filename, int target_samples /*=-1*/) {
         exit(EXIT_FAILURE);
     }
 
-    std::vector<sampler::Point3> body_pts;
+    std::vector<geom::Point3D> body_pts;
     bool perform_reduction = (target_samples > 0) && (target_samples < static_cast<int>(mesh.vertices.size()));
 
     if (perform_reduction) {
@@ -92,9 +92,9 @@ IBMBody load_from_obj(const std::string& filename, int target_samples /*=-1*/) {
     body.velocities = new float[3 * num_pts]; 
 
     for (int i = 0; i < num_pts; ++i) {
-        body.points[3*i]   = body_pts[i].x;
-        body.points[3*i+1] = body_pts[i].y;
-        body.points[3*i+2] = body_pts[i].z;
+        body.points[3*i]   = body_pts[i].x();
+        body.points[3*i+1] = body_pts[i].y();
+        body.points[3*i+2] = body_pts[i].z();
 
         body.velocities[3*i]   = 0.0f;
         body.velocities[3*i+1] = 0.0f;
@@ -114,7 +114,7 @@ IBMBody load_from_csv(const std::string& csv_filename) {
         return body;
     }
 
-    std::vector<sampler::Point3> loaded_points;
+    std::vector<geom::Point3D> loaded_points;
     std::string line_str;
     int line_num = 0;
 
@@ -131,13 +131,13 @@ IBMBody load_from_csv(const std::string& csv_filename) {
 
         std::stringstream ss(line_str);
         std::string segment;
-        sampler::Point3 p;
+        geom::Point3D p;
         
         if (!std::getline(ss, segment, ',')) {
             std::cerr << "[WARNING] CSV line " << line_num << ": Could not read x value from: " << line_str << std::endl;
             continue;
         }
-        try { p.x = std::stof(segment); } catch (const std::exception& e) {
+        try { p[0] = std::stof(segment); } catch (const std::exception& e) {
             std::cerr << "[WARNING] CSV line " << line_num << ": Invalid x value '" << segment << "': " << e.what() << std::endl; continue;
         }
 
@@ -145,17 +145,17 @@ IBMBody load_from_csv(const std::string& csv_filename) {
             std::cerr << "[WARNING] CSV line " << line_num << ": Could not read y value from: " << line_str << std::endl;
             continue;
         }
-        try { p.y = std::stof(segment); } catch (const std::exception& e) {
+        try { p[1] = std::stof(segment); } catch (const std::exception& e) {
             std::cerr << "[WARNING] CSV line " << line_num << ": Invalid y value '" << segment << "': " << e.what() << std::endl; continue;
         }
 
         if (!std::getline(ss, segment, ',')) {
-             try { p.z = std::stof(segment); } catch (const std::exception& e) {
-                std::cerr << "[WARNING] CSV line " << line_num << ": Invalid z value '" << segment << "': " << e.what() << std::endl; continue;
+             try { p[2] = std::stof(segment); } catch (const std::exception& e) {
+                std::cerr << "[WARNING] CSV line " << line_num << ": Invalid[2] value '" << segment << "': " << e.what() << std::endl; continue;
             }
         } else {
-             try { p.z = std::stof(segment); } catch (const std::exception& e) {
-                std::cerr << "[WARNING] CSV line " << line_num << ": Invalid z value '" << segment << "': " << e.what() << std::endl; continue;
+             try { p[2] = std::stof(segment); } catch (const std::exception& e) {
+                std::cerr << "[WARNING] CSV line " << line_num << ": Invalid[2] value '" << segment << "': " << e.what() << std::endl; continue;
             }
         }
         loaded_points.push_back(p);
@@ -173,9 +173,9 @@ IBMBody load_from_csv(const std::string& csv_filename) {
     body.velocities = new float[3 * num_pts]; // Assuming 3D points
 
     for (int i = 0; i < num_pts; ++i) {
-        body.points[3 * i + 0] = loaded_points[i].x;
-        body.points[3 * i + 1] = loaded_points[i].y;
-        body.points[3 * i + 2] = loaded_points[i].z;
+        body.points[3 * i + 0] = loaded_points[i].x();
+        body.points[3 * i + 1] = loaded_points[i].y();
+        body.points[3 * i + 2] = loaded_points[i].z();
         body.velocities[3 * i + 0] = 0.0f;
         body.velocities[3 * i + 1] = 0.0f;
         body.velocities[3 * i + 2] = 0.0f;

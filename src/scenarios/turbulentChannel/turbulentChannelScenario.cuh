@@ -19,7 +19,7 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     // static constexpr float viscosity = u_tau * N_half / Re_tau;
     // static constexpr float u_max = viscosity * Re / N_half;
     // static constexpr float u_tau = viscosity * Re_tau / N_half;
-    static constexpr float Re = 10000;
+    static constexpr float Re = 200001;
     static constexpr float u_max = 0.1f;
     static constexpr float viscosity = u_max * N_half / Re;
     static constexpr float tau = viscosity_to_tau(viscosity);
@@ -33,8 +33,10 @@ struct TurbulentChannelScenario : public ScenarioTrait <
         float cz = NZ / 2.0f;
         float r  = NY / 4.0f;
 
-        IBMBody sphere = create_sphere(cx, cy, cz, r, 20, 20);
-        IBM_bodies.emplace_back(sphere);
+        // IBMBody sphere = create_sphere(cx, cy, cz, r, 20, 20);
+        // IBM_bodies.emplace_back(sphere);
+
+        IBM_bodies.emplace_back(load_from_obj("assets/horse.obj", 360));
     }
 
     static constexpr float S[quadratures] = {

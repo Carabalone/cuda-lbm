@@ -2,7 +2,7 @@
 
 namespace sampler {
 
-    float calculate_mesh_volume(const std::vector<Point3>& vertices,
+    float calculate_mesh_volume(const std::vector<geom::Point3D>& vertices,
                                 const std::vector<Face>& faces) {
         if (vertices.empty() || faces.empty()) {
             std::cerr << "[WARNING] Cannot calculate volume for empty or faceless mesh." << std::endl;
@@ -19,20 +19,20 @@ namespace sampler {
                 continue;
             }
 
-            const Point3& p1 = vertices[face.v_indices[0]];
-            const Point3& p2 = vertices[face.v_indices[1]];
-            const Point3& p3 = vertices[face.v_indices[2]];
+            const geom::Point3D& p1 = vertices[face.v_indices[0]];
+            const geom::Point3D& p2 = vertices[face.v_indices[1]];
+            const geom::Point3D& p3 = vertices[face.v_indices[2]];
 
             // Calculate signed volume of the tetrahedron (p1, p2, p3, origin)
             // V_tet = (1/6) * dot(p1, cross(p2, p3))
             // cross(p2, p3) = (p2.y*p3.z - p2.z*p3.y, p2.z*p3.x - p2.x*p3.z, p2.x*p3.y - p2.y*p3.x)
             
-            double v321 = static_cast<double>(p3.x) * p2.y * p1.z;
-            double v231 = static_cast<double>(p2.x) * p3.y * p1.z;
-            double v312 = static_cast<double>(p3.x) * p1.y * p2.z;
-            double v132 = static_cast<double>(p1.x) * p3.y * p2.z;
-            double v213 = static_cast<double>(p2.x) * p1.y * p3.z;
-            double v123 = static_cast<double>(p1.x) * p2.y * p3.z;
+            double v321 = static_cast<double>(p3.x()) * p2.y() * p1.z();
+            double v231 = static_cast<double>(p2.x()) * p3.y() * p1.z();
+            double v312 = static_cast<double>(p3.x()) * p1.y() * p2.z();
+            double v132 = static_cast<double>(p1.x()) * p3.y() * p2.z();
+            double v213 = static_cast<double>(p2.x()) * p1.y() * p3.z();
+            double v123 = static_cast<double>(p1.x()) * p2.y() * p3.z();
 
             volume_acc += (-v321 + v231 + v312 - v132 - v213 + v123);
         }

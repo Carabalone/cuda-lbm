@@ -6,7 +6,6 @@
 // #include <cstdlib>
 
 // #include "third_party/nanoflann/nanoflann.hpp"
-// #include "IBM/model_sampling/points.hpp"
 // #include "utils.hpp"
 // #include "sampler.hpp"
 // #include <iomanip>
@@ -30,7 +29,7 @@
 //     std::cout << "---------------------" << std::endl;
 
 //     // std::vector<Point3> vertices = generate_sphere_points(num_initial_points, sphere_radius);
-//     std::vector<sm::Point3> vertices;
+//     std::vector<geom::Point3D> vertices;
 //     if (argc == 2) {
 //         std::cout << "Loading mesh from: " << argv[1] << std::endl;
 //         sm::MeshData mesh = sm::load_mesh_from_obj(argv[1]);
@@ -68,7 +67,7 @@
 //     std::vector<sm::Sample3> samples = sm::Sample3::from_points(vertices);
 //     sm::Sampler sampler(target_samples, r_max, samples);
 
-//     std::vector<sm::Point3> sampled = sampler.eliminate_samples();
+//     std::vector<geom::Point3D> sampled = sampler.eliminate_samples();
 
 //     save_points_to_csv(sampled, "sampled_vertices.csv");
 

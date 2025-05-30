@@ -2,7 +2,7 @@
 #define IBMUTILS_H
 #include "core/lbm_constants.cuh"
 #include "IBM/IBMBody.cuh"
-#include "IBM/model_sampling/points.hpp"
+#include "IBM/model_sampling/sample.hpp"
 #include <cfloat>
 #include <cmath>
 

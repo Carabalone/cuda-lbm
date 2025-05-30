@@ -1,11 +1,12 @@
 #pragma once
 
-#include "IBM/model_sampling/points.hpp"
+#include "IBM/geometry/point.hpp"
+#include "IBM/model_sampling/sample.hpp"
 #include <queue>
 
 namespace sampler {
 
-    float calculate_mesh_volume(const std::vector<Point3>& vertices,
+    float calculate_mesh_volume(const std::vector<geom::Point3D>& vertices,
                                 const std::vector<Face>& faces);
     float calculate_r_max_3d(float domain_volume, int target_samples);
 
@@ -29,15 +30,15 @@ namespace sampler {
             printf("Tree built\n");
         }
 
-        static float euclidean_dist(Point3& p1, Point3& p2) {
-            float dx = p2.x - p1.x;
-            float dy = p2.y - p1.y;
-            float dz = p2.z - p1.z;
+        static float euclidean_dist(geom::Point3D& p1, geom::Point3D& p2) {
+            float dx = p2.x() - p1.x();
+            float dy = p2.y() - p1.y();
+            float dz = p2.z() - p1.z();
 
             return sqrtf(dx * dx + dy * dy + dz * dz);
         }
 
-        float calculate_wij(Point3& p1, Point3& p2) {
+        float calculate_wij(geom::Point3D& p1, geom::Point3D& p2) {
             float d = euclidean_dist(p1, p2);
             if (d >= 2.0f * r_max)
                 return 0.0f;
@@ -51,11 +52,11 @@ namespace sampler {
                 printf("[WEIGHTS]: %.2f%\r", (static_cast<float>(i) / samples.size()) * 100.0f);
                 sample.weight = 0.0f;
 
-                Point3& anchor_point = sample.point;
+                geom::Point3D& anchor_point = sample.point;
 
                 float two_r_max_sq = 4.0f * r_max * r_max;
                 std::vector<nanoflann::ResultItem<uint32_t, float>> results;
-                tree.radiusSearch(&anchor_point.x, two_r_max_sq, results, nanoflann::SearchParameters());
+                tree.radiusSearch(anchor_point.get_data_ptr(), two_r_max_sq, results, nanoflann::SearchParameters());
 
                 for (auto& res : results) {
                     uint32_t neigh_idx = res.first;
@@ -84,14 +85,14 @@ namespace sampler {
             return sample_heap;
         }
 
-        std::vector<Point3> eliminate_samples() {
+        std::vector<geom::Point3D> eliminate_samples() {
             int num_samples = samples.size();
             int removed_samples = 0;
 
             if (target_samples >= num_samples) {
                 printf("Cannot perform sample elimination (target >= num_samples)\n");
 
-                return Point3::from_samples(samples);
+                return points_from_samples(samples);
             }
 
             printf("Assigning weights...\n");
@@ -124,7 +125,7 @@ namespace sampler {
                 float search_radius_sq = (2.0f * r_max) * (2.0f * r_max); //2r_max from paper, but nanoflann expects r² instead of r
                 std::vector<nanoflann::ResultItem<uint32_t, float>> results;
                 tree.radiusSearch(
-                    &s_top.point.x, search_radius_sq, results, nanoflann::SearchParameters()
+                    s_top.point.get_data_ptr(), search_radius_sq, results, nanoflann::SearchParameters()
                 );
 
                 // if (/*(num_samples - removed_samples) % 100 == 0 &&*/ removed_samples > 0) {
@@ -144,7 +145,7 @@ namespace sampler {
 
             printf("\n");
 
-            std::vector<Point3> final_points;
+            std::vector<geom::Point3D> final_points;
             final_points.reserve(num_samples - removed_samples);
             for (auto& s_obj : samples) {
                 if (!s_obj.eliminated) {

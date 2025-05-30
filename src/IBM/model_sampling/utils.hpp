@@ -1,5 +1,5 @@
 #pragma once
-#include "points.hpp"
+#include "IBM/geometry/point.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -8,10 +8,10 @@
 namespace sampler {
 
 
-    std::vector<Point3> generate_sphere_points(
+    std::vector<geom::Point3D> generate_sphere_points(
         int num_points,
         float sphere_radius) {
-        std::vector<Point3> points_on_sphere;
+        std::vector<geom::Point3D> points_on_sphere;
         points_on_sphere.reserve(num_points);
 
         if (num_points <= 0) {
@@ -57,8 +57,8 @@ namespace sampler {
             ss >> keyword;
 
             if (keyword == "v") {
-                Point3 p;
-                if (ss >> p.x >> p.y >> p.z) {
+                geom::Point3D p;
+                if (ss >> p[0] >> p[1] >> p[2]) {
                     mesh_data.vertices.push_back(p);
                 } else {
                     std::cerr << "[WARNING] Could not parse vertex line: "
@@ -111,8 +111,8 @@ namespace sampler {
         return mesh_data;
     }
 
-    std::vector<Point3> load_points_from_obj(const std::string& filename) {
-        std::vector<Point3> vertices;
+    std::vector<geom::Point3D> load_points_from_obj(const std::string& filename) {
+        std::vector<geom::Point3D> vertices;
         std::ifstream file(filename);
 
         if (!file.is_open()) {
@@ -127,8 +127,8 @@ namespace sampler {
             ss >> keyword;
 
             if (keyword == "v") {
-                Point3 p;
-                if (ss >> p.x >> p.y >> p.z) {
+                geom::Point3D p;
+                if (ss >> p[0] >> p[1] >> p[2]) {
                     vertices.push_back(p);
                 } else {
                     std::cerr << "[WARNING] Could not parse vertex line: " << line
@@ -141,7 +141,7 @@ namespace sampler {
         return vertices;
     }
 
-    void save_points_to_csv(const std::vector<Point3>& points, const std::string& filename) {
+    void save_points_to_csv(const std::vector<geom::Point3D>& points, const std::string& filename) {
         std::ofstream outfile(filename);
         if (!outfile.is_open()) {
             std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
@@ -149,7 +149,7 @@ namespace sampler {
         }
         outfile << "x,y,z\n"; // CSV Header
         for (const auto& p : points) {
-            outfile << p.x << "," << p.y << "," << p.z << "\n";
+            outfile << p[0] << "," << p[1] << "," << p[2] << "\n";
         }
         outfile.close();
         std::cout << "[INFO] Saved " << points.size() << " points to " << filename << std::endl;
