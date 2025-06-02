@@ -47,15 +47,15 @@ IBMBody create_sphere(float cx, float cy, float cz, float r, int n_theta, int n_
     // 2) Intermediate rings φ in (dphi, (n_phi-2)*dphi)
     for (int i = 1; i < n_phi - 1; ++i) {
         float phi = i * dphi;
-        float sinφ = sinf(phi);
-        float cosφ = cosf(phi);
+        float sin_phi = sinf(phi);
+        float cos_phi = cosf(phi);
         for (int j = 0; j < n_theta; ++j) {
             float theta = j * dtheta;
-            float cosθ = cosf(theta), sinθ = sinf(theta);
+            float cos_theta = cosf(theta), sin_theta = sinf(theta);
 
-            float x = cx + r * sinφ * cosθ;
-            float y = cy + r * cosφ;
-            float z = cz + r * sinφ * sinθ;
+            float x = cx + r * sin_phi * cos_theta;
+            float y = cy + r * cos_phi;
+            float z = cz + r * sin_phi * sin_theta;
 
             body.points[3*idx + 0] = x;
             body.points[3*idx + 1] = y;
