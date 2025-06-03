@@ -13,7 +13,7 @@ void CM<3, NoAdapter>::apply(float* f, float* f_eq, float* u, float* force, int 
 
     float rho = 0.0f;
     
-    float k4, k5, k6, k7, k8;
+    float k4 = 0.0f, k5 = 0.0f, k6 = 0.0f, k7 = 0.0f, k8 = 0.0f;
     // float old_f[quadratures];
     const float cs2 = 1.0f / 3.0f;
     const float cs4 = cs2 * cs2;
@@ -90,16 +90,16 @@ void CM<3, NoAdapter>::apply(float* f, float* f_eq, float* u, float* force, int 
 
     // left for debug.
     // TODO: for some reason the compiler ignores f calculations if I remove this dummy variable.
-    for (int i = 0; i < quadratures; i++) {
-        int idx = get_node_index(node, i);
-        float test = f[idx];
+    // for (int i = 0; i < quadratures; i++) {
+    //     int idx = get_node_index(node, i);
+    //     float test = f[idx];
 
-        if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
-            int x, y, z;
-            get_coords_from_node(node, x, y, z);
+    //     if (fabsf(f[idx]) > VALUE_THRESHOLD || f[idx] < -0.01f) {
+    //         int x, y, z;
+    //         get_coords_from_node(node, x, y, z);
             
-            // printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
-            //       node, x, y, i, idx, old_f[i], f[idx]);
-        }
-    }
+    //         // printf("[WARNING][CM::apply] Node %d (x=%d,y=%d), Dir %d: f[%d] = %f → %f\n",
+    //         //       node, x, y, i, idx, old_f[i], f[idx]);
+    //     }
+    // }
 }

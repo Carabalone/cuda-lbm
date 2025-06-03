@@ -1,0 +1,2 @@
+1- Fix pathing issue when compiling for linux x compiling for windows (Same path is not valid for win and linux. Assets/asset.obj wont work on windows)
+2- Saving midplanes not working on windwos (will be fixed with stl writer)
