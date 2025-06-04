@@ -65,7 +65,7 @@ int main(void) {
     // destructor frees automatically
     lbm.allocate<Scenario>();
 
-    const int total_timesteps = 5000;
+    const int total_timesteps = 30000;
     // const int total_timesteps = 25;
     const int save_int = 100;
     int t = 0;
@@ -113,7 +113,7 @@ int main(void) {
         float elapsed = simulation_timer.elapsed_seconds();
         simulation_timer.checkpoint_seconds();
 
-        if (t % (total_timesteps / 20) == 0) {
+        if (t % (/*total_timesteps / 20*/ 100) == 0) {
             last_progress_time = elapsed;
             float progress = (t * 100.0f) / total_timesteps;
             printf("Simulation progress: %.1f%% (timestep %d/%d)\n", progress, t, total_timesteps);
@@ -133,7 +133,7 @@ int main(void) {
         }
         if (save) {
             // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
-            lbm.save_midplane_slice(t+1);
+            // lbm.save_midplane_slice(t+1);
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 
