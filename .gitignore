@@ -59,3 +59,5 @@ build/
 assets/
 *.out
 plan/
+.clangd/
+compile_commands.json

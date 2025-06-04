@@ -3,7 +3,7 @@
 namespace sampler {
 
     float calculate_mesh_volume(const std::vector<geom::Point3D>& vertices,
-                                const std::vector<Face>& faces) {
+                                const std::vector<mesh::Face>& faces) {
         if (vertices.empty() || faces.empty()) {
             std::cerr << "[WARNING] Cannot calculate volume for empty or faceless mesh." << std::endl;
             return 0.0f;

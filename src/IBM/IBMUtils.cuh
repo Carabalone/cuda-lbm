@@ -6,32 +6,7 @@
 #include <cfloat>
 #include <cmath>
 
-// assumes grid coordinates (system, but doesn't need to be aligned)
-IBMBody create_cylinder(float cx, float cy, float r, int num_pts=16);
-IBMBody create_sphere(float cx, float cy, float cz, float r, int n_theta, int n_phi);
-IBMBody load_from_obj(const std::string& filename, int target_samples=-1); // 3d for now
-IBMBody load_from_csv(const std::string& csv_filename);
-
-struct AABB_3D {
-    float min_x = FLT_MAX, min_y = FLT_MAX, min_z = FLT_MAX;
-    float max_x = -FLT_MAX, max_y = -FLT_MAX, max_z = -FLT_MAX;
-
-    __host__ void update(float x, float y, float z = 0.0f) {
-        min_x = fminf(min_x, x); max_x = fmaxf(max_x, x);
-        min_y = fminf(min_y, y); max_y = fmaxf(max_y, y);
-        min_z = fminf(min_z, z); max_z = fmaxf(max_z, z);
-    }
-
-    // TODO check z (2D case)
-    __host__ bool is_valid() const {
-        return min_x <= max_x && min_y <= max_y && min_z <= max_z;
-    }
-};
-
-template <int dim>
-__host__ void block_morton_sort(
-    float* points, float* velocities, int num_ppts, float block_size, int morton_bits_per_dim = 10
-);
+IBMBody load_from_obj(const std::string& filename, int target_samples =-1);
 
 __host__ __device__ __forceinline__
 float delta(float r) {

@@ -8,9 +8,12 @@
 #include <algorithm>
 #include <iostream>
 #include <filesystem>
+#include <iomanip>
+#include "IBM/mesh/mesh_io.hpp"
 #include "IBM/model_sampling/sample.hpp"
 #include "IBM/model_sampling/sampler.hpp"
 #include "IBM/model_sampling/utils.hpp"
+#include "IBM/mesh/mesh.hpp"
 
 namespace fs = std::filesystem;
 namespace sm = sampler;
@@ -33,7 +36,7 @@ IBMBody load_from_obj(const std::string& filename, int target_samples /*=-1*/) {
     IBMBody body = {0, nullptr, nullptr};
 
     std::cout << "[INFO] Loading mesh using sampler::load_mesh_from_obj from: " << filename << std::endl;
-    sampler::MeshData mesh = sampler::load_mesh_from_obj(filename);
+    mesh::MeshData mesh = mesh::load_obj(filename);
 
     if (mesh.vertices.empty()) {
         std::cerr << "[ERROR] Failed to load mesh or mesh is empty using sampler::load_mesh_from_obj. Aborting." << std::endl;

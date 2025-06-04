@@ -2,12 +2,13 @@
 
 #include "IBM/geometry/point.hpp"
 #include "IBM/model_sampling/sample.hpp"
+#include "IBM/mesh/mesh.hpp"
 #include <queue>
 
 namespace sampler {
 
     float calculate_mesh_volume(const std::vector<geom::Point3D>& vertices,
-                                const std::vector<Face>& faces);
+                                const std::vector<mesh::Face>& faces);
     float calculate_r_max_3d(float domain_volume, int target_samples);
 
     struct Sampler {

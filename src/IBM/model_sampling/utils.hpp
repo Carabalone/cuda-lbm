@@ -1,9 +1,12 @@
 #pragma once
 #include "IBM/geometry/point.hpp"
+#include <filesystem>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+namespace fs = std::filesystem;
 
 namespace sampler {
 
@@ -22,7 +25,7 @@ namespace sampler {
             return points_on_sphere;
         }
 
-        const float golden_angle_increment = static_cast<float>(M_PI) * (3.0f - std::sqrt(5.0f)); // Approx 2.3999 rad
+        const float golden_angle_increment = static_cast<float>(M_PI) * (3.0f - std::sqrt(5.0f));
 
         for (int i = 0; i < num_points; ++i) {
             float y = 1.0f - (static_cast<float>(i) / (num_points - 1)) * 2.0f;
@@ -39,76 +42,6 @@ namespace sampler {
             });
         }
         return points_on_sphere;
-    }
-
-    MeshData load_mesh_from_obj(const std::string& filename) {
-        MeshData mesh_data;
-        std::ifstream file(filename);
-
-        if (!file.is_open()) {
-            std::cerr << "Error: Could not open file " << filename << std::endl;
-            return mesh_data;
-        }
-
-        std::string line_str;
-        while (std::getline(file, line_str)) {
-            std::stringstream ss(line_str);
-            std::string keyword;
-            ss >> keyword;
-
-            if (keyword == "v") {
-                geom::Point3D p;
-                if (ss >> p[0] >> p[1] >> p[2]) {
-                    mesh_data.vertices.push_back(p);
-                } else {
-                    std::cerr << "[WARNING] Could not parse vertex line: "
-                            << line_str << std::endl;
-                }
-            } else if (keyword == "f") {
-                Face f;
-                bool success = true;
-                int vertex_count_on_face = 0;
-                for (int i = 0; i < 3; ++i) {
-                    std::string face_val_str;
-                    if (!(ss >> face_val_str)) {
-                        if (i < 3 && vertex_count_on_face < 3) success = false; // Not enough vertices for a triangle
-                        break; 
-                    }
-                    vertex_count_on_face++;
-                    size_t first_slash = face_val_str.find('/');
-                    std::string v_idx_str = face_val_str.substr(0, first_slash);
-                    try {
-                        // obj is 1-index based.
-                        f.v_indices[i] = std::stoi(v_idx_str) - 1;
-                    } catch (const std::invalid_argument& ia) {
-                        std::cerr << "[WARNING] Invalid face vertex index: "
-                                << v_idx_str << " from line: " << line_str
-                                << std::endl;
-                        success = false;
-                        break;
-                    } catch (const std::out_of_range& oor) {
-                        std::cerr << "[WARNING] Face vertex index out of range: "
-                                << v_idx_str << " from line: " << line_str
-                                << std::endl;
-                        success = false;
-                        break;
-                    }
-                }
-                if (success && vertex_count_on_face >= 3) {
-                    mesh_data.faces.push_back(f);
-                } else if (vertex_count_on_face > 0 && vertex_count_on_face < 3) {
-                    std::cerr << "[WARNING] Face line has < 3 vertices: "
-                            << line_str << std::endl;
-                }
-            }
-        }
-        file.close();
-        if (!mesh_data.vertices.empty()) {
-            std::cout << "[INFO] Loaded " << mesh_data.vertices.size()
-                    << " vertices and " << mesh_data.faces.size()
-                    << " faces from " << filename << std::endl;
-        }
-        return mesh_data;
     }
 
     std::vector<geom::Point3D> load_points_from_obj(const std::string& filename) {

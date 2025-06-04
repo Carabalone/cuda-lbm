@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include "IBM/mesh/mesh.hpp"
 
 struct SortablePoint {
     float p[3];
@@ -49,39 +50,44 @@ __host__ void block_morton_sort(
         return;
     }
 
-    AABB_3D body_aabb;
+    mesh::AABB body_aabb;
     for (int i = 0; i < num_pts; ++i) {
+        float px = points[i * dim + 0];
+        float py = points[i * dim + 1];
         float pz = (dim == 3) ? points[i * dim + 2] : 0.0f;
-        body_aabb.update(points[i * dim + 0], points[i * dim + 1], pz);
+        body_aabb.update(px, py, pz);
     }
 
-    if (!body_aabb.is_valid()) {
-        printf("[WARNING] AABB for Morton sorting is invalid (num_points: %d). Skipping.\n", num_pts);
+    if (!body_aabb.is_valid) {
+        printf(
+            "[WARNING] AABB for Morton sorting is invalid (num_points: %d). "
+            "Skipping.\n",
+            num_pts);
         return;
     }
 
     printf("AABB: min(%.3f, %.3f, %.3f), max(%.3f, %.3f, %.3f)\n",
-       body_aabb.min_x, body_aabb.min_y, body_aabb.min_z,
-       body_aabb.max_x, body_aabb.max_y, body_aabb.max_z);
+           body_aabb.min_ext.x(), body_aabb.min_ext.y(), body_aabb.min_ext.z(),
+           body_aabb.max_ext.x(), body_aabb.max_ext.y(), body_aabb.max_ext.z());
 
-    float block_grid_origin_x = floorf(body_aabb.min_x / block_size) * block_size;
-    float block_grid_origin_y = floorf(body_aabb.min_y / block_size) * block_size;
+    float block_grid_origin_x = floorf(body_aabb.min_ext.x() / block_size) * block_size;
+    float block_grid_origin_y = floorf(body_aabb.min_ext.y() / block_size) * block_size;
     float block_grid_origin_z = 0.0f;
     if constexpr (dim == 3) {
-        block_grid_origin_z = floorf(body_aabb.min_z / block_size) * block_size;
+        block_grid_origin_z = floorf(body_aabb.min_ext.z() / block_size) * block_size;
     }
 
     float epsilon = static_cast<float>(block_size) * 1e-6f;
-    int num_blocks_x = static_cast<int>(ceilf((body_aabb.max_x - block_grid_origin_x + epsilon) / block_size));
-    int num_blocks_y = static_cast<int>(ceilf((body_aabb.max_y - block_grid_origin_y + epsilon) / block_size));
+    int num_blocks_x = static_cast<int>(ceilf((body_aabb.max_ext.x() - block_grid_origin_x + epsilon) / block_size));
+    int num_blocks_y = static_cast<int>(ceilf((body_aabb.max_ext.y() - block_grid_origin_y + epsilon) / block_size));
     int num_blocks_z = 1;
     if constexpr (dim == 3) {
-        num_blocks_z = static_cast<int>(ceilf((body_aabb.max_z - block_grid_origin_z + epsilon) / block_size));
+        num_blocks_z = static_cast<int>(ceilf((body_aabb.max_ext.z() - block_grid_origin_z + epsilon) / block_size));
     }
 
     num_blocks_x = std::max(1, num_blocks_x);
     num_blocks_y = std::max(1, num_blocks_y);
-    num_blocks_z = std::max(1, num_blocks_z); // 1 for dim == 2
+    num_blocks_z = std::max(1, num_blocks_z);
 
     std::vector<SortablePoint> sortable_data(num_pts);
     uint32_t morton_coord_max_val = (1 << morton_bits_per_dim) - 1;
@@ -91,14 +97,16 @@ __host__ void block_morton_sort(
         float py = points[i * dim + 1];
         float pz = (dim == 3) ? points[i * dim + 2] : 0.0f;
 
-        #pragma unroll
-        for(int comp = 0; comp < dim; comp++) {
-            sortable_data[i].p[comp] = points[i * dim + comp];
-            sortable_data[i].v[comp] = velocities[i * dim + comp];
-        }
-        if constexpr (dim == 2) {
-            sortable_data[i].p[2] = 0.0f;
-            sortable_data[i].v[2] = 0.0f;
+        sortable_data[i].p[0] = px;
+        sortable_data[i].p[1] = py;
+        sortable_data[i].p[2] = (dim == 3) ? pz : 0.0f;
+
+        sortable_data[i].v[0] = velocities[i * dim + 0];
+        sortable_data[i].v[1] = velocities[i * dim + 1];
+        if constexpr (dim == 3) {
+            sortable_data[i].v[2] = velocities[i * dim + 2];
+        } else {
+            sortable_data[i].v[2] = 0.0f; // Ensure v[2] is initialized for 2D
         }
         sortable_data[i].original_idx = i;
 
@@ -113,12 +121,12 @@ __host__ void block_morton_sort(
         uint32_t my = static_cast<uint32_t>(fmaxf(0.0f, fminf(local_y / block_size, 1.0f)) * morton_coord_max_val);
 
         if constexpr (dim == 2) {
-            sortable_data[i].block_idx_1d = biy * num_blocks_x + bix; // y-major for blocks
+            sortable_data[i].block_idx_1d = biy * num_blocks_x + bix;
             sortable_data[i].morton_code = calculate_morton_2d(mx, my, morton_bits_per_dim);
         } else if constexpr (dim == 3) {
             int biz = static_cast<int>(floorf((pz - block_grid_origin_z) / block_size));
             biz = std::max(0, std::min(biz, num_blocks_z - 1));
-            sortable_data[i].block_idx_1d = biz * (num_blocks_x * num_blocks_y) + biy * num_blocks_x + bix; // z-major
+            sortable_data[i].block_idx_1d = biz * (num_blocks_x * num_blocks_y) + biy * num_blocks_x + bix;
 
             float local_z = pz - (block_grid_origin_z + static_cast<float>(biz) * block_size);
             uint32_t mz = static_cast<uint32_t>(fmaxf(0.0f, fminf(local_z / block_size, 1.0f)) * morton_coord_max_val);
@@ -136,12 +144,16 @@ __host__ void block_morton_sort(
 
     for (int i = 0; i < num_pts; i++) {
         #pragma unroll
-        for(int comp = 0; comp < dim; comp++) {
+        for (int comp = 0; comp < dim; comp++) {
             points[i * dim + comp] = sortable_data[i].p[comp];
             velocities[i * dim + comp] = sortable_data[i].v[comp];
         }
     }
-    printf("Morton sorting <dim=%d> complete for %d points. Block size L=%d. Morton bits=%d\n", dim, num_pts, block_size, morton_bits_per_dim);
+    printf(
+        "Morton sorting <dim=%d> complete for %d points. Block size L=%d. "
+        "Morton bits=%d\n",
+        dim, num_pts, block_size, morton_bits_per_dim);
+        
 }
 
 #endif // ! IBM_SORTING_H

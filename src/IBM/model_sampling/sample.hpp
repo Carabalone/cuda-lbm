@@ -11,15 +11,6 @@
 
 namespace sampler {
 
-struct Face {
-    int v_indices[3];
-};
-
-struct MeshData {
-    std::vector<geom::Point3D> vertices;
-    std::vector<Face> faces;
-};
-
 struct Sample3 {
     geom::Point3D point;
     float weight;
