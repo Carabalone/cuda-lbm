@@ -87,7 +87,7 @@ struct Mat4 {
         return result;
     }
 
-    geom::Point3D transformPoint(const geom::Point3D& p) const {
+    geom::Point3D transform_point(const geom::Point3D& p) const {
         geom::Point3D result_p;
         float px = p.x();
         float py = p.y();
@@ -111,7 +111,7 @@ struct Mat4 {
         return result_p;
     }
 
-    geom::Point3D transformVector(const geom::Point3D& v) const {
+    geom::Point3D transform_vector(const geom::Point3D& v) const {
         geom::Point3D result_v;
         float vx = v.x();
         float vy = v.y();

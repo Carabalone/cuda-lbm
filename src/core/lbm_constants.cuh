@@ -295,8 +295,8 @@ extern __constant__ float S[quadratures];
 
 constexpr int num_nodes = NX * NY * NZ;
 
-#define SOA
-// #define CSOA
+// #define SOA
+#define CSOA
 #ifdef CSOA
     constexpr int cluster_size = 64;
 
@@ -304,6 +304,8 @@ constexpr int num_nodes = NX * NY * NZ;
     int get_node_index(int node, int quadrature=0) {
         return (((node / cluster_size) * quadratures + quadrature) * cluster_size) + 
            (node % cluster_size);
+        
+        // return (((node >> 6) * quadratures + quadrature) << 6) | (node & 0x3F);
     }
 
 

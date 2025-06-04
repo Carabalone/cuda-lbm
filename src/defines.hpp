@@ -37,9 +37,9 @@
     #define NZ (64 * SCALE)
 #elif defined(USE_TURBULENT_CHANNEL)
     #define SCALE 1
-    #define NX (256/4 * SCALE)
-    #define NY (128/4 * SCALE)
-    #define NZ (256/4 * SCALE)
+    #define NX (256 * SCALE)
+    #define NY (128 * SCALE)
+    #define NZ (256 * SCALE)
 #endif
 
 #ifndef NZ

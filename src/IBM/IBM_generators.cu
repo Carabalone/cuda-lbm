@@ -1,4 +1,6 @@
 #include "IBM/IBM_generators.cuh"
+#include <vector>
+#include "IBM/geometry/point.hpp"
 
 IBMBody create_cylinder(float cx, float cy, float r, int num_pts) {
 

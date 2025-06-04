@@ -3,6 +3,7 @@
 
 #include "scenarios/scenario.cuh"
 #include "turbulentChannelFunctors.cuh"
+#include "IBM/IBMUtils.cuh"
 
 struct TurbulentChannelScenario : public ScenarioTrait <
     TurbulentChannelInit,
@@ -33,10 +34,14 @@ struct TurbulentChannelScenario : public ScenarioTrait <
         float cz = NZ / 2.0f;
         float r  = NY / 4.0f;
 
-        // IBMBody sphere = create_sphere(cx, cy, cz, r, 20, 20);
+        // IBMBody sphere = create_sphere(cx, cy, cz, r, 64, 64);
         // IBM_bodies.emplace_back(sphere);
 
+        #ifdef _WIN32
+        IBM_bodies.emplace_back(load_from_obj("../../../assets/horse.obj", 360));
+        #else
         IBM_bodies.emplace_back(load_from_obj("assets/horse.obj", 360));
+        #endif
     }
 
     static constexpr float S[quadratures] = {
