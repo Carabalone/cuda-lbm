@@ -266,6 +266,82 @@ public:
         vel_file.close();
     }
 
+    void save_vtk(int timestep) {
+        update_macroscopics();
+
+        std::string output_dir = "output/vtk";
+        try {
+            if (!fs::is_directory(output_dir) || !fs::exists(output_dir)) {
+                fs::create_directories(output_dir);
+            }
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "Filesystem error creating directory " << output_dir << ": " << e.what() << std::endl;
+            return;
+        }
+
+        std::ostringstream filename_stream;
+        filename_stream << output_dir << "/sim_data_" << std::setw(6) << std::setfill('0') << timestep << ".vti";
+        std::string filename = filename_stream.str();
+
+        std::ofstream vtk_file(filename, std::ios::out | std::ios::binary);
+        if (!vtk_file) {
+            std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
+            return;
+        }
+
+        std::cout << "[VTK Export] Saving data for timestep " << timestep << " to " << filename << std::endl;
+
+        vtk_file << "<?xml version=\"1.0\"?>\n";
+        vtk_file << "<VTKFile type=\"ImageData\" version=\"1.0\" byte_order=\"LittleEndian\" header_type=\"UInt64\">\n";
+        vtk_file << "  <ImageData WholeExtent=\"0 " << NX - 1 << " 0 " << NY - 1 << " 0 " << NZ - 1
+                 << "\" Origin=\"0 0 0\" Spacing=\"1 1 1\">\n";
+        vtk_file << "    <Piece Extent=\"0 " << NX - 1 << " 0 " << NY - 1 << " 0 " << NZ - 1 << "\">\n";
+        vtk_file << "      <PointData Scalars=\"Density\" Vectors=\"Velocity\">\n";
+
+        vtk_file << "        <DataArray type=\"Float32\" Name=\"Density\" format=\"appended\" offset=\"0\"/>\n";
+        vtk_file << "        <DataArray type=\"Float32\" Name=\"Velocity\" NumberOfComponents=\"3\" format=\"appended\" offset=\""
+                 << h_rho.size() * sizeof(float) << "\"/>\n";
+
+        vtk_file << "      </PointData>\n";
+        vtk_file << "      <CellData>\n";
+        vtk_file << "      </CellData>\n";
+        vtk_file << "    </Piece>\n";
+        vtk_file << "  </ImageData>\n";
+        vtk_file << "  <AppendedData encoding=\"raw\">\n";
+        vtk_file << "   _";
+
+        std::vector<float> u_3d_buffer;
+        u_3d_buffer.reserve(static_cast<size_t>(NX) * NY * NZ * 3);
+
+        for (int k = 0; k < NZ; ++k) {
+            for (int j = 0; j < NY; ++j) {
+                for (int i = 0; i < NX; ++i) {
+                    int node_idx = k * (NX * NY) + j * NX + i;
+                    u_3d_buffer.push_back(h_u[get_vec_index(node_idx, 0)]);
+                    u_3d_buffer.push_back(h_u[get_vec_index(node_idx, 1)]);
+                    if constexpr (dim == 3) {
+                        u_3d_buffer.push_back(h_u[get_vec_index(node_idx, 2)]);
+                    } else { // dim == 2
+                        u_3d_buffer.push_back(0.0f); // Pad Z component
+                    }
+                }
+            }
+        }
+
+        uint64_t density_bytes = h_rho.size() * sizeof(float);
+        vtk_file.write(reinterpret_cast<const char*>(&density_bytes), sizeof(uint64_t));
+        vtk_file.write(reinterpret_cast<const char*>(h_rho.data()), density_bytes);
+
+        uint64_t velocity_bytes = u_3d_buffer.size() * sizeof(float);
+        vtk_file.write(reinterpret_cast<const char*>(&velocity_bytes), sizeof(uint64_t));
+        vtk_file.write(reinterpret_cast<const char*>(u_3d_buffer.data()), velocity_bytes);
+
+        vtk_file << "\n  </AppendedData>\n";
+        vtk_file << "</VTKFile>\n";
+
+        vtk_file.close();
+    }
+
     __host__ void swap_buffers() {
         float* temp;
         temp = d_f;
