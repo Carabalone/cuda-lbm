@@ -4,6 +4,9 @@
 #include "scenarios/scenario.cuh"
 #include "turbulentChannelFunctors.cuh"
 #include "IBM/IBMUtils.cuh"
+#include "IBM/mesh/mesh_io.hpp"
+#include "IBM/mesh/mesh_transformer.hpp"
+#include "IBM/config/body_config.hpp"
 
 struct TurbulentChannelScenario : public ScenarioTrait <
     TurbulentChannelInit,
@@ -29,6 +32,7 @@ struct TurbulentChannelScenario : public ScenarioTrait <
     static constexpr float perturbation = 0.1f;
 
     static void add_bodies() {
+        
         float cx = NX / 4.0f;
         float cy = NY / 2.0f;
         float cz = NZ / 2.0f;
@@ -37,11 +41,37 @@ struct TurbulentChannelScenario : public ScenarioTrait <
         // IBMBody sphere = create_sphere(cx, cy, cz, r, 64, 64);
         // IBM_bodies.emplace_back(sphere);
 
+        // IBM_bodies.emplace_back(load_from_obj("assets/horse.obj", 360));
+        std::string base_path = "";
         #ifdef _WIN32
-        IBM_bodies.emplace_back(load_from_obj("../../../assets/horse.obj", 360));
-        #else
-        IBM_bodies.emplace_back(load_from_obj("assets/horse.obj", 360));
+            base_path = "../../../";
         #endif
+
+        // std::string obj_path = base_path + "/sphere_unit_64x64.obj";
+
+        // mesh::MeshData sphere_mesh = mesh::load_obj(obj_path);
+        // if (sphere_mesh.vertices.empty()) {
+        //     std::cerr << "[add_bodies] Failed to load sphere mesh from: " << obj_path << std::endl;
+        //     return;
+        // }
+
+        // mesh::MeshTransformer transformer(sphere_mesh);
+        // transformer
+        //     .scale_to_overall_size(r * 2.0f)
+        //     .rotate_y(static_cast<float>(M_PI) / 4.0f)
+        //     .rotate_x(static_cast<float>(M_PI) / 6.0f)
+        //     .move_anchor_to_world(cx, cy, cz);
+
+        // transformer.collect_file("debug_transformed_sphere_test.obj");
+
+        // IBMBody sphere_body = transformer.collect_ibm_body(1024);
+        // IBM_bodies.push_back(sphere_body);
+
+        std::string sphere_config = base_path + "src/scenarios/turbulentChannel/sphere_body_config.ini";
+        IBMBody sphere = conf::create_body_from_config(sphere_config);
+        IBM_bodies.emplace_back(sphere);
+
+        
     }
 
     static constexpr float S[quadratures] = {

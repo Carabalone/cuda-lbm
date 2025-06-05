@@ -65,7 +65,7 @@ int main(void) {
     // destructor frees automatically
     lbm.allocate<Scenario>();
 
-    const int total_timesteps = 30000;
+    const int total_timesteps = 5000;
     // const int total_timesteps = 25;
     const int save_int = 100;
     int t = 0;
@@ -133,7 +133,7 @@ int main(void) {
         }
         if (save) {
             // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
-            // lbm.save_midplane_slice(t+1);
+            lbm.save_midplane_slice(t+1);
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 

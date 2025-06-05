@@ -295,8 +295,8 @@ extern __constant__ float S[quadratures];
 
 constexpr int num_nodes = NX * NY * NZ;
 
-// #define SOA
-#define CSOA
+#define SOA
+// #define CSOA
 #ifdef CSOA
     constexpr int cluster_size = 64;
 

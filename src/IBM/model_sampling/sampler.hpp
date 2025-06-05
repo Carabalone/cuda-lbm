@@ -11,6 +11,12 @@ namespace sampler {
                                 const std::vector<mesh::Face>& faces);
     float calculate_r_max_3d(float domain_volume, int target_samples);
 
+    enum SamplingType {
+        DIRECT,
+        TARGET_PTS,
+        TARGET_SPACING // for selecting r_max ∈ [0.8*Δx, 1.2*Δx];
+    };
+
     struct Sampler {
 
         int target_samples;
