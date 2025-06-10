@@ -1,6 +1,7 @@
 #include "IBM/mesh/mesh_transformer.hpp"
 #include <algorithm>
 #include <iostream>
+#include "IBM/model_sampling/utils.hpp"
 
 namespace mesh {
 
@@ -208,6 +209,9 @@ IBMBody MeshTransformer::collect_ibm_body(int target_num_samples) const {
         sampler::Sampler point_sampler(target_num_samples, r_max, samples_to_reduce);
         sampled_points = point_sampler.eliminate_samples();
     }
+
+    std::cout << "[DEBUG] Saving " << sampled_points.size() << " final sampled points to debug/body.csv" << std::endl;
+    sampler::save_points_to_csv(sampled_points, "debug/body.csv");
 
     return body_from_points<3>(sampled_points);
 }

@@ -24,6 +24,9 @@
 #elif defined(USE_TAYLOR_GREEN_3D)
     #include "scenarios/taylorGreen3D/taylorGreen3DScenario.cuh"
     using Scenario = TaylorGreen3DScenario;
+#elif defined(USE_FLOW_PAST_SQUARE_CYLINDER)
+    #include "scenarios/flowPastSquareCylinder/flowPastSquareCylinderScenario.cuh"
+    using Scenario = FlowPastSquareCylinderScenario;
 #endif
 
 

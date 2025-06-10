@@ -59,7 +59,7 @@ __global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, int* bou
             break;
 
         case BC_flag::ZG_OUTFLOW:
-            OutflowBoundary::apply(f, f_back, idx);
+            ZG_OutflowBoundary<2>::apply(f, idx);
             break;
 
         case BC_flag::PRESSURE_OUTLET:
@@ -95,8 +95,8 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* bou
 
     int idx = z * NX * NY + y * NX + x;
 
-    BounceBack<3> domain_boundary(false, true, false);
-
+    BounceBack<3> domain_boundary(false, true, true);
+    
     int flag = boundary_flags[idx];
     switch (flag) {
         case BC_flag::FLUID:
@@ -105,6 +105,19 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* bou
         case BC_flag::BOUNCE_BACK:
             domain_boundary.apply(f, f_back, idx);
             break;
+        case BC_flag::REGULARIZED_BOUNCE_BACK:
+            RegularizedBoundary::apply(f, idx, 0.0f, 0.0f, 0.0f);
+            break;
+        case BC_flag::REGULARIZED_INLET_LEFT:
+            RegularizedBoundary::apply(f, idx, Scenario::u_max, 0.0f, 0.0f);
+            break;
+        case BC_flag::ZG_OUTFLOW:
+            ZG_OutflowBoundary<3>::apply(f, idx);
+            break;
+        case BC_flag::EXTRAPOLATED_CORNER_EDGE:
+            ExtrapolatedCornerEdgeBoundary<3>::apply(f, idx);
+            break;
+            
         default:
             // Unknown flag; do nothing.
             printf("Unknown Flag [%d]: %d\n", idx, flag);
@@ -134,7 +147,7 @@ void LBM<dim>::apply_boundaries() {
         blocks = dim3((NX + threads.x - 1) / threads.x,
                       (NY + threads.y - 1) / threads.y,
                       (NZ + threads.z - 1) / threads.z);
-
+        
         boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
     }
 

@@ -106,6 +106,7 @@ BodyConfig parse_body_config(const std::string& config_filepath) {
             }
             else if (key == "target_points") {
                 config.sampling.target_points = std::stoi(value_str);
+                printf("Config has %d points.\n", config.sampling.target_points.value());
             }
         } else {
             std::cerr << "[Warning] ConfigParser: Unknown section '" << current_section << "' on line " << line_number << std::endl;
@@ -178,6 +179,7 @@ IBMBody create_body_from_config(const std::string& config_filepath) {
     if (config.sampling.type == SamplingType::DIRECT) {
         body = transformer.collect_ibm_body();
     } else if (config.sampling.type == SamplingType::TARGET_PTS) {
+        std::cout << "collecting body with " << config.sampling.target_points.value() << " pts" << std::endl;
         body = transformer.collect_ibm_body(config.sampling.target_points.value());
     } else {
         std::cerr << "[IBM ERROR] Unknown sampling type from config. Should have been caught by parser." << std::endl;

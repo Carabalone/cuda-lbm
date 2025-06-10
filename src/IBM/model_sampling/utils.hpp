@@ -1,3 +1,6 @@
+#ifndef SAMPLER_UTILS_H
+#define SAMPLER_UTILS_H
+
 #pragma once
 #include "IBM/geometry/point.hpp"
 #include <filesystem>
@@ -11,7 +14,7 @@ namespace fs = std::filesystem;
 namespace sampler {
 
 
-    std::vector<geom::Point3D> generate_sphere_points(
+    inline std::vector<geom::Point3D> generate_sphere_points(
         int num_points,
         float sphere_radius) {
         std::vector<geom::Point3D> points_on_sphere;
@@ -44,7 +47,7 @@ namespace sampler {
         return points_on_sphere;
     }
 
-    std::vector<geom::Point3D> load_points_from_obj(const std::string& filename) {
+    inline std::vector<geom::Point3D> load_points_from_obj(const std::string& filename) {
         std::vector<geom::Point3D> vertices;
         std::ifstream file(filename);
 
@@ -74,7 +77,7 @@ namespace sampler {
         return vertices;
     }
 
-    void save_points_to_csv(const std::vector<geom::Point3D>& points, const std::string& filename) {
+    inline void save_points_to_csv(const std::vector<geom::Point3D>& points, const std::string& filename) {
         std::ofstream outfile(filename);
         if (!outfile.is_open()) {
             std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
@@ -89,3 +92,5 @@ namespace sampler {
     }
 
 }
+
+#endif
