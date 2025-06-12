@@ -7,117 +7,132 @@
 // boudary (e.g. inlet left for a velocity with dir (1,0,0) is RegularizedBounceBack::apply(f, node, u_x, 0, 0) on a node at x=0). We still hold problems with corners, but that's for another time.
 struct RegularizedBoundary {
 
-    __device__ static inline void apply(float* f, int node, float wall_ux, float wall_uy, float wall_uz) {
+    __device__ static inline void apply(float* f, int node, float ux, float uy, float uz) {
         int x, y, z;
         get_coords_from_node(node, x, y, z);
 
-        int normal_dim = -1;
-        int normal_dir = 0; // +1 or -1
+        int n_dim  = -1;   // 0-x, 1-y, 2-z
+        int n_sign =  0;   // +1 = min face, -1 = max face
+        if (x == 0      ) { n_dim = 0; n_sign = +1; }
+        if (x == NX - 1 ) { n_dim = 0; n_sign = -1; }
+        if (y == 0      ) { n_dim = 1; n_sign = +1; }
+        if (y == NY - 1 ) { n_dim = 1; n_sign = -1; }
+        if (z == 0      ) { n_dim = 2; n_sign = +1; }
+        if (z == NZ - 1 ) { n_dim = 2; n_sign = -1; }
+        if (n_dim == -1) return; // somehow at interior
 
-        if (x == 0) { normal_dim = 0; normal_dir = 1; }
-        else if (x == NX - 1) { normal_dim = 0; normal_dir = -1; }
-        else if (y == 0) { normal_dim = 1; normal_dir = 1; }
-        else if (y == NY - 1) { normal_dim = 1; normal_dir = -1; }
-        else if (z == 0) { normal_dim = 2; normal_dir = 1; }
-        else if (z == NZ - 1) { normal_dim = 2; normal_dir = -1; }
+        float rho_incoming = 0.f;
+        float rho_parallel  = 0.f;
 
-        if (normal_dim == -1) return;
+        for (int i=0; i < quadratures; i++) {
+            // normal has 1 one and rest is zeroes
+            // n dot C = c[normal_dim] * n_sign
+            if (is_known(i, n_dim, n_sign)) {
+                float c_dot_n = C[3*i + n_dim] * n_sign;
+                float f_i = f[get_node_index(node, i)];
 
-        float rho = compute_density(f, node, normal_dim, normal_dir, wall_ux, wall_uy, wall_uz);
+                if (fabsf(c_dot_n) < 1e-6f) rho_parallel += f_i;
+                else if  (c_dot_n  < 0.f)   rho_incoming += f_i;
+                
 
+            }
+        }
+        float rho = rho_parallel + 2.0f*rho_incoming;
+
+        float u_n = (n_dim == 0) ? ux :
+                    (n_dim == 1) ? uy :
+                    uz;
+        rho /= (1 - n_sign * u_n);
+
+        // if (fabsf(rho) > 1.08f || fabsf(rho) < 0.92f)
+        if (x == 132 && y == 0 && z == 32)
+            printf("Rho @ regularized boundary (%d, %d, %d): %.4f\n", x, y, z, rho);
+
+        
+        // equilibrium using imposed velocity
         float f_eq[quadratures];
-        compute_equilibrium(f_eq, rho, wall_ux, wall_uy, wall_uz);
+        float cs2 = 1.0f / 3.0f;
 
-        float Pi[6]; // xx, yy, zz, xy, xz, yz
-        compute_stress_tensor(Pi, f, f_eq, node, normal_dim, normal_dir);
+        for (int q=0; q < quadratures; q++) {
+            
+            float cx = C[q * 3 + 0];
+            float cy = C[q * 3 + 1];
+            float cz = C[q * 3 + 2];
+            float c_dot_u = cx*ux + cy*uy + cz*uz;
+            float u_dot_u = ux*ux + uy*uy + uz*uz;
+            f_eq[q] = WEIGHTS[q] * rho *
+                     (1.f + c_dot_u/cs2 +
+                      0.5f*(c_dot_u*c_dot_u)/(cs2*cs2) -
+                      0.5f*u_dot_u/cs2);
+        }
 
-        regularize_all_populations(f, node, f_eq, Pi);
+        
+        //  bounce-back of non-equilibrium parts
+        for (int q = 0; q < quadratures; q++) {
+            if (C[3*q + n_dim] * n_sign > 0) {
+                int opp = OPP[q];
+                f[get_node_index(node, q)] = f_eq[q] + (f[get_node_index(node, opp)] - f_eq[opp]);
+            }
+        }
+     
+        // Π(1) = ∑ᵢ fᵢ - cs² ρ I - ρ uu
+        float Pi_xx = 0.0f, Pi_yy = 0.0f, Pi_zz = 0.0f, Pi_xy = 0.0f, Pi_xz = 0.0f, Pi_yz = 0.0f;
+        
+        for (int q = 0; q < quadratures; q++) {
+            float fi = f[get_node_index(node, q)];
+            float cx = C[q * 3 + 0];
+            float cy = C[q * 3 + 1];
+            float cz = C[q * 3 + 2];
+
+            Pi_xx += cx*cx * fi;
+            Pi_yy += cy*cy * fi;
+            Pi_zz += cz*cz * fi;
+            Pi_xy += cx*cy * fi;
+            Pi_xz += cx*cz * fi;
+            Pi_yz += cy*cz * fi;    
+        }
+
+        Pi_xx -= cs2 * rho + rho * ux * ux;
+        Pi_yy -= cs2 * rho + rho * uy * uy;
+        Pi_zz -= cs2 * rho + rho * uz * uz;
+        Pi_xy -= rho * ux * uy;
+        Pi_xz -= rho * ux * uz;
+        Pi_yz -= rho * uy * uz;
+
+        
+        float test_rho = 0.0f;
+        float test_u[3] = {0.0f};
+        for (int q = 0; q < quadratures; q++) {
+            float cx = C[3*q], cy = C[3*q+1], cz = C[3*q+2];
+            const float Q_xx = cx*cx - cs2;
+            const float Q_yy = cy*cy - cs2;
+            const float Q_zz = cz*cz - cs2;
+            const float Q_xy = cx*cy;
+            const float Q_xz = cx*cz;
+            const float Q_yz = cy*cz;
+            
+            float f_neq = WEIGHTS[q] / (2.0f*cs2*cs2) *
+               (Q_xx*Pi_xx + Q_yy*Pi_yy + Q_zz*Pi_zz +
+                 2.0f*(Q_xy*Pi_xy + Q_xz*Pi_xz + Q_yz*Pi_yz));
+            
+            f[get_node_index(node, q)] = f_eq[q] + f_neq;
+            float f_i = f_eq[q] + f_neq;
+            test_u[0] += cx * f_i;
+            test_u[1] += cy * f_i;
+            test_u[2] += cz * f_i;
+            test_rho += f_i;
+        }
+
+        if (x == 132 && y == 0 && z == 32){
+            printf("test_rho after regularization @ (%d, %d, %d): %.4f|u (%.4f, %.4f, %.4f)\n", x, y, z, test_rho,
+                    test_u[0], test_u[1], test_u[2]);
+        }        
     }
 
 private:
-    __device__ static inline float compute_density(float* f, int node, int normal_dim, int normal_dir, float ux, float uy, float uz) {
-        float rho_parallel = 0.0f;
-        float rho_incoming = 0.0f;
+    __device__
+    static inline bool is_known(int i, int ndim, int nsign) { return C[3*i + ndim] * nsign <= 0.0f; }
 
-        for (int i = 0; i < quadratures; ++i) {
-            int c_normal = C[i * dimensions + normal_dim];
-
-            if (c_normal * normal_dir < 0) {
-                rho_incoming += f[get_node_index(node, i)];
-            } else if (c_normal == 0) {
-                rho_parallel += f[get_node_index(node, i)];
-            }
-        }
-        
-        float u_norm = (normal_dim == 0) ? ux : (normal_dim == 1) ? uy : uz;
-
-        if (abs(1.0f - u_norm) < 1e-6) {
-            return 1.0f;
-        }
-        
-        return (rho_parallel + 2.0f * rho_incoming) / (1.0f - u_norm);
-    }
-
-    __device__ static inline void compute_equilibrium(float f_eq[quadratures], float rho, float ux, float uy, float uz) {
-
-        for (int i = 0; i < quadratures; ++i) {
-            float c_dot_u = C[i * dimensions + 0] * ux + C[i * dimensions + 1] * uy + C[i * dimensions + 2] * uz;
-            float u_dot_u = ux * ux + uy * uy + uz * uz;
-            f_eq[i] = WEIGHTS[i] * rho * (1.0f + c_dot_u / cs2 + (c_dot_u * c_dot_u) / (2.0f * cs2 * cs2) - u_dot_u / (2.0f * cs2));
-        }
-
-    }
-
-    __device__ static inline void compute_stress_tensor(float Pi[6], float* f, const float f_eq[quadratures], int node, int normal_dim, int normal_dir) {
-        Pi[0] = Pi[1] = Pi[2] = Pi[3] = Pi[4] = Pi[5] = 0.0f;
-
-        for (int i = 0; i < quadratures; ++i) {
-            float f_neq_i;
-            int c_norm = C[i * dimensions + normal_dim];
-
-            if (c_norm * normal_dir > 0) {
-                int opp = OPP[i];
-                f_neq_i = (f[get_node_index(node, opp)] - f_eq[opp]);
-            }
-            else {
-                f_neq_i = f[get_node_index(node, i)] - f_eq[i];
-            }
-
-            float cx = C[i * dimensions + 0];
-            float cy = C[i * dimensions + 1];
-            float cz = C[i * dimensions + 2];
-
-            Pi[0] += cx * cx * f_neq_i; // Pi_xx
-            Pi[1] += cy * cy * f_neq_i; // Pi_yy
-            Pi[2] += cz * cz * f_neq_i; // Pi_zz
-            Pi[3] += cx * cy * f_neq_i; // Pi_xy
-            Pi[4] += cx * cz * f_neq_i; // Pi_xz
-            Pi[5] += cy * cz * f_neq_i; // Pi_yz
-        }
-    }
-
-    __device__ static inline void regularize_all_populations(float* f, int node, const float f_eq[quadratures], const float Pi[6]) {
-
-        for (int i = 0; i < quadratures; ++i) {
-            float cx = C[i * dimensions + 0];
-            float cy = C[i * dimensions + 1];
-            float cz = C[i * dimensions + 2];
-
-            float Q_xx = cx * cx - cs2;
-            float Q_yy = cy * cy - cs2;
-            float Q_zz = cz * cz - cs2;
-            float Q_xy = cx * cy;
-            float Q_xz = cx * cz;
-            float Q_yz = cy * cz;
-
-            float f_neq = (WEIGHTS[i] / (2.0f * cs2 * cs2)) * (
-                Q_xx * Pi[0] + Q_yy * Pi[1] + Q_zz * Pi[2] +
-                2.0f * (Q_xy * Pi[3] + Q_xz * Pi[4] + Q_yz * Pi[5])
-            );
-
-            f[get_node_index(node, i)] = f_eq[i] + f_neq;
-        }
-    }
 };
 
 #endif // !REGULARIZED_BOUNDARY_H

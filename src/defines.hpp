@@ -10,7 +10,8 @@
 // #define USE_TURBULENT_CHANNEL
 // #define USE_FLOW_PAST_CYLINDER
 // #define USE_TAYLOR_GREEN_3D
-#define USE_FLOW_PAST_SQUARE_CYLINDER
+// #define USE_FLOW_PAST_SQUARE_CYLINDER
+#define USE_ZERO_FLOW_TEST
 
 // #define SOA
 
@@ -42,6 +43,11 @@
     #define NY (128 * SCALE)
     #define NZ (256 * SCALE)
 #elif defined(USE_FLOW_PAST_SQUARE_CYLINDER)
+    #define SCALE 1
+    #define NX (512 * SCALE)
+    #define NY (128 * SCALE)
+    #define NZ (96 * SCALE)
+#elif defined(USE_ZERO_FLOW_TEST)
     #define SCALE 1
     #define NX (512 * SCALE)
     #define NY (128 * SCALE)
