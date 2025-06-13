@@ -37,8 +37,8 @@ struct ZeroFlowScenario : public ScenarioTrait<
             base_path = "../../../";
         #endif
         std::string sphere_config = base_path + "src/scenarios/zeroFlow/sphere_config.ini";
-        // IBMBody sphere = conf::create_body_from_config(sphere_config);
-        // IBM_bodies.emplace_back(sphere);
+        IBMBody sphere = conf::create_body_from_config(sphere_config);
+        IBM_bodies.emplace_back(sphere);
 
     }
 

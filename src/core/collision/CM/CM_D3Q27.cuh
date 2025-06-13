@@ -98,8 +98,8 @@ void CM<3, NoAdapter>::apply(float* f, float* f_eq, float* u, float* force, int 
             int x, y, z;
             get_coords_from_node(node, x, y, z);
             
-            printf("[WARNING][CM::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f[%d] = %f → %f\n",
-                  node, x, y, z, i, idx, old_f[i], f[idx]);
+            printf("[WARNING][CM::apply] Node %d (x=%d,y=%d,z=%d), Dir %d: f[%d] = %f → %f | (%.4f, %.4f, %4f)\n",
+                  node, x, y, z, i, idx, old_f[i], f[idx], ux, uy, uz);
         }
     }
 }

@@ -8,12 +8,33 @@
 
 IBMBody load_from_obj(const std::string& filename, int target_samples =-1);
 
+constexpr int  R          = 2;     
+constexpr int  KERNEL_W   = 4;   // nodes per dimension   (3)
+constexpr int  OFFSET     = -1;
+
 __host__ __device__ __forceinline__
-float delta(float r) {
+float delta2(float r) {
     float absr = fabsf(r);
     return absr <= 1 ? 
             1.0f - absr :
             0;
+}
+
+__host__ __device__ __forceinline__
+float delta4(float r) {
+    float rabs = fabsf(r);
+    
+    // if (rabs < 2.0f) return 0.25f * (1 + cosf(M_PI * 0.5f * r));
+    // else             return 0.0f;
+
+    if (rabs < 1.0f)        return 0.125f * (3.0f - 2.0f * rabs + sqrtf(1 + 4.0f*rabs - 4.0f * r * r));
+    else if (rabs  < 2.0f)  return 0.125f * (5.0f - 2.0f * rabs - sqrtf(-7.0f + 12.0f * rabs - 4.0f * r * r));
+    else                    return 0.0f;
+}
+
+__host__ __device__ __forceinline__
+float delta(float r) {
+    return delta4(r);
 }
 
 __host__ __device__ __forceinline__

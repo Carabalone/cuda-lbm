@@ -27,6 +27,9 @@
 #elif defined(USE_FLOW_PAST_SQUARE_CYLINDER)
     #include "scenarios/flowPastSquareCylinder/flowPastSquareCylinderScenario.cuh"
     using Scenario = FlowPastSquareCylinderScenario;
+#elif defined(USE_ZERO_FLOW_TEST)
+    #include "scenarios/zeroFlow/zeroFlowScenario.cuh"
+    using Scenario = ZeroFlowScenario;
 #endif
 
 
@@ -83,7 +86,7 @@ int main(void) {
     simulation_timer.reset();
 
     while (t < total_timesteps) {
-        // printf("\n----------------------------------------NEW_TS{%d}----------------------------------------\n",t);
+        printf("\n----------------------------------------NEW_TS{%d}----------------------------------------\r",t);
         bool save = (t+1)%save_int == 0;
         cudaEventRecord(start);
 
@@ -91,9 +94,6 @@ int main(void) {
 
         lbm.stream();
         lbm.swap_buffers();
-
-        lbm.apply_boundaries<Scenario>();
-
         lbm.uncorrected_macroscopics();
 
         // -----------IBM stuff-----------------
@@ -102,6 +102,9 @@ int main(void) {
         // -------------------------------------
 
         lbm.correct_macroscopics();
+
+        lbm.apply_boundaries<Scenario>();
+
 
         lbm.compute_equilibrium();
         lbm.collide<Scenario::CollisionOp>();
@@ -137,7 +140,7 @@ int main(void) {
         if (save) {
             // lbm.save_macroscopics(t+1); // save macroscopics updates the data from GPU to CPU.
             // lbm.save_midplane_slice(t+1);
-            lbm.save_vtk(t+1);
+            // lbm.save_vtk(t+1);
             if constexpr (Scenario::has_analytical_solution) {
                 // auto start = std::chrono::high_resolution_clock::now();
 

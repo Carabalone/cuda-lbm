@@ -1,3 +1,4 @@
+#include "core/lbm_constants.cuh"
 #include "core/macroscopics/macroscopics.cuh"
 
 template<>
@@ -77,6 +78,15 @@ __global__ void uncorrected_macroscopics_kernel<3>(float* f, float* rho, float* 
         pi[0]*pi[0] + 2.0f*pi[1]*pi[1] + 2.0f*pi[2]*pi[2] + 
         pi[3]*pi[3] + 2.0f*pi[4]*pi[4] + pi[5]*pi[5]
     );
+
+    // if (fabsf(u[get_vec_index(node, 0)] + u[get_vec_index(node, 0)] + u[get_vec_index(node, 0)]) > 1e-3)
+    //     printf("[MACROSCOPICS] velocites @ node (%d, %d, %d): (%.4f, %.4f, %.4f)\n",
+    //                x, y, z,
+    //                u[get_vec_index(node, 0)],
+    //                u[get_vec_index(node, 1)],
+    //                u[get_vec_index(node, 2)]
+    //           );
+        
 
     if (node == DEBUG_NODE) {
         DPRINTF("[macroscopics_kernel] Node %d: rho=%f, u=(%f, %f, %f)\n",

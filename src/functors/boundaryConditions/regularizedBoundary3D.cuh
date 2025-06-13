@@ -45,8 +45,8 @@ struct RegularizedBoundary {
         rho /= (1 - n_sign * u_n);
 
         // if (fabsf(rho) > 1.08f || fabsf(rho) < 0.92f)
-        if (x == 132 && y == 0 && z == 32)
-            printf("Rho @ regularized boundary (%d, %d, %d): %.4f\n", x, y, z, rho);
+        // if (x == 132 && y == 0 && z == 32)
+        //     printf("Rho @ regularized boundary (%d, %d, %d): %.4f\n", x, y, z, rho);
 
         
         // equilibrium using imposed velocity
@@ -123,10 +123,10 @@ struct RegularizedBoundary {
             test_rho += f_i;
         }
 
-        if (x == 132 && y == 0 && z == 32){
-            printf("test_rho after regularization @ (%d, %d, %d): %.4f|u (%.4f, %.4f, %.4f)\n", x, y, z, test_rho,
-                    test_u[0], test_u[1], test_u[2]);
-        }        
+        // if (x == 132 && y == 0 && z == 32){
+        //     printf("test_rho after regularization @ (%d, %d, %d): %.4f|u (%.4f, %.4f, %.4f)\n", x, y, z, test_rho,
+        //             test_u[0], test_u[1], test_u[2]);
+        // }        
     }
 
 private:

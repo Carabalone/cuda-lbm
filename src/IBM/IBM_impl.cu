@@ -1,4 +1,6 @@
 #include "IBM/IBMManager.cuh"
+#include "IBM/IBMUtils.cuh"
+#include "core/lbm_constants.cuh"
 
 template <>
 __global__
@@ -61,13 +63,16 @@ void interpolate_velocities_kernel<3>(float* points, float* u_ibm, float* rho_ib
 
     float ux = 0.0f; float uy = 0.0f; float uz = 0.0f;
     float rho = 0.0f;
+    constexpr int kernel_dim = KERNEL_W;
+    
+    float weight = 0.0f;
 
-    for (int i=0; i < 2; i++) {
-        for (int j=0; j < 2; j++) {
-            for (int k=0; k < 2; k++) {
-                int nx = gx + i;
-                int ny = gy + j;
-                int nz = gz + k;
+    for (int i=0; i < kernel_dim; i++) {
+        for (int j=0; j < kernel_dim; j++) {
+            for (int k=0; k < kernel_dim; k++) {
+                int nx = gx + i + OFFSET;
+                int ny = gy + j + OFFSET;
+                int nz = gz + k + OFFSET;
 
                 if (nx >= NX || nx < 0 || ny >= NY || ny < 0 || nz >= NZ || nz < 0)
                     continue;
@@ -81,17 +86,27 @@ void interpolate_velocities_kernel<3>(float* points, float* u_ibm, float* rho_ib
                 //     printf("    dx=%.6f, dy=%.6f\n", dx, dy);
                 //     printf("    kernel=%.6f\n", k);
                 //     printf("    u[%d]=(%.6f, %.6f)\n", u_idx, u_lbm[2*u_idx], u_lbm[2*u_idx+1]);
-                //     printf("    current vel: (%.4f, %.4f)\n", ux, uy);
+               //     printf("    current vel: (%.4f, %.4f)\n", ux, uy);
                 // }
 
                 rho += kernel * rho_lbm[u_idx];
                 ux  += kernel * u_lbm[get_vec_index(u_idx, 0)];
                 uy  += kernel * u_lbm[get_vec_index(u_idx, 1)];
                 uz  += kernel * u_lbm[get_vec_index(u_idx, 2)];
+                weight += kernel;
+
+                // if (fabsf(u_lbm[get_vec_index(u_idx, 0)] + u_lbm[get_vec_index(u_idx, 1)] + u_lbm[get_vec_index(u_idx, 2)]) > 1e-3) {
+                //     printf("[IBM] interpolated big velocities @ (%.1f, %.1f, %.1f) from (%d, %d, %d): (%.6f|%.6f|%.6f)\n",
+                //             gx, gy, gz,
+                //             nx, ny, nz,
+                //             u_lbm[get_vec_index(u_idx, 0)], u_lbm[get_vec_index(u_idx, 1)], u_lbm[get_vec_index(u_idx, 2)]
+                //     );
+                // }
             }
         }
     }
 
+    // printf("weight: %.4f\n", weight);
     u_ibm[get_lag_vec_index(idx, 0, num_pts)] = ux;
     u_ibm[get_lag_vec_index(idx, 1, num_pts)] = uy;
     u_ibm[get_lag_vec_index(idx, 2, num_pts)] = uz;
@@ -149,18 +164,19 @@ void spread_forces_kernel<3>(float* points, float* forces_lagrangian, int num_pt
     float gx = floorf(px); float gy = floorf(py); float gz = floorf(pz);
 
     float fx = 0.0f; float fy = 0.0f; float fz = 0.0f;
+    constexpr int kernel_dim = KERNEL_W;
 
-    for (int i=0; i<2; i++) {
-        for (int j=0; j<2; j++) {
-            for (int k=0; k<2; k++) {
-                int nx = gx + i;
-                int ny = gy + j;
-                int nz = gz + k;
+    for (int i=0; i<kernel_dim; i++) {
+        for (int j=0; j<kernel_dim; j++) {
+            for (int k=0; k<kernel_dim; k++) {
+                int nx = gx + i + OFFSET;
+                int ny = gy + j + OFFSET;
+                int nz = gz + k + OFFSET;
 
                 if (nx >= NX || nx < 0 || ny >= NY || ny < 0 || nz >= NZ || nz < 0)
                     continue;
 
-                float dx = px - (gx + i); float dy = py - (gy + j); float dz = pz - (gz + k);
+                float dx = px - nx; float dy = py - ny; float dz = pz - nz;
                 float kernel = kernel3D(dx, dy, dz);
 
                 fx = kernel * forces_lagrangian[get_lag_vec_index(idx, 0, num_pts)];
