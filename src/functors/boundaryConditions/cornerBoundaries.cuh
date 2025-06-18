@@ -16,11 +16,16 @@ struct ExtrapolatedCornerEdgeBoundary {
         int interior_node = get_node_from_coords(interior_x, interior_y, interior_z);
 
         float rho = 0.0f;
+        float wall_ux = 0.0f, wall_uy = 0.0f, wall_uz = 0.0f;
         for (int i = 0; i < quadratures; ++i) {
             rho += f[get_node_index(interior_node, i)];
+            wall_ux += f[get_node_index(interior_node, i)] * C[3*i];
+            wall_uy += f[get_node_index(interior_node, i)] * C[3*i+1];
+            wall_uz += f[get_node_index(interior_node, i)] * C[3*2+i];
         }
-
-        const float wall_ux = 0.0f, wall_uy = 0.0f, wall_uz = 0.0f;
+        wall_ux /= rho;
+        wall_uy /= rho;
+        wall_uz /= rho;
 
         for (int i = 0; i < quadratures; ++i) {
             float c_dot_u = C[i * dim + 0] * wall_ux + C[i * dim + 1] * wall_uy + C[i * dim + 2] * wall_uz;

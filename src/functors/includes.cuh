@@ -10,6 +10,7 @@
 #include "./boundaryConditions/regularizedInlet.cuh"
 #include "./boundaryConditions/regularizedBounceBack.cuh"
 #include "./boundaryConditions/regularizedBoundary3D.cuh"
+#include "./boundaryConditions/edgeCornerBounceBack.cuh"
 #include "./initialConditions/defaultInit.cuh"
 
 #endif // ! FUNCTOR_INCLUDES_H

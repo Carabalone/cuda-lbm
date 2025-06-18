@@ -95,7 +95,7 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* bou
 
     int idx = z * NX * NY + y * NX + x;
 
-    BounceBack<3> domain_boundary(false, true, true);
+    BounceBack<3> domain_boundary(true, true, true);
     
     int flag = boundary_flags[idx];
     switch (flag) {
@@ -116,6 +116,9 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* bou
             break;
         case BC_flag::EXTRAPOLATED_CORNER_EDGE:
             ExtrapolatedCornerEdgeBoundary<3>::apply(f, idx);
+            break;
+        case BC_flag::CORNER_EDGE_BOUNCE_BACK:
+            EdgeCornerBounceBack::apply(f, idx);
             break;
             
         default:

@@ -8,11 +8,11 @@
 struct ZeroFlowBoundary {
     __host__ __device__ int operator()(int x, int y, int z) {
 
-        if (y==0 || y==NY-1 || z==0 || z==NZ-1)
-            return BC_flag::REGULARIZED_BOUNCE_BACK;
-            // return BC_flag::BOUNCE_BACK;
-        if (x==0)        return BC_flag::REGULARIZED_INLET_LEFT;
-        if (x==NX-1)     return BC_flag::ZG_OUTFLOW;
+        if (y == 0 || y == NY - 1 || z == 0 || z == NZ - 1)
+            return BC_flag::BOUNCE_BACK;
+
+        if (x == 0)      return BC_flag::REGULARIZED_INLET_LEFT;
+        if (x == NX - 1) return BC_flag::ZG_OUTFLOW;
 
         return BC_flag::FLUID;
     }
@@ -38,7 +38,7 @@ struct ZeroFlowScenario : public ScenarioTrait<
         #endif
         std::string sphere_config = base_path + "src/scenarios/zeroFlow/sphere_config.ini";
         IBMBody sphere = conf::create_body_from_config(sphere_config);
-        IBM_bodies.emplace_back(sphere);
+        // IBM_bodies.emplace_back(sphere);
 
     }
 
