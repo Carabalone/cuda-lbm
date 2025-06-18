@@ -71,7 +71,7 @@ int main(void) {
     // destructor frees automatically
     lbm.allocate<Scenario>();
 
-    const int total_timesteps = 5000;
+    const int total_timesteps = 20000;
     // const int total_timesteps = 25;
     const int save_int = 100;
     int t = 0;
@@ -94,6 +94,9 @@ int main(void) {
 
         lbm.stream();
         lbm.swap_buffers();
+
+        lbm.apply_boundaries<Scenario>();
+
         lbm.uncorrected_macroscopics();
 
         // -----------IBM stuff-----------------
@@ -102,8 +105,6 @@ int main(void) {
         // -------------------------------------
 
         lbm.correct_macroscopics();
-
-        lbm.apply_boundaries<Scenario>();
 
 
         lbm.compute_equilibrium();

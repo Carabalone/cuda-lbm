@@ -28,11 +28,13 @@ struct RegularizedBoundary {
             // normal has 1 one and rest is zeroes
             // n dot C = c[normal_dim] * n_sign
             if (is_known(i, n_dim, n_sign)) {
+                // printf("known: %d (%d, %d, %d)\n", i, C[3*i], C[3*i+1], C[3*i+2]);
                 float c_dot_n = C[3*i + n_dim] * n_sign;
                 float f_i = f[get_node_index(node, i)];
 
                 if (fabsf(c_dot_n) < 1e-6f) rho_parallel += f_i;
                 else if  (c_dot_n  < 0.f)   rho_incoming += f_i;
+                else printf("[REGULARIZED_INLET]: unknown direction\n");
                 
 
             }
@@ -45,7 +47,7 @@ struct RegularizedBoundary {
         rho /= (1 - n_sign * u_n);
 
         // if (fabsf(rho) > 1.08f || fabsf(rho) < 0.92f)
-        // if (x == 132 && y == 0 && z == 32)
+        // // // if (x == 132 && y == 0 && z == 32)
         //     printf("Rho @ regularized boundary (%d, %d, %d): %.4f\n", x, y, z, rho);
 
         
