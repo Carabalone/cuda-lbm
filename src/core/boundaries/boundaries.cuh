@@ -8,7 +8,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 template <typename Scenario>
-__global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, int* boundary_flags) {
+__global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, float rho, int* boundary_flags) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -86,7 +86,7 @@ __global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, int* bou
 
 
 template <typename Scenario>
-__global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* boundary_flags) {
+__global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, float* rho, int* boundary_flags) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;
@@ -120,6 +120,15 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, int* bou
         case BC_flag::CORNER_EDGE_BOUNCE_BACK:
             EdgeCornerBounceBack::apply(f, idx);
             break;
+        case BC_flag::GUO_VELOCITY_INLET:
+            GuoVelocityInlet3D::apply(f, rho, u, idx, Scenario::u_max);
+            break;
+        case BC_flag::GUO_PRESSURE_OUTLET:
+            GuoPressureOutlet3D::apply(f, rho, u, idx);
+            break;
+        case BC_flag::REGULARIZED_OUTLET:
+            RegularizedOutlet::apply(f, rho, u, idx);
+            break;
             
         default:
             // Unknown flag; do nothing.
@@ -143,7 +152,7 @@ void LBM<dim>::apply_boundaries() {
         blocks = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                       (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
         
-        boundaries_kernel_2D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
+        boundaries_kernel_2D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags);
     }
     else {
         threads = dim3(8, 8, 4);
@@ -151,7 +160,7 @@ void LBM<dim>::apply_boundaries() {
                       (NY + threads.y - 1) / threads.y,
                       (NZ + threads.z - 1) / threads.z);
         
-        boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_boundary_flags);
+        boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags);
     }
 
     checkCudaErrors(cudaDeviceSynchronize());

@@ -12,7 +12,8 @@ struct ZeroFlowBoundary {
             return BC_flag::BOUNCE_BACK;
 
         if (x == 0)      return BC_flag::REGULARIZED_INLET_LEFT;
-        if (x == NX - 1) return BC_flag::ZG_OUTFLOW;
+        if (x == NX - 1) return BC_flag::PRESSURE_OUTLET;
+        // if (x == NX - 1) return BC_flag::ZG_OUTFLOW;
 
         return BC_flag::FLUID;
     }

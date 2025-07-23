@@ -55,4 +55,14 @@ inline void __getLastCudaError(const char *const errorMessage, const char *const
   #define DPRINTF(fmt, ...)
 #endif
 
+namespace utl {
+    
+template <typename T>
+__device__ __forceinline__
+bool in_range(T var, T min, T max) {
+    return var > min && var < max;
+}
+
+}
+
 #endif // UTILITY_H

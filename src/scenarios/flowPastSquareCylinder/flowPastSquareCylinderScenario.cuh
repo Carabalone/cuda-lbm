@@ -15,21 +15,51 @@ struct FlowPastSquareCylinderBoundary {
 
         if (edges >= 2) return BC_flag::CORNER_EDGE_BOUNCE_BACK;
 
-        if (y == 0 || y == NY-1 || z == 0 || z == NZ-1)
-            return BC_flag::BOUNCE_BACK;
-
         if (x == 0)
             return BC_flag::REGULARIZED_INLET_LEFT;
+            // return BC_flag::GUO_VELOCITY_INLET;
+            // return BC_flag::BOUNCE_BACK;
 
-        if (x == NX - 1) return BC_flag::ZG_OUTFLOW;
+        if (x == NX - 1) return BC_flag::GUO_PRESSURE_OUTLET;
+
+
+        if (y == 0 || y == NY-1 || z == 0 || z == NZ-1)
+            return BC_flag::BOUNCE_BACK;
 
         return BC_flag::FLUID;
     }
 
 };
 
+struct FlowInit {
+
+    __host__ __device__
+    FlowInit() { }
+
+    __device__
+    inline void apply_forces(float* rho, float* u, float* force, int node) {
+
+        force[get_vec_index(node, 0)] = 0.0f;
+        force[get_vec_index(node, 1)] = 0.0f;
+        force[get_vec_index(node, 2)] = 0.0f;
+
+    }
+
+     __device__
+    inline void operator()(float* rho, float* u, float* force, int node) {
+        rho[node] = 1.0f;
+
+        u[get_vec_index(node, 0)] = 0.05f;
+        u[get_vec_index(node, 1)] = 0.0f;
+        u[get_vec_index(node, 2)] = 0.0f;
+
+        apply_forces(rho, u, force, node);
+    }
+};
+
 struct FlowPastSquareCylinderScenario : public ScenarioTrait<
-    DefaultInit<3>,
+    // DefaultInit<3>,
+    FlowInit,
     FlowPastSquareCylinderBoundary,
     void,
     CM<3, NoAdapter>
@@ -44,12 +74,12 @@ struct FlowPastSquareCylinderScenario : public ScenarioTrait<
 
     static void add_bodies() {
         
-        std::string base_path = "";
-        #ifdef _WIN32
-            base_path = "../../../";
-        #endif
-        std::string sphere_config = base_path + "src/scenarios/flowPastSquareCylinder/sphere_config.ini";
-        IBMBody sphere = conf::create_body_from_config(sphere_config);
+        // std::string base_path = "";
+        // #ifdef _WIN32
+        //     base_path = "../../../";
+        // #endif
+        // std::string sphere_config = base_path + "src/scenarios/flowPastSquareCylinder/sphere_config.ini";
+        // IBMBody sphere = conf::create_body_from_config(sphere_config);
         // IBM_bodies.emplace_back(sphere);
 
     }
