@@ -5,16 +5,14 @@
 
 struct GuoVelocityInlet3D
 {
-    __device__ static inline void apply(float* f, float* rho, float* u, int node, float u_inlet) {
-        // This boundary condition is for an inlet at x=0.
-        // The unknown populations are those with c_ix > 0.
-        
-        // --- Step 1: Calculate boundary density from known populations ---
-        // This is the crucial step for mass conservation.
+    __device__ static inline void apply(
+        float* f, float* rho, float* u, int node, float u_inlet,
+        int ramp_up_time, int timestep
+    ) {
+
         float sum_known_f = 0.0f;
         #pragma unroll
         for (int i = 0; i < quadratures; ++i) {
-            // Sum all populations that are known after streaming (i.e., coming from the fluid domain)
             if (C[i * dimensions + 0] < 0) { // c_ix < 0
                 sum_known_f += 2.0f * f[get_node_index(node, i)];
             } else if (C[i * dimensions + 0] == 0) { // c_ix = 0
@@ -22,20 +20,18 @@ struct GuoVelocityInlet3D
             }
         }
 
-        // Prescribe the velocity at the boundary
-        const float ux_b = u_inlet;
+        const float ux_b = utl::clamp_ramp_up_tanh(u_inlet, ramp_up_time, timestep);
         const float uy_b = 0.0f;
         const float uz_b = 0.0f;
 
-        // Calculate the boundary density using the consistent formula
+        // if (utl::in_range(node, 10, 12))
+        //     printf("ux_b: %.4f\n", ux_b);
+
         const float rho_b = sum_known_f / (1.0f - ux_b);
 
-        // --- Step 2: Compute equilibrium and non-equilibrium parts ---
-        // Equilibrium at the boundary node based on prescribed u and calculated rho
         float feq_b[quadratures];
         de_rosis_eq(feq_b, ux_b, uy_b, uz_b, rho_b);
 
-        // Get the adjacent fluid node to extrapolate the non-equilibrium part from
         int x, y, z;
         get_coords_from_node(node, x, y, z);
         int fluid_node = get_node_from_coords(x + 1, y, z);
@@ -61,11 +57,9 @@ struct GuoVelocityInlet3D
         float feq_f[quadratures];
         de_rosis_eq(feq_f, ux_f, uy_f, uz_f, rho_f);
 
-        // --- Step 3: Reconstruct unknown populations ---
         #pragma unroll
         for (int i = 0; i < quadratures; ++i) {
-            if (C[i * dimensions + 0] > 0) { // c_ix > 0 are the unknown populations
-                // Extrapolate the non-equilibrium part from the fluid neighbor
+            if (C[i * dimensions + 0] > 0) { // unknown 
                 float f_neq_fluid = f[get_node_index(fluid_node, i)] - feq_f[i];
                 f[get_node_index(node, i)] = feq_b[i] + f_neq_fluid;
             }

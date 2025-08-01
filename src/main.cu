@@ -74,7 +74,7 @@ int main(void) {
     // destructor frees automatically
     lbm.allocate<Scenario>();
 
-    const int total_timesteps = 20000;
+    const int total_timesteps = 8000;
     // const int total_timesteps = 25;
     const int save_int = 100;
     int t = 0;

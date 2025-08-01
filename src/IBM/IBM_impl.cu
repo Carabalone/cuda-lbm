@@ -1,6 +1,7 @@
 #include "IBM/IBMManager.cuh"
 #include "IBM/IBMUtils.cuh"
 #include "core/lbm_constants.cuh"
+#include "util/utility.cuh"
 
 template <>
 __global__
@@ -46,7 +47,7 @@ void interpolate_velocities_kernel<2>(float* points, float* u_ibm, float* rho_ib
     u_ibm[get_lag_vec_index(idx, 1, num_pts)] = uy;
     rho_ibm[idx] = rho;
 
-    if (fabsf(ux) > 0.1f || fabsf(uy) > 0.1f)
+    if (fabsf(ux) > 0.15f || fabsf(uy) > 0.15f)
         printf("  Interpolated velocity for point %d (%.4f, %.4f): (%.4f, %.4f)\n\trho=%.4f\n", idx, px, py, ux, uy, rho);
 }
 
@@ -112,7 +113,7 @@ void interpolate_velocities_kernel<3>(float* points, float* u_ibm, float* rho_ib
     u_ibm[get_lag_vec_index(idx, 2, num_pts)] = uz;
     rho_ibm[idx] = rho;
 
-    if (fabsf(ux) > 0.12f || fabsf(uy) > 0.12f || fabsf(uz) >= 0.12f)
+    if (fabsf(ux) > 0.15f || fabsf(uy) > 0.15f || fabsf(uz) >= 0.15f)
         printf("  Interpolated velocity for point %d (%.4f, %.4f, %.4f): (%.4f, %.4f, %.4f)\n\trho=%.4f\n",
              idx, px, py, pz, ux, uy, uz, rho);
 }
@@ -182,6 +183,10 @@ void spread_forces_kernel<3>(float* points, float* forces_lagrangian, int num_pt
                 fx = kernel * forces_lagrangian[get_lag_vec_index(idx, 0, num_pts)];
                 fy = kernel * forces_lagrangian[get_lag_vec_index(idx, 1, num_pts)];
                 fz = kernel * forces_lagrangian[get_lag_vec_index(idx, 2, num_pts)];
+
+                // if (utl::in_range(idx, 1, 3)) {
+                //     printf("forces: (%f, %f, %f)\n", fx, fy, fz);
+                // }
 
                 // if (fabsf(fx) > 0.5f || fabsf(fy) > 0.5f || fabsf(fz) > 0.5f)
                 //     printf("forces in IBM (adding): (%.4f, %.4f, %.4f)\n", fx, fy, fz);

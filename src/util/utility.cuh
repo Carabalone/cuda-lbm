@@ -63,6 +63,37 @@ bool in_range(T var, T min, T max) {
     return var > min && var < max;
 }
 
+__device__ __forceinline__
+float clamp_ramp_up_linear(float u_max, int ramp_up_time, int timestep) {
+
+    return ramp_up_time > 0 ?
+        u_max * fminf(1.0f, ((float) timestep) / ramp_up_time) :
+        u_max;
+}
+
+__device__ __forceinline__
+float clamp_ramp_up_tanh(float u_max, int ramp_up_time, int timestep) {
+
+    if (ramp_up_time <= 0) {
+        return u_max;
+    }
+
+    float progress = static_cast<float>(timestep) / ramp_up_time;
+    float scaled_progress = 12.0f * (progress - 0.5f);
+    return fmaxf(u_max * 0.5f * (tanhf(scaled_progress) + 1.0f), 0.001f);
+
+}
+
+__device__ __forceinline__
+float clamp(float val, float min, float max) {
+    return fminf(fmaxf(val, min), max);    
+}
+
+__device__ __forceinline__
+float clamp_abs(float val, float lim) {
+    return fminf(fmaxf(val, -lim), lim);    
+}
+
 }
 
 #endif // UTILITY_H

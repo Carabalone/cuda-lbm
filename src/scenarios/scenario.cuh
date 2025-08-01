@@ -39,6 +39,12 @@ struct ScenarioTrait {
     static inline float t = 0.0f;
     static inline std::vector<IBMBody> IBM_bodies;
 
+    static constexpr int   sponge_layers    = 0;
+    static constexpr float sponge_sigma_max = 0.1f;
+    static constexpr float sponge_rho = 1.0f;
+    static constexpr float sponge_u   = 0.0f;
+
+
     // WARNING: PLEASE DEFINE YOUR OWN S MATRIX IF YOU ARE GOING TO USE MRT IN A SCENARIO.
     // IN THE ABSENSE OF AN OVERWRITE, THE PROGRAM DEFAULTS TO THIS S MATRIX WHICH WILL MATCH
     // BGK WITH A TAU AND OMEGA OF 1.0
@@ -57,6 +63,7 @@ struct ScenarioTrait {
     };
 
     static constexpr float u_max = 0.1f;
+    static constexpr float ramp_up_time = 1.0f;    
     
     static const char* name() { return "BaseScenario"; }
     

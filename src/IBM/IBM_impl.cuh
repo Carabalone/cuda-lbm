@@ -19,8 +19,8 @@ void compute_lagrangian_kernel(float* points, float* u_ibm, float* forces_lagran
         float u = u_ibm[get_lag_vec_index(idx, d, num_pts)];
         float force = 2.0f * rho_ibm[idx] * (u_target - u);
          
-        forces_lagrangian[get_lag_vec_index(idx, d, num_pts)] = force > 1e-8f ? 
-            force :
+        forces_lagrangian[get_lag_vec_index(idx, d, num_pts)] = fabsf(force) > 1e-8f ? 
+            utl::clamp_abs(force, 0.7f) :
             0.0f;
     }
 }
@@ -39,8 +39,8 @@ void correct_velocities_kernel(float* u, float* f_iter, float* rho) {
     #pragma unroll
     for (int d = 0; d < dim; d++) {
         float c_u = u[get_vec_index(node, d)] + f_iter[get_vec_index(node, d)] / (2.0f * rho[node]);
-        u[get_vec_index(node, d)] = c_u > 1e-8 ? 
-            c_u :
+        u[get_vec_index(node, d)] = fabsf(c_u) > 1e-8 ? 
+            utl::clamp_abs(c_u, 0.7f) :
             0.0f;
     }
 }

@@ -73,6 +73,12 @@ private:
         checkCudaErrors(cudaMemcpyToSymbol(M_inv, h_M_inv,     sizeof(float) * quadratures * quadratures));
         checkCudaErrors(cudaMemcpyToSymbol(S, Scenario::S,     sizeof(float) * quadratures));
 
+        checkCudaErrors(cudaMemcpyToSymbol(free_slip_map_x, h_free_slip_map_x, sizeof(int) * quadratures));
+        checkCudaErrors(cudaMemcpyToSymbol(free_slip_map_y, h_free_slip_map_y, sizeof(int) * quadratures));
+
+        if constexpr (dim == 3)
+            checkCudaErrors(cudaMemcpyToSymbol(free_slip_map_z, h_free_slip_map_z, sizeof(int) * quadratures));
+        
         // LBM_ASSERT(fabs(Scenario::S[7] - Scenario::omega) < 1e-6, 
         //            "MRT relaxation value S[7] does not match scenario viscosity");
 

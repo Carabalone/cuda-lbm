@@ -54,6 +54,14 @@
         1.0f/9.0f,   1.0f/18.0f,  1.0f/36.0f,  1.0f/6.0f,  1.0f/12.0f, -1.0f/6.0f,  -1.0f/12.0f,  0.0f,      -1.0f/4.0f
     };
 
+    const int h_free_slip_map_x[] = {
+        0, 3, 2, 1, 4, 6, 5, 8, 7
+    };
+
+    const int h_free_slip_map_y[] = {
+        0, 1, 4, 3, 2, 8, 7, 6, 5
+    };
+
 #endif
 
 
@@ -112,6 +120,19 @@
         14, 13, 12, 11,                  // xz plane edges
         18, 17, 16, 15,                  // yz plane edges
         22, 21, 20, 19, 26, 25, 24, 23   // corner neighbors
+    };
+
+    const int h_free_slip_map_x[] = {
+        0, 2, 1, 3, 4, 5, 6, 8, 7, 10, 9, 12, 11, 14, 13, 15, 16, 17, 18, 20, 19, 22, 21, 24, 23, 26, 25
+    };
+
+    
+    const int h_free_slip_map_y[] = {
+        0, 1, 2, 4, 3, 5, 6, 9, 10, 7, 8, 11, 12, 13, 14, 16, 15, 18, 17, 21, 22, 19, 20, 25, 26, 23, 24
+    };
+
+    const int h_free_slip_map_z[] = {
+        0, 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 13, 14, 11, 12, 17, 18, 15, 16, 23, 24, 25, 26, 19, 20, 21, 22
     };
 
     // suga et. al (2015)
@@ -288,6 +309,11 @@ extern __constant__ float vis;
 extern __constant__ float tau;
 extern __constant__ float omega;
 extern __constant__ int OPP[quadratures];
+extern __constant__ int free_slip_map_x[quadratures];
+extern __constant__ int free_slip_map_y[quadratures];
+#ifdef D3Q27
+extern __constant__ int free_slip_map_z[quadratures];
+#endif
 
 extern __constant__ float M[quadratures*quadratures];
 extern __constant__ float M_inv[quadratures*quadratures];
@@ -394,6 +420,8 @@ enum BC_flag {
     GUO_VELOCITY_INLET,
     GUO_PRESSURE_OUTLET,
     REGULARIZED_OUTLET,
+    FREE_SLIP_BOUNCE_BACK,
+    CONVECTIVE_OUTLET_RIGHT,
 };
 
 #endif // LBM_CONSTANTS_H

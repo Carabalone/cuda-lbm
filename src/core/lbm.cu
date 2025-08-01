@@ -11,6 +11,9 @@ __constant__ float vis;
 __constant__ float tau;
 __constant__ float omega;
 __constant__ int OPP[quadratures];
+__constant__ int free_slip_map_x[quadratures];
+__constant__ int free_slip_map_y[quadratures];
+__constant__ int free_slip_map_z[quadratures];
 
 __constant__ float M[quadratures * quadratures];
 __constant__ float M_inv[quadratures * quadratures];

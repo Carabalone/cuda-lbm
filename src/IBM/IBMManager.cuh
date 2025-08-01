@@ -5,7 +5,7 @@
 #include "IBM/IBM_sorting.cuh"
 
 #include <vector>
-#define ITER_MAX 3
+#define ITER_MAX 5
 
 // Forward declarations of kernels
 template <int dim>

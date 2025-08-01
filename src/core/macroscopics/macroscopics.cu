@@ -1,5 +1,6 @@
 #include "core/lbm_constants.cuh"
 #include "core/macroscopics/macroscopics.cuh"
+#include "util/utility.cuh"
 
 template<>
 __global__ void uncorrected_macroscopics_kernel<2>(float* f, float* rho, float* u, float* force, float* pi_mag) {
@@ -93,6 +94,15 @@ __global__ void uncorrected_macroscopics_kernel<3>(float* f, float* rho, float* 
                 node, rho[node], u[get_vec_index(node, 0)], 
                 u[get_vec_index(node, 1)], u[get_vec_index(node, 2)]);
     }
+
+    // if (x == 0 && utl::in_range(y, 64, 66) && utl::in_range(z, 64, 66)){
+    //     printf("rho after macroscopics @ (%d, %d, %d): %.4f|u (%.4f, %.4f, %.4f)\n", x, y, z, rho[node],
+    //         u[get_vec_index(node, 0)],
+    //         u[get_vec_index(node, 1)],
+    //         u[get_vec_index(node, 2)]
+    //     );
+    // }        
+
 }
 
 template<>
@@ -123,6 +133,29 @@ __global__ void correct_macroscopics_kernel<3>(float* f, float* rho, float* u, f
     u[get_vec_index(node, 1)] += 0.5f * force[get_vec_index(node, 1)] / rho[node];
     u[get_vec_index(node, 2)] += 0.5f * force[get_vec_index(node, 2)] / rho[node];
 
-    // if (node % 200 == 0)
-    //     printf("u={%.4f, %.4f, %.4f}\n", u[get_vec_index(node, 0)], u[get_vec_index(node, 1)], u[get_vec_index(node, 2)]);
+    float fx = force[get_vec_index(node, 0)];
+    float fy = force[get_vec_index(node, 1)];
+    float fz = force[get_vec_index(node, 2)];
+
+    // float dx = x - 128.0f;
+    // float dy = y - 64.0f;
+    // float dz = z - 48.0f;
+
+    // if (x == 0 && utl::in_range(y, 64, 66) && utl::in_range(z, 64, 66)){
+    //     printf("rho after CORRECT macroscopics @ (%d, %d, %d): %.4f|u (%.4f, %.4f, %.4f)\n", x, y, z, rho[node],
+    //         u[get_vec_index(node, 0)],
+    //         u[get_vec_index(node, 1)],
+    //         u[get_vec_index(node, 2)]
+    //     );
+    // }        
+
+
+
+    // if (dx*dx + dy*dy + dz*dz <= 16.0f * 16.0f && fabsf(u[get_vec_index(node, 0)]) > 0.005f)
+    //     printf("u={%.4f, %.4f, %.4f} f={%.4f, %.4f, %.4f} @ (%d,%d,%d)\n",
+    //         u[get_vec_index(node, 0)],
+    //         u[get_vec_index(node, 1)],
+    //         u[get_vec_index(node, 2)],
+    //         fx, fy, fz,
+    //         x, y, z);
 }

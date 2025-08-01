@@ -8,7 +8,8 @@
 // boudary (e.g. inlet left for a velocity with dir (1,0,0) is RegularizedBounceBack::apply(f, node, u_x, 0, 0) on a node at x=0). We still hold problems with corners, but that's for another time.
 struct RegularizedBoundary {
 
-    __device__ static inline void apply(float* f, int node, float ux, float uy, float uz) {
+    __device__ static inline void apply(float* f, int node, float ux, float uy, float uz,
+                                        int ramp_up_time, int ts) {
         int x, y, z;
         get_coords_from_node(node, x, y, z);
 
@@ -20,10 +21,13 @@ struct RegularizedBoundary {
         if (y == NY - 1 ) { n_dim = 1; n_sign = -1; }
         if (z == 0      ) { n_dim = 2; n_sign = +1; }
         if (z == NZ - 1 ) { n_dim = 2; n_sign = -1; }
-        if (n_dim == -1) return; // somehow at interior
+        if (n_dim == -1){
+            printf("n_dim==-1\n");
+            return; // somehow at interior  
+        }
 
         float rho_incoming = 0.f;
-        float rho_parallel  = 0.f;
+        float rho_parallel = 0.f;
 
         for (int i=0; i < quadratures; i++) {
             // normal has 1 one and rest is zeroes
@@ -31,11 +35,11 @@ struct RegularizedBoundary {
             if (is_known(i, n_dim, n_sign)) {
                 float c_dot_n = C[3*i + n_dim] * n_sign;
                 // if (y == 12 && z == 10)
-                //     printf("known: %d (%d, %d, %d) | parallel: %s\n", i, C[3*i], C[3*i+1], C[3*i+2], (fabsf(c_dot_n) < 1e-3f ? "true" : "false"));
+                    // printf("known: %d (%d, %d, %d) | parallel: %s\n", i, C[3*i], C[3*i+1], C[3*i+2], (fabsf(c_dot_n) < 1e-3f ? "true" : "false"));
                 float f_i = f[get_node_index(node, i)];
 
-                if (fabsf(c_dot_n) < 1e-3f) rho_parallel += f_i;
-                else if  (c_dot_n  < 0.f)   rho_incoming += f_i;
+                if (fabsf(c_dot_n) < 1e-3f) rho_parallel  += f_i;
+                else if  (c_dot_n  < 0.f)   rho_incoming  += f_i;
                 else printf("[REGULARIZED_INLET]: unknown direction\n");
                 
 
@@ -46,7 +50,16 @@ struct RegularizedBoundary {
         float u_n = (n_dim == 0) ? ux :
                     (n_dim == 1) ? uy :
                     uz;
+        
+        u_n = utl::clamp_ramp_up_linear(u_n, ramp_up_time, ts);
+
+        if      (n_dim == 0) ux = u_n;
+        else if (n_dim == 1) uy = u_n;
+        else                 uz = u_n;
+
+        // float rho = (2.0f*rho_incoming + rho_parallel + 1.0f) / (1.0f + u_n);
         rho /= (1 - n_sign * u_n);
+        // float rho = rho_parallel + rho_incoming;
 
         if (utl::in_range(y, 50, 56) && utl::in_range(z, 40, 48)) {
             // printf("calc_rho: %.4f\n", rho);
@@ -65,30 +78,16 @@ struct RegularizedBoundary {
         // rho = 1.0f;
         de_rosis_eq(f_eq, ux, uy, uz, rho);
 
-        // for (int q=0; q < quadratures; q++) {
-            
-        //     float cx = C[q * 3 + 0];
-        //     float cy = C[q * 3 + 1];
-        //     float cz = C[q * 3 + 2];
-        //     float c_dot_u = cx*ux + cy*uy + cz*uz;
-        //     float u_dot_u = ux*ux + uy*uy + uz*uz;
-        //     f_eq[q] = WEIGHTS[q] * rho *
-        //              (1.f + c_dot_u/cs2 +
-        //               0.5f*(c_dot_u*c_dot_u)/(cs2*cs2) -
-        //               0.5f*u_dot_u/cs2);
-        // }
-
-        
         //  bounce-back of non-equilibrium parts
         for (int q = 0; q < quadratures; q++) {
-            if (C[3*q + n_dim] * n_sign > 0) {
+            if (!is_known(q, n_dim, n_sign)) {
                 int opp = OPP[q];
                 // f_neq = f - f_eq
                 f[get_node_index(node, q)] = f_eq[q] + (f[get_node_index(node, opp)] - f_eq[opp]);
             }
         }
      
-        // Π(1) = ∑ᵢ fᵢ - cs² ρ I - ρ uu
+        // // Π(1) = ∑ᵢ fᵢ - cs² ρ I - ρ uu
         float Pi_xx = 0.0f, Pi_yy = 0.0f, Pi_zz = 0.0f, Pi_xy = 0.0f, Pi_xz = 0.0f, Pi_yz = 0.0f;
         
         for (int q = 0; q < quadratures; q++) {
@@ -111,10 +110,9 @@ struct RegularizedBoundary {
         Pi_xy -= rho * ux * uy;
         Pi_xz -= rho * ux * uz;
         Pi_yz -= rho * uy * uz;
-
         
-        float test_rho = 0.0f;
-        float test_u[3] = {0.0f};
+        // float test_rho = 0.0f;
+        // float test_u[3] = {0.0f};
         for (int q = 0; q < quadratures; q++) {
             float cx = C[3*q], cy = C[3*q+1], cz = C[3*q+2];
             const float Q_xx = cx*cx - cs2;
@@ -130,13 +128,13 @@ struct RegularizedBoundary {
             
             f[get_node_index(node, q)] = f_eq[q] + f_neq;
             float f_i = f_eq[q] + f_neq;
-            test_u[0] += cx * f_i;
-            test_u[1] += cy * f_i;
-            test_u[2] += cz * f_i;
-            test_rho += f_i;
+            // test_u[0] += cx * f_i;
+            // test_u[1] += cy * f_i;
+            // test_u[2] += cz * f_i;
+            // test_rho += f_i;
         }
 
-        // if (x == 2 && y == 0 && z == 32){
+        // if (x == 0 && utl::in_range(y, 32, 96) && utl::in_range(z, 32, 96) && ts > 400){
         //     printf("test_rho after regularization @ (%d, %d, %d): %.4f|u (%.4f, %.4f, %.4f)\n", x, y, z, test_rho,
         //             test_u[0], test_u[1], test_u[2]);
         // }        
@@ -190,6 +188,24 @@ private:
         f_eq[26] = inv_cs2_cs4*half_rho*WEIGHTS[26]*(1.0f*cs2*(ux + uy + uz)*((ux + uy + uz) - two_cs4) + two_cs2_cs4 - cs4*(ux2 + uy2 + uz2));
     }
 
+};
+
+struct VelocityInlet {
+    __device__ static void apply(float* f, int node, float u_max, int ramp_time, int ts) {
+        int x, y, z;
+        get_coords_from_node(node, x, y, z);
+        
+        float y_center = (NY - 1) * 0.5f;
+        float z_center = (NZ - 1) * 0.5f;
+        float r_y = (y - y_center) / y_center;
+        float r_z = (z - z_center) / z_center;
+        float r2 = r_y*r_y + r_z*r_z;
+        
+        float u_profile = u_max * (1.0f - r2);
+        u_profile = utl::clamp_ramp_up_tanh(u_profile, ramp_time, ts);
+        
+        RegularizedBoundary::apply(f, node, u_profile, 0.0f, 0.0f, ramp_time, ts);
+    }
 };
 
 #endif // !REGULARIZED_BOUNDARY_H

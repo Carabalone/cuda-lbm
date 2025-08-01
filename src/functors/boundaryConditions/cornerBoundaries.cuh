@@ -21,7 +21,7 @@ struct ExtrapolatedCornerEdgeBoundary {
             rho += f[get_node_index(interior_node, i)];
             wall_ux += f[get_node_index(interior_node, i)] * C[3*i];
             wall_uy += f[get_node_index(interior_node, i)] * C[3*i+1];
-            wall_uz += f[get_node_index(interior_node, i)] * C[3*2+i];
+            wall_uz += f[get_node_index(interior_node, i)] * C[3*i+2];
         }
         wall_ux /= rho;
         wall_uy /= rho;

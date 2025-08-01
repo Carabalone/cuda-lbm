@@ -57,7 +57,7 @@
     #define SCALE 1
     #define NX (256 * SCALE)
     #define NY (128 * SCALE)
-    #define NZ (96  * SCALE)
+    #define NZ (128  * SCALE)
 #endif
 
 

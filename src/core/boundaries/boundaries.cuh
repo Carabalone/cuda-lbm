@@ -8,7 +8,7 @@
 // -----------------------------------------------------------------------------------------------------
 
 template <typename Scenario>
-__global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, float rho, int* boundary_flags) {
+__global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, float rho, int* boundary_flags, int timestep) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -86,7 +86,7 @@ __global__ void boundaries_kernel_2D(float* f, float* f_back, float* u, float rh
 
 
 template <typename Scenario>
-__global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, float* rho, int* boundary_flags) {
+__global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, float* rho, int* boundary_flags, int timestep) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;
@@ -106,11 +106,14 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, float* r
             domain_boundary.apply(f, f_back, idx);
             break;
         case BC_flag::REGULARIZED_BOUNCE_BACK:
-            RegularizedBoundary::apply(f, idx, 0.0f, 0.0f, 0.0f);
+            RegularizedBoundary::apply(f, idx, 0.0f, 0.0f, 0.0f, 0, 1);
             break;
         case BC_flag::REGULARIZED_INLET_LEFT:
-            RegularizedBoundary::apply(f, idx, Scenario::u_max, 0.0f, 0.0f);
+            // RegularizedBoundary::apply(f, idx, Scenario::u_max, 0.0f, 0.0f, Scenario::ramp_up_time, timestep);
+            VelocityInlet::apply(f, idx, Scenario::u_max, Scenario::ramp_up_time, timestep);
             break;
+        case 150:
+            RegularizedBoundary::apply(f, idx, Scenario::u_max, 0.0f, 0.0f, Scenario::ramp_up_time, timestep);
         case BC_flag::ZG_OUTFLOW:
             ZG_OutflowBoundary<3>::apply(f, idx);
             break;
@@ -121,7 +124,10 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, float* r
             EdgeCornerBounceBack::apply(f, idx);
             break;
         case BC_flag::GUO_VELOCITY_INLET:
-            GuoVelocityInlet3D::apply(f, rho, u, idx, Scenario::u_max);
+            GuoVelocityInlet3D::apply(
+                f, rho, u, idx, Scenario::u_max,
+                Scenario::ramp_up_time, timestep
+            );
             break;
         case BC_flag::GUO_PRESSURE_OUTLET:
             GuoPressureOutlet3D::apply(f, rho, u, idx);
@@ -129,12 +135,25 @@ __global__ void boundaries_kernel_3D(float* f, float* f_back, float* u, float* r
         case BC_flag::REGULARIZED_OUTLET:
             RegularizedOutlet::apply(f, rho, u, idx);
             break;
+        case BC_flag::FREE_SLIP_BOUNCE_BACK:
+            FreeSlipBounceBack<3>::apply(f, idx);
+            break;
+        case BC_flag::CONVECTIVE_OUTLET_RIGHT:
+            ConvectiveOutletX::apply(f, idx);
+            break;
             
         default:
             // Unknown flag; do nothing.
             printf("Unknown Flag [%d]: %d\n", idx, flag);
             break;
+
     }
+
+    if constexpr (Scenario::sponge_layers > 0)
+        Sponge::apply(
+            f, idx, Scenario::sponge_layers, Scenario::sponge_sigma_max
+        );
+
 }
 
 // there is a reason for doing two different kernels instead of templates.
@@ -152,7 +171,7 @@ void LBM<dim>::apply_boundaries() {
         blocks = dim3((NX + BLOCK_SIZE - 1) / BLOCK_SIZE,
                       (NY + BLOCK_SIZE - 1) / BLOCK_SIZE);
         
-        boundaries_kernel_2D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags);
+        boundaries_kernel_2D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags, timestep);
     }
     else {
         threads = dim3(8, 8, 4);
@@ -160,7 +179,7 @@ void LBM<dim>::apply_boundaries() {
                       (NY + threads.y - 1) / threads.y,
                       (NZ + threads.z - 1) / threads.z);
         
-        boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags);
+        boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags, timestep);
     }
 
     checkCudaErrors(cudaDeviceSynchronize());

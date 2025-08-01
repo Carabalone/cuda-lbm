@@ -14,6 +14,9 @@
 #include "./boundaryConditions/guoInlet3D.cuh"
 #include "./boundaryConditions/guoOutlet3D.cuh"
 #include "./boundaryConditions/regularizedOutlet.cuh"
+#include "./boundaryConditions/sponge.cuh"
+#include "./boundaryConditions/freeSlipBounceBack.cuh"
+#include "./boundaryConditions/convectiveOutlet.cuh"
 #include "./initialConditions/defaultInit.cuh"
 
 #endif // ! FUNCTOR_INCLUDES_H

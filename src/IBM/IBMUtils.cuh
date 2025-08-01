@@ -9,8 +9,8 @@
 IBMBody load_from_obj(const std::string& filename, int target_samples =-1);
 
 constexpr int  R          = 2;     
-constexpr int  KERNEL_W   = 4;   // nodes per dimension   (3)
-constexpr int  OFFSET     = -1;
+constexpr int  KERNEL_W   = 5;   // nodes per dimension   (3)
+constexpr int  OFFSET     = -2;
 
 __host__ __device__ __forceinline__
 float delta2(float r) {
