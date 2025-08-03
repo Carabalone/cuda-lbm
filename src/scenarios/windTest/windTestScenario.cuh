@@ -62,7 +62,9 @@ struct WindTunnelInit
         float r_z = (z - z_center) / z_center;
         float r2 = r_y*r_y + r_z*r_z;
         
-        u[get_vec_index(node, 0)] = u_max * (1.0f - r2) * 1.0f;  // 80% of final
+        // u[get_vec_index(node, 0)] = u_max * (1.0f - r2) * 1.0f;  // 80% of final
+        // u[get_vec_index(node, 0)] = u_max * (1.0f - r2) * 0.1f;  // 80% of final
+        u[get_vec_index(node, 0)] = 0.0f;
         u[get_vec_index(node, 1)] = 0.0f;
         u[get_vec_index(node, 2)] = 0.0f;
         
@@ -83,13 +85,13 @@ struct WindTunnelScenario : public ScenarioTrait<
     >
 {
     static constexpr float u_max      = 0.05f;
-    static constexpr float Re_target  = 5000.0f;
+    static constexpr float Re_target  = 1000.0f;
     static constexpr float D          = NY;
     static constexpr float viscosity  = u_max * (D * 0.5f) / Re_target;
     static constexpr float tau        = viscosity_to_tau(viscosity);
     static constexpr float omega      = 1.0f / tau;
 
-    static constexpr int   ramp_up_time     = 0;
+    static constexpr int   ramp_up_time     = 4000;
     static constexpr int   sponge_layers    = 20;
     static constexpr float sponge_sigma_max = 0.1f;
     static constexpr float sponge_rho = 1.0f;
@@ -114,8 +116,8 @@ struct WindTunnelScenario : public ScenarioTrait<
             base_path = "../../../";
         #endif
         std::string sphere_config = base_path + "src/scenarios/windTest/sphere_config.ini";
-        // IBMBody sphere = conf::create_body_from_config(sphere_config);
-        // IBM_bodies.emplace_back(sphere);
+        IBMBody sphere = conf::create_body_from_config(sphere_config);
+        IBM_bodies.emplace_back(sphere);
 
     }
 };

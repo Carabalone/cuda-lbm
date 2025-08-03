@@ -47,7 +47,7 @@ void interpolate_velocities_kernel<2>(float* points, float* u_ibm, float* rho_ib
     u_ibm[get_lag_vec_index(idx, 1, num_pts)] = uy;
     rho_ibm[idx] = rho;
 
-    if (fabsf(ux) > 0.15f || fabsf(uy) > 0.15f)
+    if (fabsf(ux) > 0.55f || fabsf(uy) > 0.55f)
         printf("  Interpolated velocity for point %d (%.4f, %.4f): (%.4f, %.4f)\n\trho=%.4f\n", idx, px, py, ux, uy, rho);
 }
 
@@ -113,7 +113,7 @@ void interpolate_velocities_kernel<3>(float* points, float* u_ibm, float* rho_ib
     u_ibm[get_lag_vec_index(idx, 2, num_pts)] = uz;
     rho_ibm[idx] = rho;
 
-    if (fabsf(ux) > 0.15f || fabsf(uy) > 0.15f || fabsf(uz) >= 0.15f)
+    if (fabsf(ux) > 0.55f || fabsf(uy) > 0.55f || fabsf(uz) >= 0.55f)
         printf("  Interpolated velocity for point %d (%.4f, %.4f, %.4f): (%.4f, %.4f, %.4f)\n\trho=%.4f\n",
              idx, px, py, pz, ux, uy, uz, rho);
 }

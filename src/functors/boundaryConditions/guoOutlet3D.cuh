@@ -3,71 +3,16 @@
 
 struct GuoPressureOutlet3D {
     __device__ static inline void apply(float* f, float* rho, float* u, int node) {
-        const float rho_b = 1.0f;
-
-        float sum_known_f = 0.0f;
-        #pragma unroll
-        for (int i = 0; i < quadratures; ++i) {
-            // Sum all populations that are known after streaming
-            if (C[i * dimensions + 0] > 0) { // c_ix > 0
-                sum_known_f += 2.0f * f[get_node_index(node, i)];
-            } else if (C[i * dimensions + 0] == 0) { // c_ix = 0
-                sum_known_f += f[get_node_index(node, i)];
-            }
-        }
-
-        const float ux_b = (sum_known_f / rho_b) - 1.0f;
-        
-        float jy_known = 0.0f;
-        float jz_known = 0.0f;
-        #pragma unroll
-        for (int i = 0; i < quadratures; ++i) {
-            if (C[i * dimensions + 0] >= 0) { // Known directions
-                float f_i = f[get_node_index(node, i)];
-                jy_known += f_i * C[i * dimensions + 1];
-                jz_known += f_i * C[i * dimensions + 2];
-            }
-        }
-        const float uy_b = jy_known / rho_b;
-        const float uz_b = jz_known / rho_b;
-
-
-        float feq_b[quadratures];
-        de_rosis_eq(feq_b, ux_b, uy_b, uz_b, rho_b);
-
         int x, y, z;
         get_coords_from_node(node, x, y, z);
-        int fluid_node = get_node_from_coords(x - 1, y, z);
-
-        float rho_f = 0.0f;
-        float ux_f = 0.0f;
-        float uy_f = 0.0f;
-        float uz_f = 0.0f;
-
-        for (int i=0; i < quadratures; i++) {
-            float f_i = f[get_node_index(node, i)];
-            rho_f += f_i;
-            ux_f  += f_i * C[3*i];
-            uy_f  += f_i * C[3*i + 1];
-            uz_f  += f_i * C[3*i + 2];
-        }
-
-        ux_f  /= rho_f;
-        uy_f  /= rho_f;
-        uz_f  /= rho_f;
-        
-        float feq_f[quadratures];
-        de_rosis_eq(feq_f, ux_f, uy_f, uz_f, rho_f);
-
-        // --- Step 3: Reconstruct unknown populations ---
-        #pragma unroll
+        int interior = get_node_from_coords(x - 1, y, z);
+    
+        // Copy all unknown populations from interior
         for (int i = 0; i < quadratures; ++i) {
-            if (C[i * dimensions + 0] < 0) { // c_ix < 0 are the unknown populations
-                float f_neq_fluid = f[get_node_index(fluid_node, i)] - feq_f[i];
-                f[get_node_index(node, i)] = feq_b[i] + f_neq_fluid;
+            if (C[i * dimensions + 0] < 0) { // unknown (flowing out)
+                f[get_node_index(node, i)] = f[get_node_index(interior, i)];
             }
-        }
-
+        }        
     }
     
 private:

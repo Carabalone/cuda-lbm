@@ -55,9 +55,9 @@
     #define NZ (96/4 * SCALE)
 #elif defined(USE_WIND_TUNNEL)
     #define SCALE 1
-    #define NX (256 * SCALE)
-    #define NY (128 * SCALE)
-    #define NZ (128  * SCALE)
+    #define NX (384 * SCALE)
+    #define NY (196 * SCALE)
+    #define NZ (196  * SCALE)
 #endif
 
 
