@@ -9,10 +9,10 @@
 // #define USE_LID_DRIVEN
 // #define USE_TURBULENT_CHANNEL
 // #define USE_FLOW_PAST_CYLINDER
-// #define USE_TAYLOR_GREEN_3D
+ #define USE_TAYLOR_GREEN_3D
 // #define USE_FLOW_PAST_SQUARE_CYLINDER
 // #define USE_ZERO_FLOW_TEST
-#define USE_WIND_TUNNEL
+// #define USE_WIND_TUNNEL
 
 // #define SOA
 

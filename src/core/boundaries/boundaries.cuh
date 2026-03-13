@@ -182,7 +182,7 @@ void LBM<dim>::apply_boundaries() {
         boundaries_kernel_3D<Scenario><<<blocks, threads>>>(d_f, d_f_back, d_u, d_rho, d_boundary_flags, timestep);
     }
 
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
 }
 
 // TODO: maybe to this in GPU ? functors can be device funcs, but I guess it is not worth it. This just runs once.

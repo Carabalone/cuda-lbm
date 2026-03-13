@@ -67,7 +67,7 @@ void LBM<dim>::compute_equilibrium() {
     }
 
     equilibrium_kernel<dim><<<blocks, threads>>>(d_f_eq, d_rho, d_u);
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
 }
 
 __device__

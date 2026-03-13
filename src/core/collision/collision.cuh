@@ -61,7 +61,7 @@ void LBM<dim>::collide() {
     }
     collide_kernel<CollisionOp, dim><<<blocks, threads>>>(d_f, d_f_eq, d_u, d_force);
     
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
 }
 
 #endif // ! COLLISION_OPS_H

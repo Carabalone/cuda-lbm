@@ -44,7 +44,7 @@ void LBM<dim>::reset_forces() {
 
     auto init = Scenario::init();
     reset_forces_kernel<dim><<<blocks, threads>>>(d_rho, d_u, d_force, init);
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
 }
 
 // From Optimizing Parallel Reduction in CUDA - Mark Harris
@@ -135,7 +135,7 @@ void LBM<dim>::uncorrected_macroscopics() {
     }
 
     uncorrected_macroscopics_kernel<dim><<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
 }
 
 template <int dim>
@@ -155,7 +155,11 @@ void LBM<dim>::correct_macroscopics() {
     }
 
     correct_macroscopics_kernel<dim><<<blocks, threads>>>(d_f, d_rho, d_u, d_force, d_pi_mag);
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
+
+    if (!should_collect_moment_stats()) {
+        return;
+    }
 
 
     MomentInfo h_moment = {0.0f, 0.0f, 0.0f};
@@ -173,7 +177,7 @@ void LBM<dim>::correct_macroscopics() {
 
     update_avg_mag<dim><<<blocks, threads, shared_size>>>(d_rho, d_u, d_pi_mag, d_moment_avg_ptr);
     
-    checkCudaErrors(cudaDeviceSynchronize());
+    sync_or_check_kernel();
     checkCudaErrors(cudaMemcpyFromSymbol(&h_moment, d_moment_avg, sizeof(MomentInfo)));
     
     if (timestep % 50 == 0) {

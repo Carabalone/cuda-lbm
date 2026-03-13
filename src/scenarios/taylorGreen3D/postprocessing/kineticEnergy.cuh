@@ -42,7 +42,7 @@ __global__ void compute_kinetic_energy_kernel(float* rho, float* u, float* resul
     }
 }
 
-float calculate_kinetic_energy(float* rho, float* u) {
+float calculate_kinetic_energy(float* rho, float* u, float u_max) {
     float* d_result;
     cudaMalloc(&d_result, sizeof(float));
     cudaMemset(d_result, 0, sizeof(float));
@@ -64,7 +64,7 @@ float calculate_kinetic_energy(float* rho, float* u) {
     cudaMemcpy(&total_energy, d_result, sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_result);
     
-    return total_energy / (NX * NY * NZ * 0.05f * 0.05f);
+    return total_energy / (NX * NY * NZ * u_max * u_max);
 }
 
 #endif // ! POSTPROCESSING_CUH

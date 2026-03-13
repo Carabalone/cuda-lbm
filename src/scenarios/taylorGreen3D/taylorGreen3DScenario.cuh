@@ -9,8 +9,7 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     TaylorGreen3DInit,
     TaylorGreen3DBoundary,
     TaylorGreen3DValidation,
-    // MRT<3>
-    CM<3, EmpiricalAdapter>
+    CM<3, NoAdapter>
 > {
 
     // Re=1600
@@ -19,42 +18,13 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     // 1600 = 1.0 * 0.05 * 64 / vis
     // vis = 0.05 * 64 / 1600 = 0.002
     // tau = 0.506 -> really low;
-    // static constexpr float u_max = 0.05f;
-    static constexpr float u_max = 0.1f;
-    static constexpr float viscosity = 0.004f;
+    static constexpr float u_max = 0.05f;
+    static constexpr float viscosity = 0.000636619770f;
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 
 
-    static constexpr float S[quadratures] = {
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        omega,
-        omega,
-        omega,
-        omega,
-        omega,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f,
-        1.0f
-    };
+    static constexpr float S[quadratures] = {0.0f};
 
     // MRT equivalent to BGK
     // static constexpr float S[quadratures] = {
@@ -141,7 +111,7 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
 
         // auto v = validation();
 
-        float ke = calculate_kinetic_energy(solver.get_rho(), solver.get_u());
+        float ke = calculate_kinetic_energy(solver.get_rho(), solver.get_u(), u_max);
         printf("Timestep %d: Kinetic Energy = %.6e\n", solver.timestep, ke);
         
         return -1.0f;

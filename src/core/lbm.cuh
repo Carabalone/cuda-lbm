@@ -39,6 +39,8 @@ private:
     float *d_force;            // force: [NX][NY][D]
     int   *d_boundary_flags;   // [NX][NY]
     float *d_u_uncorrected;
+    bool kernel_sync_enabled = true;
+    bool collect_moment_stats_enabled = true;
 
     float *d_pi_mag; // pi_mag: [NX][NY] -> used for adaptive relaxation
 
@@ -94,6 +96,26 @@ public:
     IBMManager<dim> IBM;
 
     int timestep = 0, update_ts = 0;
+
+    __host__ inline void set_kernel_synchronization(bool enabled) {
+        kernel_sync_enabled = enabled;
+    }
+
+    __host__ inline void set_collect_moment_stats(bool enabled) {
+        collect_moment_stats_enabled = enabled;
+    }
+
+    __host__ inline bool should_collect_moment_stats() const {
+        return collect_moment_stats_enabled;
+    }
+
+    __host__ inline void sync_or_check_kernel() const {
+        if (kernel_sync_enabled) {
+            checkCudaErrors(cudaDeviceSynchronize());
+        } else {
+            checkCudaErrors(cudaPeekAtLastError());
+        }
+    }
 
     template <typename Scenario>
     void allocate() {
