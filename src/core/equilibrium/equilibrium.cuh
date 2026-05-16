@@ -17,7 +17,9 @@
 
 
 template <int dim>
-__global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u) {
+__global__ void equilibrium_kernel(float* __restrict__ f_eq,
+                                   const float* __restrict__ rho,
+                                   const float* __restrict__ u) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;
@@ -43,7 +45,7 @@ __global__ void equilibrium_kernel(float* f_eq, const float* rho, const float* u
                 node, x, y, node_rho, node_ux, node_uy);
     }
 
-    LBM<dim>::equilibrium_node(f_eq, node_ux, node_uy, node_uz, node_rho, node);
+    LBM<dim>::equilibrium_node_second_order(f_eq, node_ux, node_uy, node_uz, node_rho, node);
 
     // if (node == DEBUG_NODE) {
     //     DPRINTF("[equilibrium_kernel] f_eq[%d] = %f\n", get_node_index(node, 0), f_eq[get_node_index(node, 0)]);

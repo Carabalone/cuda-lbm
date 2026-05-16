@@ -3,7 +3,11 @@
 #include "util/utility.cuh"
 
 template<>
-__global__ void uncorrected_macroscopics_kernel<2>(float* f, float* rho, float* u, float* force, float* pi_mag) {
+__global__ void uncorrected_macroscopics_kernel<2>(const float* __restrict__ f,
+                                                   float* __restrict__ rho,
+                                                   float* __restrict__ u,
+                                                   const float* __restrict__ force,
+                                                   float* __restrict__ pi_mag) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -39,7 +43,11 @@ __global__ void uncorrected_macroscopics_kernel<2>(float* f, float* rho, float* 
 }
 
 template<>
-__global__ void uncorrected_macroscopics_kernel<3>(float* f, float* rho, float* u, float* force, float* pi_mag) {
+__global__ void uncorrected_macroscopics_kernel<3>(const float* __restrict__ f,
+                                                   float* __restrict__ rho,
+                                                   float* __restrict__ u,
+                                                   const float* __restrict__ force,
+                                                   float* __restrict__ pi_mag) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;
@@ -106,7 +114,11 @@ __global__ void uncorrected_macroscopics_kernel<3>(float* f, float* rho, float* 
 }
 
 template<>
-__global__ void correct_macroscopics_kernel<2>(float* f, float* rho, float* u, float* force, float* pi_mag) {
+__global__ void correct_macroscopics_kernel<2>(const float* __restrict__ f,
+                                               const float* __restrict__ rho,
+                                               float* __restrict__ u,
+                                               const float* __restrict__ force,
+                                               float* __restrict__ pi_mag) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -120,7 +132,11 @@ __global__ void correct_macroscopics_kernel<2>(float* f, float* rho, float* u, f
 }
 
 template<>
-__global__ void correct_macroscopics_kernel<3>(float* f, float* rho, float* u, float* force, float* pi_mag) {
+__global__ void correct_macroscopics_kernel<3>(const float* __restrict__ f,
+                                               const float* __restrict__ rho,
+                                               float* __restrict__ u,
+                                               const float* __restrict__ force,
+                                               float* __restrict__ pi_mag) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;

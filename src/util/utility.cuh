@@ -7,7 +7,16 @@
 #include <iostream>
 #include <type_traits>
 
-// #define DEBUG_KERNEL 1
+// Verbose diagnostics (host + `__device__` printf sites that use `DPRINTF` / `LBM_LOG`).
+// Define exactly once in `defines.hpp` (or via `-DLBM_DEBUG` on the compile line).
+#ifdef LBM_DEBUG
+  #define LBM_LOG(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+  #define LBM_LOG(fmt, ...)
+#endif
+
+// Historical name used across kernels; keep as an alias so call sites stay stable.
+#define DPRINTF LBM_LOG
 
 // returns from [0, 1[
 __device__ float inline gpu_rand(curandState &state) {
@@ -48,12 +57,6 @@ inline void __getLastCudaError(const char *const errorMessage, const char *const
 //     sum_arrays_kernel<<<threads, blocks>>>(arr1, arr2, res, size);
 //     checkCudaErrors(cudaDeviceSynchronize());
 // }
-
-#ifdef DEBUG_KERNEL
-  #define DPRINTF(fmt, ...) printf(fmt, __VA_ARGS__)
-#else
-  #define DPRINTF(fmt, ...)
-#endif
 
 namespace utl {
     

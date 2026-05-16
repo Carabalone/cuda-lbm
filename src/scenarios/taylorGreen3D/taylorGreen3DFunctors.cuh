@@ -65,8 +65,10 @@ struct TaylorGreen3DValidation {
 
     __host__ __device__
     void operator()(int x_node, int y_node, int z_node) const {
+        #ifdef LBM_DEBUG
         if ((int)t % 100 == 0 && x_node == 0 && y_node == 0 && z_node == 0)
             printf("t: %.4f\n", t);
+        #endif
     }
     
     void setTime(float new_t) {

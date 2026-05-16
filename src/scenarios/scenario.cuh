@@ -64,6 +64,11 @@ struct ScenarioTrait {
 
     static constexpr float u_max = 0.1f;
     static constexpr float ramp_up_time = 1.0f;    
+
+    static constexpr int timesteps = 8000;
+    static constexpr int save_interval = 100;
+    static constexpr int benchmark_timesteps = 350;
+    static constexpr int benchmark_warmup = 100;
     
     static const char* name() { return "BaseScenario"; }
     

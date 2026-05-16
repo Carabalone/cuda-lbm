@@ -14,7 +14,17 @@
 // #define USE_ZERO_FLOW_TEST
 // #define USE_WIND_TUNNEL
 
-// #define SOA
+// ---- Memory layout (pick at most one; default is SoA) ----
+// #define LBM_LAYOUT_AOS
+// #define LBM_LAYOUT_CSOA
+
+// ---- Collision operator for TGV benchmarks (pick at most one; default is CM) ----
+// #define LBM_COLLISION_BGK
+// #define LBM_COLLISION_MRT
+// #define LBM_COLLISION_MRT_BASELINE   // slow MRT + f_eq (baseline; use with AoS)
+#if (defined(LBM_COLLISION_BGK) + defined(LBM_COLLISION_MRT) + defined(LBM_COLLISION_MRT_BASELINE)) > 1
+#error "Pick at most one collision operator define"
+#endif
 
 // simulation parameters
 #ifdef USE_TAYLOR_GREEN
@@ -68,5 +78,14 @@
 
 // CUDA specific stuff
 #define BLOCK_SIZE 16
+
+// Debug/diagnostic configuration
+// #define LBM_DEBUG
+#ifndef DEBUG_NODE
+  #define DEBUG_NODE 5
+#endif
+#ifndef VALUE_THRESHOLD
+  #define VALUE_THRESHOLD 5.0f
+#endif
 
 #endif // !DEFINES_H

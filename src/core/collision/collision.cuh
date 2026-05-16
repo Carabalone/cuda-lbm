@@ -4,6 +4,7 @@
 #include "core/lbm_constants.cuh"
 #include "core/collision/BGK/BGK.cuh"
 #include "core/collision/MRT/MRT.cuh"
+#include "core/collision/MRT/UnoptimizedMRT.cuh"
 #include "core/collision/CM/CM.cuh"
 #include "core/collision/adapters.cuh"
 
@@ -14,7 +15,10 @@
 // -----------------------------------------------------------------------------------------------------
 
 template <typename CollisionOp, int dim>
-__global__ void collide_kernel(float* f, float* f_eq, float* u, float* force) {
+__global__ void collide_kernel(float* __restrict__ f,
+                               float* __restrict__ f_eq,
+                               float* __restrict__ u,
+                               float* __restrict__ force) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;

@@ -321,8 +321,28 @@ extern __constant__ float S[quadratures];
 
 constexpr int num_nodes = NX * NY * NZ;
 
-#define SOA
-// #define CSOA
+// Memory layout selection (compile-time):
+// - default: SoA
+// - define LBM_LAYOUT_AOS for AoS
+// - define LBM_LAYOUT_CSOA for CSoA
+#if defined(LBM_LAYOUT_AOS) && defined(LBM_LAYOUT_CSOA)
+#error "Choose only one layout: LBM_LAYOUT_AOS or LBM_LAYOUT_CSOA"
+#endif
+#if defined(LBM_LAYOUT_AOS) && defined(LBM_LAYOUT_SOA)
+#error "Choose only one layout: LBM_LAYOUT_AOS or LBM_LAYOUT_SOA"
+#endif
+#if defined(LBM_LAYOUT_CSOA) && defined(LBM_LAYOUT_SOA)
+#error "Choose only one layout: LBM_LAYOUT_CSOA or LBM_LAYOUT_SOA"
+#endif
+
+#if defined(LBM_LAYOUT_AOS)
+    // AoS path: keep SOA/CSOA undefined on purpose.
+#elif defined(LBM_LAYOUT_CSOA)
+    #define CSOA
+#else
+    #define SOA
+#endif
+
 #ifdef CSOA
     constexpr int cluster_size = 64;
 
@@ -338,7 +358,8 @@ constexpr int num_nodes = NX * NY * NZ;
     // TODO
     __device__ __host__ __forceinline__
     int get_vec_index(int node, int component) {
-        return node * dimensions + component;
+        return (((node / cluster_size) * dimensions + component) * cluster_size) +
+           (node % cluster_size);
     }
 #elif defined(SOA)
     constexpr int alloc_nodes = num_nodes;

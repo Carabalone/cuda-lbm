@@ -5,14 +5,25 @@
 #include "core/lbm_constants.cuh"
 
 template<int dim>
-__global__ void uncorrected_macroscopics_kernel(float* f, float* rho, float* u, float* force, float* pi_mag);
+__global__ void uncorrected_macroscopics_kernel(const float* __restrict__ f,
+                                                float* __restrict__ rho,
+                                                float* __restrict__ u,
+                                                const float* __restrict__ force,
+                                                float* __restrict__ pi_mag);
 
 template<int dim>
-__global__ void correct_macroscopics_kernel(float* f, float* rho, float* u, float* force, float* pi_mag);
+__global__ void correct_macroscopics_kernel(const float* __restrict__ f,
+                                            const float* __restrict__ rho,
+                                            float* __restrict__ u,
+                                            const float* __restrict__ force,
+                                            float* __restrict__ pi_mag);
 
 template <int dim, typename InitCond>
 __global__
-void reset_forces_kernel(float* d_rho, float* d_u, float* d_force, InitCond init) {
+void reset_forces_kernel(float* __restrict__ d_rho,
+                         float* __restrict__ d_u,
+                         float* __restrict__ d_force,
+                         InitCond init) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int z = blockIdx.z * blockDim.z + threadIdx.z;
@@ -34,7 +45,7 @@ void LBM<dim>::reset_forces() {
         threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
     }
     else {
-        threads = dim3(8, 8, 4);
+        threads = dim3(32, 4, 2);
         blocks = dim3(
             (NX + threads.x - 1) / threads.x,
             (NY + threads.y - 1) / threads.y,
@@ -128,7 +139,7 @@ void LBM<dim>::uncorrected_macroscopics() {
         threads = dim3(BLOCK_SIZE, BLOCK_SIZE);
     }
     else {
-        threads = dim3(8, 8, 4);
+        threads = dim3(32, 4, 2);
         blocks = dim3((NX + threads.x - 1) / threads.x,
                       (NY + threads.y - 1) / threads.y,
                       (NZ + threads.z - 1) / threads.z);
@@ -180,10 +191,12 @@ void LBM<dim>::correct_macroscopics() {
     sync_or_check_kernel();
     checkCudaErrors(cudaMemcpyFromSymbol(&h_moment, d_moment_avg, sizeof(MomentInfo)));
     
+    #ifdef LBM_DEBUG
     if (timestep % 50 == 0) {
         printf("[macroscopics] Moment Averages: rho_avg_norm=%.6f, momentum_avg_norm=%.6f, pi_avg_norm=%.6f\n",
             h_moment.rho_avg_norm, h_moment.j_avg_norm, h_moment.pi_avg_norm);
     }
+    #endif
 }
 
 #endif // ! LBM_MACROSCOPICS_H

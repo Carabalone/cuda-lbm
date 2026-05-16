@@ -384,6 +384,7 @@ public:
     template <typename Scenario>
     void reset_forces();
 
+    __device__ static void equilibrium_node_second_order(float* f_eq, float ux, float uy, float uz, float rho, int node);
     __device__ static void equilibrium_node(float* f_eq, float ux, float uy, float uz, float rho, int node);
     __device__ static void init_node(float* f, float* f_back, float* f_eq, float* rho, float* u, int node);
     __device__ static void stream_node(float* f, float* f_back, int node);
@@ -397,6 +398,7 @@ public:
     __host__ void uncorrected_macroscopics();
     __host__ void correct_macroscopics();
     __host__ void stream();
+    __host__ void stream_and_uncorrected_macroscopics();
     template <typename CollisionOp>
     __host__ void collide();
     __host__ void compute_equilibrium();

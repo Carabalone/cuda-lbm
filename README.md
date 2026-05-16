@@ -1,3 +1,10 @@
+# Running
+
+See `BENCHMARKING.txt` for TGV throughput (MLUPS) and how to pick collision operator / memory layout in `src/defines.hpp`.
+
+- Normal mode: `./bin/lbm_solver`
+- Benchmark mode: `timeout 15s ./bin/lbm_solver --benchmark` (stop immediately if output contains `[WARNING]`)
+
 # Creating New Scenarios:
 
 Lets add a new simulation scenario (let's call it `MyNewScenario`):

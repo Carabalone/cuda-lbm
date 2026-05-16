@@ -3,7 +3,7 @@
 #include "functors/includes.cuh"
 
 
-// #define DEBUG_KERNEL
+// Verbose kernel logging is gated by `LBM_DEBUG` (see `defines.hpp` / `util/utility.cuh`).
 
 __constant__ float WEIGHTS[quadratures];
 __constant__ int C[quadratures * dimensions];

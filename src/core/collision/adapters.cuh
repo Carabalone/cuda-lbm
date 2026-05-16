@@ -1,6 +1,7 @@
 #ifndef ADAPTERS_H
 #define ADAPTERS_H
 #include "core/lbm_constants.cuh"
+#include "util/utility.cuh"
 
 // currently only for 2D
 // will extend to 3D later.
@@ -99,9 +100,9 @@ struct OptimalAdapter : public AdapterBase {
         tau_star = fminf(tau_star, 1.5f);
 
         if (fabsf(tau_star_old) > 0.5f || fabsf(tau_star_old) < 0.1f){
-            printf("{\n\trho: %.4f\n" "\ts_p[0]: %.4f\n" "\ts_p[1]: %.4f\n"
-                   "\ts_p[2]: %.8f\n" "\ts_p[3]: %.4f\n" "\ttau_star: %.4f\n"
-                   "\tpi_mag/pi_mag_norm: %.6f/%.6f\n\tnew_tau_star: %.8f\n}\n",
+            DPRINTF("{\n\trho: %.4f\n" "\ts_p[0]: %.4f\n" "\ts_p[1]: %.4f\n"
+                    "\ts_p[2]: %.8f\n" "\ts_p[3]: %.4f\n" "\ttau_star: %.4f\n"
+                    "\tpi_mag/pi_mag_norm: %.6f/%.6f\n\tnew_tau_star: %.8f\n}\n",
                     rho, s_p[0], s_p[1], s_p[2], s_p[3], tau_star_old,
                     pi_mag, avg_mag.pi_avg_norm, tau_star);
         }

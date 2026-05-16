@@ -5,11 +5,21 @@
 #include "taylorGreen3DFunctors.cuh"
 #include "postprocessing/kineticEnergy.cuh"
 
+#if defined(LBM_COLLISION_BGK)
+using TGV3DCollisionOp = BGK<3>;
+#elif defined(LBM_COLLISION_MRT_BASELINE)
+using TGV3DCollisionOp = UnoptimizedMRT<3>;
+#elif defined(LBM_COLLISION_MRT)
+using TGV3DCollisionOp = MRT<3>;
+#else
+using TGV3DCollisionOp = CM<3, NoAdapter>;
+#endif
+
 struct TaylorGreen3DScenario : public ScenarioTrait <
     TaylorGreen3DInit,
     TaylorGreen3DBoundary,
     TaylorGreen3DValidation,
-    CM<3, NoAdapter>
+    TGV3DCollisionOp
 > {
 
     // Re=1600
@@ -23,72 +33,32 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 
+    // --benchmark window: 100 warmup + 250 measured (= 350 total)
+    #if defined(LBM_COLLISION_MRT) && defined(LBM_LAYOUT_AOS)
+    // Fits default 120s/run cap on GTX 1050 Ti (~5.8 MLUPS here).
+    static constexpr int benchmark_timesteps = 310;
+    static constexpr int benchmark_warmup = 100;
+    #else
+    static constexpr int benchmark_timesteps = 350;
+    static constexpr int benchmark_warmup = 100;
+    #endif
 
+    static constexpr int timesteps = 8000;
+    static constexpr int save_interval = 100;
+
+#if defined(LBM_COLLISION_MRT) || defined(LBM_COLLISION_MRT_BASELINE)
+    static constexpr float S[quadratures] = {
+        omega, omega, omega, omega, omega,
+        omega, omega, omega, omega, omega,
+        omega, omega, omega, omega, omega,
+        omega, omega, omega, omega, omega,
+        omega, omega, omega, omega, omega,
+        omega, omega
+    };
+#else
     static constexpr float S[quadratures] = {0.0f};
+#endif
 
-    // MRT equivalent to BGK
-    // static constexpr float S[quadratures] = {
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega
-    // };
-
-    // Suga et. al (2015)
-    // A D3Q27 multiple-relaxation-time lattice Boltzmann method for turbulent flows
-    // static constexpr float S[quadratures] = {
-    //     0.0f,
-    //     0.0f,
-    //     0.0f,
-    //     0.0f,
-    //     1.54f,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     omega,
-    //     1.5f,
-    //     1.5f,
-    //     1.5f,
-    //     1.83f,
-    //     1.83f,
-    //     1.83f,
-    //     1.4f,
-    //     1.61f,
-    //     1.98f,
-    //     1.98f,
-    //     1.98f,
-    //     1.98f,
-    //     1.98f,
-    //     1.74f,
-    //     1.74f,
-    //     1.74f,
-    //     1.74f
-    // };
-    
     static const char* name() { return "TaylorGreen3D"; }
     
     static InitType init() { 
@@ -105,12 +75,6 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     
     template <typename LBMSolver>
     static float compute_error(LBMSolver& solver) {
-        // we are computing in GPU arrays so no problems with data freshness here.
-        // if (solver.update_ts < solver.timestep)
-        //     solver.update_macroscopics();
-
-        // auto v = validation();
-
         float ke = calculate_kinetic_energy(solver.get_rho(), solver.get_u(), u_max);
         printf("Timestep %d: Kinetic Energy = %.6e\n", solver.timestep, ke);
         

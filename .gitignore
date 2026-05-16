@@ -63,3 +63,4 @@ plan/
 compile_commands.json
 *.obj
 debug/
+*.txt
