@@ -33,15 +33,10 @@ struct TaylorGreen3DScenario : public ScenarioTrait <
     static constexpr float tau = viscosity_to_tau(viscosity);
     static constexpr float omega = 1.0f / tau;
 
-    // --benchmark window: 100 warmup + 250 measured (= 350 total)
-    #if defined(LBM_COLLISION_MRT) && defined(LBM_LAYOUT_AOS)
-    // Fits default 120s/run cap on GTX 1050 Ti (~5.8 MLUPS here).
-    static constexpr int benchmark_timesteps = 310;
-    static constexpr int benchmark_warmup = 100;
-    #else
+    // One common window for new benchmark campaigns. The shorter historical
+    // GTX 1050 Ti MRT/AoS protocol is recorded only in its preserved CSV.
     static constexpr int benchmark_timesteps = 350;
     static constexpr int benchmark_warmup = 100;
-    #endif
 
     static constexpr int timesteps = 8000;
     static constexpr int save_interval = 100;

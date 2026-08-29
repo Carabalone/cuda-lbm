@@ -27,7 +27,13 @@
 #endif
 
 // simulation parameters
-#ifdef USE_TAYLOR_GREEN
+#if defined(LBM_BENCHMARK_GRID)
+    // Benchmark builds configure their cubic domain from the command line.
+    // This keeps the checked-in physics configuration untouched.
+    #define NX LBM_BENCHMARK_GRID
+    #define NY LBM_BENCHMARK_GRID
+    #define NZ LBM_BENCHMARK_GRID
+#elif defined(USE_TAYLOR_GREEN)
     #define SCALE 2
     #define NX (128 * SCALE)
     #define NY (128 * SCALE)

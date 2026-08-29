@@ -45,6 +45,7 @@ cmake_install.cmake
 # Ignore Python virtual environments (if applicable)
 venv/
 env/
+.benchmark/
 
 *.mp4
 videos/
